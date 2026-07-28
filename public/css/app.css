@@ -626,6 +626,81 @@ html, body { height: 100%; }
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Roast variant — loud, hostile, intentionally ugly */
+.easter-egg--roast {
+  max-width: 460px;
+  padding: 28px 24px 30px;
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      #1a0505,
+      #1a0505 12px,
+      #2a0a00 12px,
+      #2a0a00 24px
+    );
+  border: 3px solid #ff2d2d;
+  box-shadow:
+    0 0 0 4px #ffcc00,
+    0 0 28px rgba(255, 45, 45, 0.55),
+    inset 0 0 40px rgba(255, 80, 0, 0.15);
+  animation: easter-in 0.35s ease both, roast-pulse 1.4s ease-in-out infinite;
+}
+
+.easter-egg--roast .easter-egg-kicker {
+  color: #1a0505;
+  background: #ffcc00;
+  border-color: #ff2d2d;
+  border-radius: 4px;
+  letter-spacing: 0.08em;
+  animation: roast-blink 0.9s steps(2, end) infinite;
+}
+
+.easter-egg--roast .easter-egg-title {
+  color: #ff2d2d;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-shadow: 2px 2px 0 #ffcc00, -1px 0 8px rgba(255, 45, 45, 0.6);
+  font-size: 26px;
+}
+
+.easter-egg--roast .easter-egg-lead {
+  color: #ffc9a8;
+  font-weight: 600;
+}
+
+.easter-egg--roast .easter-egg-steps {
+  color: #f0d0c0;
+}
+
+.easter-egg--roast .easter-egg-steps li::marker {
+  color: #ffcc00;
+}
+
+.easter-egg--roast .easter-egg-meta span {
+  color: #1a0505;
+  background: #ffcc00;
+  border-color: #ff2d2d;
+  font-weight: 700;
+  border-radius: 4px;
+}
+
+.easter-egg--roast .easter-egg-foot {
+  color: #ffcc00;
+  font-style: normal;
+  font-weight: 700;
+  border-top: 2px dashed #ff2d2d;
+  padding-top: 14px;
+}
+
+@keyframes roast-pulse {
+  0%, 100% { box-shadow: 0 0 0 4px #ffcc00, 0 0 22px rgba(255, 45, 45, 0.45), inset 0 0 40px rgba(255, 80, 0, 0.12); }
+  50%      { box-shadow: 0 0 0 4px #ffcc00, 0 0 36px rgba(255, 45, 45, 0.75), inset 0 0 50px rgba(255, 80, 0, 0.22); }
+}
+
+@keyframes roast-blink {
+  50% { opacity: 0.55; }
+}
+
 /* ── Modal ──────────────────────────────────────── */
 .modal-overlay {
   position: fixed;
