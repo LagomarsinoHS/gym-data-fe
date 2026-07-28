@@ -1,0 +1,144 @@
+/* ── Design Tokens ──────────────────────────────── */
+/* Previous palettes kept for rollback:
+   Orange:  --accent #ff4f00; bg #f4f4f5; text #111 / #71717a / #a1a1aa
+   Soft teal: --accent #0f766e; bg #eef3f3; text #14201f / #4d6360 / #7a9290
+*/
+:root {
+  --accent:         #1d4ed8;
+  --accent-muted:   rgba(29, 78, 216, 0.14);
+  --bg-base:        #e8eef8;
+  --bg-surface:     #ffffff;
+  --bg-elevated:    #dbe6f6;
+  --bg-input:       #e2eaf7;
+  --border:         #b8c7e0;
+  --border-hover:   #7e96c4;
+  --text-primary:   #0b1220;
+  --text-secondary: #334155;
+  --text-tertiary:  #64748b;
+  --radius-sm:      6px;
+  --radius-md:      10px;
+  --radius-lg:      14px;
+  --radius-xl:      18px;
+  --code-bg:        #1a1a1a;
+  --mono:           'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+}
+
+/* ── Reset ──────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+img { display: block; max-width: 100%; }
+input { font: inherit; }
+a { color: inherit; text-decoration: none; }
+ol, ul { list-style: none; }
+summary { list-style: none; cursor: pointer; }
+summary::-webkit-details-marker { display: none; }
+
+code {
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+}
+
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Scrollbar ──────────────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-hover) transparent;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-hover);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+
+/* ── Code Block ─────────────────────────────────── */
+.code-block {
+  position: relative;
+  background: var(--code-bg);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.code-pre {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.75;
+  color: var(--border);
+  padding: 16px 20px;
+  overflow-x: auto;
+  white-space: pre;
+  tab-size: 2;
+  margin: 0;
+}
+
+.copy-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-tertiary);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  z-index: 1;
+}
+
+.copy-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.copy-btn.copied {
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.3);
+}
+
+/* ── Generate Button ────────────────────────────── */
+.generate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.generate-btn:hover { opacity: 0.88; }
+.generate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.generate-status {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-left: 12px;
+  vertical-align: middle;
+}

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Exercise Library</title>
+  <link rel="stylesheet" href="public/css/base.css" />
+  <link rel="stylesheet" href="public/css/app.css" />
+
+</head>
+<body>
+
+<div class="app-shell">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">Exercise<span>DB</span></div>
+      <!-- Temp: quita la clase "is-disabled" para reactivar -->
+      <a class="db-setup-btn is-disabled" href="setup.html" target="_blank" title="Database Setup" aria-disabled="true" tabindex="-1">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <ellipse cx="8" cy="4" rx="6" ry="2.5"/>
+          <path d="M2 4v3c0 1.38 2.69 2.5 6 2.5s6-1.12 6-2.5V4"/>
+          <path d="M2 7v3c0 1.38 2.69 2.5 6 2.5s6-1.12 6-2.5V7"/>
+          <path d="M2 10v2c0 1.38 2.69 2.5 6 2.5s6-1.12 6-2.5v-2"/>
+        </svg>
+        DB Setup
+      </a>
+    </div>
+    <div class="sidebar-body">
+      <!-- Search -->
+      <div class="search-wrapper">
+        <svg class="search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="6.5" cy="6.5" r="4.5"/>
+          <path d="M10.5 10.5L14 14" stroke-linecap="round"/>
+        </svg>
+        <input type="text" class="search-box" id="search" placeholder="Search exercises…" autocomplete="off" />
+        <button class="search-clear" id="search-clear" aria-label="Clear search">×</button>
+      </div>
+
+      <!-- Category filter -->
+      <div class="filter-section">
+        <div class="filter-summary" data-ui="category">Category</div>
+        <div class="filter-options" id="category-chips"></div>
+      </div>
+
+      <!-- Equipment filter -->
+      <div class="filter-section">
+        <div class="filter-summary" data-ui="equipment">Equipment</div>
+        <div class="filter-options" id="equipment-chips"></div>
+      </div>
+
+      <!-- Target filter -->
+      <div class="filter-section">
+        <div class="filter-summary" data-ui="target">Target Muscle</div>
+        <div class="filter-options" id="target-chips"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="results-bar">
+      <div class="active-filters" id="active-filters"></div>
+      <span class="results-count" id="results-count"></span>
+      <button type="button" class="wod-btn" id="wod-btn" title="Random workout">
+        <span class="wod-ico" aria-hidden="true">🎲</span>
+        <span>WOD</span>
+      </button>
+      <div class="lang-toggle" id="lang-toggle" role="group" aria-label="Language">
+        <button type="button" class="lang-toggle-btn active" data-lang="es" aria-pressed="true">Spanish</button>
+        <button type="button" class="lang-toggle-btn" data-lang="en" aria-pressed="false">English</button>
+      </div>
+    </div>
+    <div class="grid-wrapper">
+      <div class="exercise-grid" id="exercise-grid"></div>
+      <div class="load-sentinel" id="load-sentinel">
+        <div class="load-spinner" id="load-spinner"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<footer class="app-footer">
+  <div class="app-footer-row">
+    <span class="app-footer-text">Maintained by <strong class="app-footer-name">Mister L</strong></span>
+    <button type="button" class="app-footer-emoji" id="footer-emoji" title="Flex!" aria-label="Add a flex">💪</button>
+    <span class="app-footer-flexes" id="footer-flexes">flexes: 0</span>
+  </div>
+  <p class="app-footer-tagline" id="footer-tagline"></p>
+</footer>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-panel" id="modal-panel">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-title"></h2>
+      <button class="modal-close" id="modal-close" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-media">
+      <img class="modal-gif" id="modal-gif" alt="" />
+    </div>
+    <div class="modal-meta" id="modal-meta"></div>
+    <div class="modal-muscles" id="modal-muscles"></div>
+    <div class="modal-instructions" id="modal-instructions"></div>
+  </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
