@@ -1,9 +1,26 @@
-import { getExercises, getExercise, getLabels, getRandomExercise } from './api/exercises.js';
+/**
+ * App entry: catálogo, filtros, grid, modal de ejercicio, WOD, idioma.
+ * Markup: index.html (#exercise-grid, #modal-overlay, …).
+ * Features: auth-ui.js, footer.js, easter-egg.js.
+ */
+import { isLoggedIn } from './api/token.js';
 import { getEasterEgg, isEasterEggQuery, renderEasterEgg } from './features/easter-egg.js';
 import { initFooter } from './features/footer.js';
-import { EQUIP_INITIAL, VALUE_LABELS_ES } from './constants.js';
+import { initAuthUi, openAuth, syncAuthLabels } from './features/auth-ui.js';
+import {
+  initSessionUi,
+  restoreSession,
+  setView,
+  syncSessionLabels,
+  getUser,
+  getView,
+} from './features/session-ui.js';
+import { renderTrainingProgram } from './features/training-ui.js';
+import { getExercises, getExercise, getLabels, getRandomExercise } from './api/exercises.js';
+import { EQUIP_INITIAL } from './constants.js';
 import { debounce } from './utils/helpers.js';
 import { assetUrl } from './utils/assets.js';
+import { fillCardMedia, wireCardGrid } from './utils/cards.js';
 import { setLang, ui, label, exerciseName } from './utils/labels.js';
 
 const FILTER_KEYS = ['category', 'equipment', 'target'];
@@ -58,7 +75,21 @@ async function init() {
     target: labels.target,
   };
 
+  initSessionUi({
+    onViewChange(view) {
+      if (view === 'training') refreshTrainingGrid();
+      else if (view === 'catalog') reloadExercises();
+    },
+  });
+  initAuthUi({
+    onAuthSuccess: async () => {
+      await restoreSession();
+      setView('training');
+    },
+  });
+
   applyLanguage();
+  await restoreSession();
   await reloadExercises();
   wireEvents();
   initFooter();
@@ -68,15 +99,23 @@ function isIdSearch(q = state.search) {
   return /^\d+$/.test(String(q).trim());
 }
 
-function filterQueryParams() {
-  const params = {};
-  FILTER_KEYS.forEach(key => {
-    if (state.filters[key].size) params[key] = [...state.filters[key]][0];
-  });
+function activeFilters() {
+  return {
+    category: [...state.filters.category][0],
+    equipment: [...state.filters.equipment][0],
+    target: [...state.filters.target][0],
+    search: state.search.trim(),
+  };
+}
 
-  const q = state.search.trim();
-  if (q && !isIdSearch(q) && !isEasterEggQuery(q)) {
-    params.search = q;
+function filterQueryParams() {
+  const { category, equipment, target, search } = activeFilters();
+  const params = {};
+  if (category) params.category = category;
+  if (equipment) params.equipment = equipment;
+  if (target) params.target = target;
+  if (search && !isIdSearch(search) && !isEasterEggQuery(search)) {
+    params.search = search;
   }
   return params;
 }
@@ -88,6 +127,10 @@ function hasMorePages() {
 let listRequestId = 0;
 
 async function reloadExercises() {
+  if (getView() === 'training') {
+    refreshTrainingGrid();
+    return;
+  }
   listRequestId++;
   state.exercises = [];
   state.filtered = [];
@@ -100,7 +143,13 @@ async function reloadExercises() {
   await loadNextPage();
 }
 
+function refreshTrainingGrid() {
+  renderTrainingProgram(getUser(), activeFilters());
+  updateActiveBadges();
+}
+
 async function loadNextPage() {
+  if (getView() === 'training') return;
   if (state.loading || (state.page > 0 && !hasMorePages())) return;
   if (isIdSearch() || isEasterEggQuery(state.search)) return;
 
@@ -150,21 +199,10 @@ async function loadNextPage() {
   }
 }
 
-function buildSearchIndex(ex) {
-  const terms = [
-    ex.id,
-    exerciseName(ex, 'en'),
-    exerciseName(ex, 'es'),
-    ex.category, VALUE_LABELS_ES[ex.category],
-    ex.body_part, VALUE_LABELS_ES[ex.body_part],
-    ex.target, VALUE_LABELS_ES[ex.target],
-    ex.equipment, VALUE_LABELS_ES[ex.equipment],
-    ex.muscle_group, VALUE_LABELS_ES[ex.muscle_group],
-  ];
-  ex.secondary_muscles.forEach(m => {
-    terms.push(m, VALUE_LABELS_ES[m]);
-  });
-  ex._idx = terms.filter(Boolean).join(' ').toLowerCase();
+function upsertExercise(exercise) {
+  const i = state.exercises.findIndex(e => String(e.id) === String(exercise.id));
+  if (i >= 0) state.exercises[i] = exercise;
+  else state.exercises.push(exercise);
 }
 
 function applyLanguage() {
@@ -178,6 +216,10 @@ function applyLanguage() {
   buildFilterOptions();
   syncActiveChips();
   syncGrid();
+
+  syncAuthLabels();
+  syncSessionLabels();
+  if (getView() === 'training') refreshTrainingGrid();
 
   if (modalOverlay.classList.contains('open') && modalOverlay.dataset.openId) {
     openModal(modalOverlay.dataset.openId);
@@ -248,17 +290,10 @@ function makeChip(value, filterKey) {
   return btn;
 }
 
-function upsertExercise(ex) {
-  buildSearchIndex(ex);
-  const i = state.exercises.findIndex(e => String(e.id) === String(ex.id));
-  if (i >= 0) state.exercises[i] = ex;
-  else state.exercises.push(ex);
-}
-
 function dedupeById(list) {
   const seen = new Set();
-  return list.filter(ex => {
-    const id = String(ex.id);
+  return list.filter(exercise => {
+    const id = String(exercise.id);
     if (seen.has(id)) return false;
     seen.add(id);
     return true;
@@ -286,7 +321,7 @@ function clearAllFilters() {
 // ── Grid ───────────────────────────────────────────
 function appendCards(exercises) {
   const frag = document.createDocumentFragment();
-  exercises.forEach(ex => frag.appendChild(createCard(ex)));
+  exercises.forEach(exercise => frag.appendChild(createCard(exercise)));
   gridEl.appendChild(frag);
 }
 
@@ -304,10 +339,10 @@ function renderGrid() {
   appendCards(state.filtered);
 }
 
-function createCard(ex) {
+function createCard(exercise) {
   const article = document.createElement('article');
   article.className = 'exercise-card';
-  article.dataset.id = ex.id;
+  article.dataset.id = exercise.id;
   article.innerHTML = `
     <div class="card-media">
       <img class="card-thumb" loading="lazy" alt="" />
@@ -321,14 +356,7 @@ function createCard(ex) {
       </div>
     </div>`;
 
-  const thumb = article.querySelector('.card-thumb');
-  const name = exerciseName(ex);
-  thumb.src = assetUrl(ex.image);
-  thumb.alt = name;
-  article.querySelector('.card-gif').dataset.src = assetUrl(ex.gif_url);
-  article.querySelector('.card-name').textContent = name;
-  article.querySelector('.tag-cat').textContent = label(ex.category);
-  article.querySelector('.tag-equip').textContent = label(ex.equipment);
+  fillCardMedia(article, exercise);
   return article;
 }
 
@@ -363,7 +391,19 @@ function updateActiveBadges() {
 // ── Modal ──────────────────────────────────────────
 let modalRequestId = 0;
 
+function findCachedExercise(id) {
+  const key = String(id);
+  const fromCatalog = state.exercises.find(e => String(e.id) === key);
+  if (fromCatalog) return fromCatalog;
+  if (state.wod && String(state.wod.id) === key) return state.wod;
+  const fromProgram = getUser()?.trainingProgram
+    ?.find(item => String(item.exercise?.id || item.exerciseId) === key)
+    ?.exercise;
+  return fromProgram || null;
+}
+
 async function openModal(id) {
+  if (id == null || id === '') return;
   const requestId = ++modalRequestId;
 
   modalOverlay.classList.add('open');
@@ -371,14 +411,14 @@ async function openModal(id) {
   document.body.style.overflow = 'hidden';
   modalClose.focus();
 
-  const cached = state.exercises.find(e => String(e.id) === String(id))
-    || (state.wod && String(state.wod.id) === String(id) ? state.wod : null);
+  const cached = findCachedExercise(id);
   if (cached) fillModal(cached);
 
   try {
-    const ex = await getExercise(id);
+    const exercise = await getExercise(id);
     if (requestId !== modalRequestId) return;
-    fillModal(ex);
+    upsertExercise(exercise);
+    fillModal(exercise);
   } catch (err) {
     console.error(err);
     if (requestId !== modalRequestId) return;
@@ -386,15 +426,15 @@ async function openModal(id) {
   }
 }
 
-function fillModal(ex) {
-  const name = exerciseName(ex);
+function fillModal(exercise) {
+  const name = exerciseName(exercise);
   modalTitle.textContent = name;
-  modalGif.src = assetUrl(ex.gif_url);
+  modalGif.src = assetUrl(exercise.gif_url);
   modalGif.alt = name;
 
-  renderModalMeta(ex);
-  renderModalMuscles(ex);
-  renderModalInstructions(ex);
+  renderModalMeta(exercise);
+  renderModalMuscles(exercise);
+  renderModalInstructions(exercise);
 }
 
 function closeModal() {
@@ -405,13 +445,14 @@ function closeModal() {
   modalGif.src = '';
 }
 
-function renderModalMeta(ex) {
+function renderModalMeta(exercise) {
   modalMeta.innerHTML = '';
   [
-    [ui('bodyPart'), label(ex.body_part)],
-    [ui('equipment'), label(ex.equipment)],
-    [ui('targetMeta'), label(ex.target)],
+    [ui('bodyPart'), label(exercise.body_part || exercise.category)],
+    [ui('equipment'), label(exercise.equipment)],
+    [ui('targetMeta'), label(exercise.target)],
   ].forEach(([metaLabel, value]) => {
+    if (!value) return;
     const chip = document.createElement('div');
     chip.className = 'meta-chip';
     chip.innerHTML = `<span class="meta-chip-label">${metaLabel}</span><span class="meta-chip-value">${value}</span>`;
@@ -419,11 +460,11 @@ function renderModalMeta(ex) {
   });
 }
 
-function renderModalMuscles(ex) {
+function renderModalMuscles(exercise) {
   modalMuscles.innerHTML = '';
 
-  const primary = ex.target ? [ex.target] : [];
-  const secondary = ex.secondary_muscles.filter(m => m !== ex.target);
+  const primary = exercise.target ? [exercise.target] : [];
+  const secondary = (exercise.secondary_muscles || []).filter(m => m !== exercise.target);
 
   if (!primary.length && !secondary.length) return;
 
@@ -455,11 +496,11 @@ function renderModalMuscles(ex) {
   modalMuscles.appendChild(grid);
 }
 
-function renderModalInstructions(ex) {
+function renderModalInstructions(exercise) {
   modalInstr.innerHTML = '';
 
   const langs = [state.lang, state.lang === 'en' ? 'es' : 'en']
-    .map(code => ({ code, steps: ex.instruction_steps[code] ?? [] }))
+    .map(code => ({ code, steps: exercise.instruction_steps?.[code] ?? [] }))
     .filter(l => l.steps.length > 0);
 
   if (!langs.length) return;
@@ -515,6 +556,14 @@ function wireEvents() {
 
     const q = state.search.trim();
 
+    // Training view: filter in-memory program only (no catalog API)
+    if (getView() === 'training') {
+      searchRequestId++;
+      listRequestId++;
+      refreshTrainingGrid();
+      return;
+    }
+
     if (isEasterEggQuery(q)) {
       searchRequestId++;
       listRequestId++;
@@ -531,10 +580,10 @@ function wireEvents() {
       const requestId = ++searchRequestId;
       listRequestId++;
       try {
-        const ex = await getExercise(q);
+        const exercise = await getExercise(q);
         if (requestId !== searchRequestId) return;
-        upsertExercise(ex);
-        state.filtered = [ex];
+        upsertExercise(exercise);
+        state.filtered = [exercise];
         renderGrid();
         updateResultsBar();
         updateActiveBadges();
@@ -596,16 +645,10 @@ function wireEvents() {
     reloadExercises();
   });
 
-  gridEl.addEventListener('mouseover', e => {
-    const card = e.target.closest('.exercise-card');
-    if (!card) return;
-    const gif = card.querySelector('.card-gif');
-    if (gif?.dataset.src && !gif.src) gif.src = gif.dataset.src;
-  });
-
-  gridEl.addEventListener('click', e => {
-    const card = e.target.closest('.exercise-card');
-    if (card) openModal(card.dataset.id);
+  wireCardGrid(gridEl, { cardSelector: '.exercise-card', onOpen: openModal });
+  wireCardGrid(document.getElementById('training-grid'), {
+    cardSelector: '.training-card',
+    onOpen: openModal,
   });
 
   modalClose.addEventListener('click', closeModal);
@@ -632,15 +675,19 @@ function wireEvents() {
     if (wodBtn.disabled) return;
     wodBtn.disabled = true;
     try {
-      const ex = await getRandomExercise();
-      upsertExercise(ex);
-      state.wod = ex;
-      openModal(ex.id);
+      const exercise = await getRandomExercise();
+      upsertExercise(exercise);
+      state.wod = exercise;
+      openModal(exercise.id);
     } catch (err) {
       console.error(err);
     } finally {
       wodBtn.disabled = false;
     }
+  });
+
+  document.getElementById('my-plan-btn')?.addEventListener('click', () => {
+    if (!isLoggedIn()) openAuth('login');
   });
 
   new IntersectionObserver(entries => {

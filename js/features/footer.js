@@ -1,3 +1,4 @@
+/** Footer (#footer-emoji, #footer-tagline in index.html). */
 const FLEX_KEY = 'mister-l-flexes';
 
 const TAGLINES = [

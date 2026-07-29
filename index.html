@@ -6,28 +6,60 @@
   <title>ExerciseDB 🏋️</title>
   <link rel="stylesheet" href="public/css/base.css" />
   <link rel="stylesheet" href="public/css/app.css" />
-
+  <!--
+    Mapa rápido (markup → JS):
+    · Catálogo / filtros / grid / modal ejercicio → js/main.js
+    · #my-plan-btn + #auth-overlay                 → js/features/auth-ui.js (+ click en main.js)
+    · #sidebar-auth / vistas catalog|training      → js/features/session-ui.js
+    · #training-grid                               → js/features/training-ui.js
+    · Footer                                       → js/features/footer.js
+    · Easter eggs (search codes)                   → js/features/easter-egg.js
+    Entrada de la app: js/main.js
+  -->
 </head>
 <body>
 
+<!-- ═══ SHELL: sidebar + catálogo — js/main.js ═══ -->
 <div class="app-shell">
-  <!-- Sidebar -->
+
+  <!-- Sidebar (logo, Mi plan, search, chips) — js/main.js -->
   <aside class="sidebar">
     <div class="sidebar-header">
-      <div class="sidebar-logo">Exercise<span>DB</span></div>
-      <!-- Temp: quita la clase "is-disabled" para reactivar -->
-      <a class="db-setup-btn is-disabled" href="setup.html" target="_blank" title="Database Setup" aria-disabled="true" tabindex="-1">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <ellipse cx="8" cy="4" rx="6" ry="2.5"/>
-          <path d="M2 4v3c0 1.38 2.69 2.5 6 2.5s6-1.12 6-2.5V4"/>
-          <path d="M2 7v3c0 1.38 2.69 2.5 6 2.5s6-1.12 6-2.5V7"/>
-          <path d="M2 10v2c0 1.38 2.69 2.5 6 2.5s6-1.12 6-2.5v-2"/>
-        </svg>
-        DB Setup
-      </a>
+      <div class="sidebar-header-row">
+        <div class="sidebar-logo">Exercise<span>DB</span></div>
+        <!-- Sin sesión — js/features/auth-ui.js vía main.js -->
+        <div id="sidebar-guest">
+          <button type="button" class="my-plan-btn" id="my-plan-btn" title="Mi plan">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="1.5" width="10" height="13" rx="1.5"/>
+              <path d="M5.5 5h5M5.5 8h5M5.5 11h3"/>
+            </svg>
+            <span data-ui="myPlan">Mi plan</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Con sesión — js/features/session-ui.js -->
+      <div id="sidebar-auth" class="sidebar-auth" hidden>
+        <nav class="sidebar-nav" aria-label="App">
+          <button type="button" class="sidebar-nav-btn" id="nav-training" data-view="training">
+            <span class="sidebar-nav-marker" aria-hidden="true"></span>
+            <span data-ui="myTraining">Mi entrenamiento</span>
+          </button>
+          <button type="button" class="sidebar-nav-btn is-active" id="nav-catalog" data-view="catalog" aria-current="page">
+            <span class="sidebar-nav-marker" aria-hidden="true"></span>
+            <span data-ui="catalog">Catálogo</span>
+          </button>
+        </nav>
+        <div class="sidebar-user">
+          <span class="sidebar-user-name" id="sidebar-user-name"></span>
+          <button type="button" class="sidebar-logout" id="logout-btn">
+            <span data-ui="logout">Salir</span>
+          </button>
+        </div>
+      </div>
     </div>
     <div class="sidebar-body">
-      <!-- Search -->
       <div class="search-wrapper">
         <svg class="search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
           <circle cx="6.5" cy="6.5" r="4.5"/>
@@ -37,19 +69,16 @@
         <button class="search-clear" id="search-clear" aria-label="Clear search">×</button>
       </div>
 
-      <!-- Category filter -->
       <div class="filter-section">
         <div class="filter-summary" data-ui="category">Category</div>
         <div class="filter-options" id="category-chips"></div>
       </div>
 
-      <!-- Equipment filter -->
       <div class="filter-section">
         <div class="filter-summary" data-ui="equipment">Equipment</div>
         <div class="filter-options" id="equipment-chips"></div>
       </div>
 
-      <!-- Target filter -->
       <div class="filter-section">
         <div class="filter-summary" data-ui="target">Target Muscle</div>
         <div class="filter-options" id="target-chips"></div>
@@ -57,29 +86,39 @@
     </div>
   </aside>
 
-  <!-- Main Content -->
+  <!-- Main — catálogo (main.js) | entrenamiento (session-ui.js) -->
   <main class="main-content">
     <div class="results-bar">
-      <div class="active-filters" id="active-filters"></div>
-      <span class="results-count" id="results-count"></span>
-      <button type="button" class="wod-btn" id="wod-btn" title="Random workout">
-        <span class="wod-ico" aria-hidden="true">🎲</span>
-        <span>WOD</span>
-      </button>
+      <div id="catalog-bar-extras" class="catalog-bar-extras">
+        <div class="active-filters" id="active-filters"></div>
+        <span class="results-count" id="results-count"></span>
+        <button type="button" class="wod-btn" id="wod-btn" title="Random workout">
+          <span class="wod-ico" aria-hidden="true">🎲</span>
+          <span>WOD</span>
+        </button>
+      </div>
       <div class="lang-toggle" id="lang-toggle" role="group" aria-label="Language">
         <button type="button" class="lang-toggle-btn active" data-lang="es" aria-pressed="true">Spanish</button>
         <button type="button" class="lang-toggle-btn" data-lang="en" aria-pressed="false">English</button>
       </div>
     </div>
-    <div class="grid-wrapper">
-      <div class="exercise-grid" id="exercise-grid"></div>
-      <div class="load-sentinel" id="load-sentinel">
-        <div class="load-spinner" id="load-spinner"></div>
+
+    <div id="catalog-view">
+      <div class="grid-wrapper">
+        <div class="exercise-grid" id="exercise-grid"></div>
+        <div class="load-sentinel" id="load-sentinel">
+          <div class="load-spinner" id="load-spinner"></div>
+        </div>
       </div>
+    </div>
+
+    <div id="training-view" class="training-view" hidden>
+      <div class="training-grid" id="training-grid"></div>
     </div>
   </main>
 </div>
 
+<!-- ═══ FOOTER — js/features/footer.js ═══ -->
 <footer class="app-footer">
   <div class="app-footer-row">
     <span class="app-footer-text">Maintained by <strong class="app-footer-name">Mister L</strong></span>
@@ -91,7 +130,7 @@
   <p class="app-footer-tagline" id="footer-tagline"></p>
 </footer>
 
-<!-- Modal -->
+<!-- ═══ MODAL ejercicio (detalle) — js/main.js ═══ -->
 <div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
   <div class="modal-panel" id="modal-panel">
     <div class="modal-header">
@@ -104,6 +143,40 @@
     <div class="modal-meta" id="modal-meta"></div>
     <div class="modal-muscles" id="modal-muscles"></div>
     <div class="modal-instructions" id="modal-instructions"></div>
+  </div>
+</div>
+
+<!-- ═══ AUTH login / crear cuenta — js/features/auth-ui.js ═══ -->
+<div class="auth-overlay" id="auth-overlay" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+  <div class="auth-panel">
+    <div class="auth-header">
+      <h2 class="auth-title" id="auth-title">Iniciar sesión</h2>
+      <button type="button" class="modal-close" id="auth-close" aria-label="Close">✕</button>
+    </div>
+    <form class="auth-form" id="auth-form" autocomplete="on">
+      <!-- Solo visibles en modo "crear cuenta" -->
+      <label class="auth-field auth-register-only" hidden>
+        <span class="auth-label" data-ui="firstName">Nombre</span>
+        <input type="text" id="auth-first-name" name="firstName" autocomplete="given-name" />
+      </label>
+      <label class="auth-field auth-register-only" hidden>
+        <span class="auth-label" data-ui="lastName">Apellido</span>
+        <input type="text" id="auth-last-name" name="lastName" autocomplete="family-name" />
+      </label>
+      <label class="auth-field">
+        <span class="auth-label" data-ui="email">Email</span>
+        <input type="email" id="auth-email" name="email" required autocomplete="email" />
+      </label>
+      <label class="auth-field">
+        <span class="auth-label" data-ui="password">Contraseña</span>
+        <input type="password" id="auth-password" name="password" required minlength="6" autocomplete="current-password" />
+      </label>
+      <button type="submit" class="auth-submit" id="auth-submit">Entrar</button>
+      <p class="auth-status" id="auth-status" hidden></p>
+      <p class="auth-switch-wrap">
+        <a href="#" class="auth-switch" id="auth-switch">Crear cuenta</a>
+      </p>
+    </form>
   </div>
 </div>
 
