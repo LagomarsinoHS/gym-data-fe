@@ -95,6 +95,17 @@ html, body { height: 100%; }
   min-width: 4.5rem;
 }
 
+.app-footer-sep {
+  color: var(--text-tertiary);
+  opacity: 0.6;
+}
+
+.app-footer-updated {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
 .app-footer-tagline {
   position: relative;
   z-index: 1;
