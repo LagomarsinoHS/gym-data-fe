@@ -46,6 +46,32 @@ export function getUser() {
   return user;
 }
 
+/** Replace in-memory user (e.g. after program update). */
+export function setUser(next) {
+  user = next;
+  renderSessionChrome();
+  return user;
+}
+
+/** Refetch GET /users/me into session. */
+export async function refreshUser() {
+  if (!isLoggedIn()) {
+    user = null;
+    renderSessionChrome();
+    return null;
+  }
+  user = await getMe();
+  renderSessionChrome();
+  return user;
+}
+
+/** Exercise ids currently in the user's trainingProgram. */
+export function getProgramExerciseIds(u = user) {
+  return (u?.trainingProgram || [])
+    .map(item => String(item.exercise?.id || item.exerciseId || ''))
+    .filter(Boolean);
+}
+
 export function getView() {
   return view;
 }

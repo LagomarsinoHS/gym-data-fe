@@ -29,6 +29,17 @@ export async function post(path, body, { auth = false } = {}) {
   });
 }
 
+export async function put(path, body, { auth = false } = {}) {
+  return send(new URL(path, API_BASE), {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders(auth),
+    },
+    body: JSON.stringify(body),
+  });
+}
+
 function authHeaders(auth) {
   if (!auth) return {};
   const token = getToken();

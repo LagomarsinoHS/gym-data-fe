@@ -10,13 +10,16 @@ import { initAuthUi, openAuth, syncAuthLabels } from './features/auth-ui.js';
 import {
   initSessionUi,
   restoreSession,
+  setUser,
   setView,
   syncSessionLabels,
   getUser,
   getView,
+  getProgramExerciseIds,
 } from './features/session-ui.js';
 import { renderTrainingProgram } from './features/training-ui.js';
 import { getExercises, getExercise, getLabels, getRandomExercise } from './api/exercises.js';
+import { putTrainingProgram, removeTrainingProgramExercise } from './api/users.js';
 import { EQUIP_INITIAL } from './constants.js';
 import { debounce } from './utils/helpers.js';
 import { assetUrl } from './utils/assets.js';
@@ -58,9 +61,14 @@ const modalOverlay = document.getElementById('modal-overlay');
 const modalTitle = document.getElementById('modal-title');
 const modalGif = document.getElementById('modal-gif');
 const modalMeta = document.getElementById('modal-meta');
+const modalAddPlan = document.getElementById('modal-add-plan');
+const modalPlanBtnLabel = document.getElementById('modal-plan-btn-label');
+const modalPlanBtnFill = document.getElementById('modal-plan-btn-fill');
 const modalMuscles = document.getElementById('modal-muscles');
 const modalInstr = document.getElementById('modal-instructions');
 const modalClose = document.getElementById('modal-close');
+const modalShare = document.getElementById('modal-share');
+const modalShareFeedback = document.getElementById('modal-share-feedback');
 const langToggle = document.getElementById('lang-toggle');
 const wodBtn = document.getElementById('wod-btn');
 
@@ -85,6 +93,9 @@ async function init() {
     onAuthSuccess: async () => {
       await restoreSession();
       setView('training');
+      if (modalOverlay.classList.contains('open') && modalOverlay.dataset.openId) {
+        syncPlanAction(modalOverlay.dataset.openId);
+      }
     },
   });
 
@@ -93,6 +104,9 @@ async function init() {
   await reloadExercises();
   wireEvents();
   initFooter();
+
+  const deepLinked = readExerciseFromUrl();
+  if (deepLinked) openModal(deepLinked);
 }
 
 function isIdSearch(q = state.search) {
@@ -219,6 +233,10 @@ function applyLanguage() {
 
   syncAuthLabels();
   syncSessionLabels();
+  syncShareButtonLabels();
+  if (modalOverlay.classList.contains('open') && modalOverlay.dataset.openId) {
+    syncPlanAction(modalOverlay.dataset.openId);
+  }
   if (getView() === 'training') refreshTrainingGrid();
 
   if (modalOverlay.classList.contains('open') && modalOverlay.dataset.openId) {
@@ -409,6 +427,8 @@ async function openModal(id) {
   modalOverlay.classList.add('open');
   modalOverlay.dataset.openId = id;
   document.body.style.overflow = 'hidden';
+  syncExerciseInUrl(id);
+  syncShareButtonLabels();
   modalClose.focus();
 
   const cached = findCachedExercise(id);
@@ -433,16 +453,300 @@ function fillModal(exercise) {
   modalGif.alt = name;
 
   renderModalMeta(exercise);
+  syncPlanAction(exercise.id);
   renderModalMuscles(exercise);
   renderModalInstructions(exercise);
 }
 
-function closeModal() {
+function setPlanBtnLabel(text) {
+  if (modalPlanBtnLabel) modalPlanBtnLabel.textContent = text;
+  else if (modalAddPlan) modalAddPlan.textContent = text;
+}
+
+function stopPlanUndoFill() {
+  if (!modalPlanBtnFill) return;
+  modalPlanBtnFill.hidden = true;
+  modalPlanBtnFill.style.animation = 'none';
+  modalPlanBtnFill.style.width = '0%';
+}
+
+function startPlanUndoFill() {
+  if (!modalPlanBtnFill) return;
+  modalPlanBtnFill.hidden = false;
+  modalPlanBtnFill.style.width = '';
+  modalPlanBtnFill.style.animation = 'none';
+  // restart CSS animation
+  void modalPlanBtnFill.offsetWidth;
+  modalPlanBtnFill.style.animation = '';
+}
+
+function syncPlanAction(exerciseId) {
+  if (!modalAddPlan) return;
+
+  const id = String(exerciseId || '');
+  modalAddPlan.hidden = !id;
+  modalAddPlan.classList.remove('is-in-plan', 'is-remove', 'is-undo', 'is-busy');
+  stopPlanUndoFill();
+  delete modalAddPlan.dataset.error;
+
+  if (!id) return;
+
+  if (!getUser()) {
+    modalAddPlan.disabled = false;
+    modalAddPlan.dataset.mode = 'login';
+    setPlanBtnLabel(ui('addToPlanLogin'));
+    return;
+  }
+
+  const inPlan = getProgramExerciseIds().includes(id);
+
+  // Mi entrenamiento: quitar (no mostrar "En tu plan")
+  if (getView() === 'training' && inPlan) {
+    modalAddPlan.disabled = false;
+    modalAddPlan.dataset.mode = 'remove';
+    modalAddPlan.classList.add('is-remove');
+    setPlanBtnLabel(ui('removeFromPlan'));
+    return;
+  }
+
+  modalAddPlan.dataset.mode = inPlan ? 'in-plan' : 'add';
+  modalAddPlan.disabled = inPlan;
+  modalAddPlan.classList.toggle('is-in-plan', inPlan);
+  setPlanBtnLabel(ui(inPlan ? 'inPlan' : 'addToPlan'));
+}
+
+let planUndoTimer = 0;
+/** @type {{ userId: string, exerciseId: string, prevUser: object } | null} */
+let planUndoSnapshot = null;
+
+function clearPlanUndoTimer() {
+  window.clearTimeout(planUndoTimer);
+  planUndoTimer = 0;
+}
+
+function clearPlanUndoState() {
+  clearPlanUndoTimer();
+  planUndoSnapshot = null;
+  stopPlanUndoFill();
+  modalAddPlan?.classList.remove('is-undo');
+}
+
+function cloneUserForPlan(user) {
+  return {
+    ...user,
+    trainingProgram: [...(user.trainingProgram || [])],
+  };
+}
+
+function armPlanUndo(snapshot) {
+  planUndoSnapshot = snapshot;
+  modalAddPlan.disabled = false;
+  modalAddPlan.classList.remove('is-busy', 'is-remove');
+  modalAddPlan.classList.add('is-undo');
+  modalAddPlan.dataset.mode = 'undo';
+  setPlanBtnLabel(ui('undo'));
+  startPlanUndoFill();
+
+  clearPlanUndoTimer();
+  planUndoTimer = window.setTimeout(() => {
+    commitPendingRemove();
+  }, 1500);
+}
+
+async function commitPendingRemove() {
+  const snapshot = planUndoSnapshot;
+  planUndoSnapshot = null;
+  planUndoTimer = 0;
+
+  // Close while still styled as undo (closeModal must not restyle first)
+  closeModal({ skipPendingRemove: true });
+
+  if (!snapshot) return;
+
+  try {
+    await applyUserUpdate(
+      await removeTrainingProgramExercise(snapshot.userId, snapshot.exerciseId),
+    );
+  } catch (err) {
+    console.error(err);
+    setUser(snapshot.prevUser);
+    if (getView() === 'training') refreshTrainingGrid();
+  }
+}
+
+async function applyUserUpdate(updated) {
+  setUser(updated);
+  if (getView() === 'training') refreshTrainingGrid();
+  return updated;
+}
+
+async function saveProgramIds(userId, exerciseIds) {
+  return applyUserUpdate(await putTrainingProgram(userId, exerciseIds));
+}
+
+async function onPlanActionClick() {
+  if (!modalAddPlan || modalAddPlan.disabled) return;
+
+  const mode = modalAddPlan.dataset.mode;
+  if (mode === 'login') {
+    openAuth('login');
+    return;
+  }
+  if (mode === 'remove') {
+    removeFromPlan();
+    return;
+  }
+  if (mode === 'undo') {
+    undoRemoveFromPlan();
+    return;
+  }
+  if (mode !== 'add') return;
+
+  const exerciseId = modalOverlay.dataset.openId;
+  const user = getUser();
+  if (!exerciseId || !user?.id) return;
+
+  const nextIds = [...new Set([...getProgramExerciseIds(user), String(exerciseId)])];
+
+  modalAddPlan.disabled = true;
+  modalAddPlan.classList.add('is-busy');
+  setPlanBtnLabel(ui('loading'));
+
+  try {
+    clearPlanUndoState();
+    await saveProgramIds(user.id, nextIds);
+    syncPlanAction(exerciseId);
+  } catch (err) {
+    console.error(err);
+    modalAddPlan.disabled = false;
+    modalAddPlan.classList.remove('is-busy');
+    modalAddPlan.dataset.mode = 'add';
+    setPlanBtnLabel(ui('addToPlanFail'));
+    window.setTimeout(() => syncPlanAction(exerciseId), 1800);
+  }
+}
+
+/** Optimistic remove: API runs only if undo window expires (or modal closes). */
+function removeFromPlan() {
+  const exerciseId = String(modalOverlay.dataset.openId || '');
+  const user = getUser();
+  if (!exerciseId || !user?.id) return;
+  if (!getProgramExerciseIds(user).includes(exerciseId)) return;
+
+  const prevUser = cloneUserForPlan(user);
+  const optimistic = {
+    ...user,
+    trainingProgram: (user.trainingProgram || []).filter(
+      item => String(item.exercise?.id || item.exerciseId) !== exerciseId,
+    ),
+  };
+
+  setUser(optimistic);
+  if (getView() === 'training') refreshTrainingGrid();
+  armPlanUndo({ userId: user.id, exerciseId, prevUser });
+}
+
+function undoRemoveFromPlan() {
+  const snapshot = planUndoSnapshot;
+  if (!snapshot) return;
+
+  clearPlanUndoState();
+  setUser(snapshot.prevUser);
+  if (getView() === 'training') refreshTrainingGrid();
+  syncPlanAction(snapshot.exerciseId);
+}
+
+function closeModal({ skipPendingRemove = false } = {}) {
   modalRequestId++;
+
+  const pending = planUndoSnapshot;
+
+  // Hide overlay first — clearing is-undo before this caused a blue flash
   modalOverlay.classList.remove('open');
   delete modalOverlay.dataset.openId;
   document.body.style.overflow = '';
   modalGif.src = '';
+  syncExerciseInUrl(null);
+  resetShareFeedback();
+
+  clearPlanUndoState();
+
+  // Closing during undo window confirms the removal
+  if (pending && !skipPendingRemove) {
+    removeTrainingProgramExercise(pending.userId, pending.exerciseId)
+      .then(updated => {
+        setUser(updated);
+        if (getView() === 'training') refreshTrainingGrid();
+      })
+      .catch(err => {
+        console.error(err);
+        setUser(pending.prevUser);
+        if (getView() === 'training') refreshTrainingGrid();
+      });
+  }
+}
+
+function exerciseShareUrl(id) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('exercise', id);
+  url.hash = '';
+  return url.toString();
+}
+
+function readExerciseFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const fromQuery = params.get('exercise');
+  if (fromQuery) return fromQuery.trim();
+
+  const hash = window.location.hash.replace(/^#/, '').trim();
+  if (/^\d+$/.test(hash)) return hash;
+  return null;
+}
+
+function syncExerciseInUrl(id) {
+  const url = new URL(window.location.href);
+  if (id) url.searchParams.set('exercise', id);
+  else url.searchParams.delete('exercise');
+  if (/^\d+$/.test(url.hash.replace(/^#/, ''))) url.hash = '';
+  history.replaceState(null, '', url);
+}
+
+function syncShareButtonLabels() {
+  if (!modalShare) return;
+  modalShare.title = ui('copyLink');
+  modalShare.setAttribute('aria-label', ui('copyLink'));
+}
+
+function resetShareFeedback() {
+  modalShare?.classList.remove('is-copied');
+  if (modalShareFeedback) {
+    modalShareFeedback.hidden = true;
+    modalShareFeedback.textContent = '';
+  }
+}
+
+async function copyExerciseLink() {
+  const id = modalOverlay.dataset.openId;
+  if (!id || !modalShare) return;
+
+  const link = exerciseShareUrl(id);
+  try {
+    await navigator.clipboard.writeText(link);
+  } catch {
+    const input = document.createElement('input');
+    input.value = link;
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand('copy');
+    input.remove();
+  }
+
+  modalShare.classList.add('is-copied');
+  if (modalShareFeedback) {
+    modalShareFeedback.hidden = false;
+    modalShareFeedback.textContent = ui('linkCopied');
+  }
+  window.setTimeout(resetShareFeedback, 1400);
 }
 
 function renderModalMeta(exercise) {
@@ -652,6 +956,11 @@ function wireEvents() {
   });
 
   modalClose.addEventListener('click', closeModal);
+  modalShare?.addEventListener('click', e => {
+    e.stopPropagation();
+    copyExerciseLink();
+  });
+  modalAddPlan?.addEventListener('click', onPlanActionClick);
   modalOverlay.addEventListener('click', e => {
     if (e.target === modalOverlay) closeModal();
   });
