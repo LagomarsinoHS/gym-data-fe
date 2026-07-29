@@ -120,6 +120,7 @@ Los campos `image` y `gif_url` vienen como paths relativos (`images/...`, `video
 
 - Sin build step: editás y refrescás.
 - Render puede “dormir” el servicio gratis; el primer request tras inactividad puede tardar unos segundos.
+- Plan a futuro (login + perfil + ejercicios del profe): ver [`docs/PLAN-PERFIL-ENTRENAMIENTO.md`](docs/PLAN-PERFIL-ENTRENAMIENTO.md).
 - Maintained by **Mister L** 💪
 
 ---
