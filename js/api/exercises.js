@@ -18,23 +18,37 @@ async function request(path, params = {}) {
   return res.json();
 }
 
-/** @param {{ page?: number, limit?: number, category?: string, equipment?: string, target?: string, body_part?: string }} opts */
+/**
+ * Query params aligned with backend Joi (camelCase).
+ * @param {{ page?: number, limit?: number, category?: string, equipment?: string, target?: string, bodyPart?: string, muscleGroup?: string, search?: string }} opts
+ */
 export function getExercises({
   page = 1,
   limit = 50,
   category,
   equipment,
   target,
-  body_part,
+  bodyPart,
+  muscleGroup,
+  search,
 } = {}) {
-  return request(EXERCISES, { page, limit, category, equipment, target, body_part });
+  return request(EXERCISES, {
+    page,
+    limit,
+    category,
+    equipment,
+    target,
+    bodyPart,
+    muscleGroup,
+    search,
+  });
 }
 
 export function getExercise(id) {
   return request(`${EXERCISES}/${id}`);
 }
 
-/** Random exercise — requires GET /exercises/random on the API (register before /:id). */
+/** Random exercise — register /random before /:id on the API. */
 export function getRandomExercise() {
   return request(`${EXERCISES}/random`);
 }

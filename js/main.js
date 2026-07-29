@@ -4,7 +4,7 @@ import { initFooter } from './features/footer.js';
 import { EQUIP_INITIAL, VALUE_LABELS_ES } from './constants.js';
 import { debounce } from './utils/helpers.js';
 import { assetUrl } from './utils/assets.js';
-import { setLang, ui, label } from './utils/labels.js';
+import { setLang, ui, label, exerciseName } from './utils/labels.js';
 
 const FILTER_KEYS = ['category', 'equipment', 'target'];
 const LANG_NAMES = { en: 'English', es: 'Español' };
@@ -53,9 +53,9 @@ async function init() {
 
   const labels = await getLabels();
   state.labels = {
-    category: labels.category || [],
-    equipment: labels.equipment || [],
-    target: labels.target || [],
+    category: labels.category,
+    equipment: labels.equipment,
+    target: labels.target,
   };
 
   applyLanguage();
@@ -64,11 +64,20 @@ async function init() {
   initFooter();
 }
 
+function isIdSearch(q = state.search) {
+  return /^\d+$/.test(String(q).trim());
+}
+
 function filterQueryParams() {
   const params = {};
   FILTER_KEYS.forEach(key => {
     if (state.filters[key].size) params[key] = [...state.filters[key]][0];
   });
+
+  const q = state.search.trim();
+  if (q && !isIdSearch(q) && !isEasterEggQuery(q)) {
+    params.search = q;
+  }
   return params;
 }
 
@@ -93,9 +102,7 @@ async function reloadExercises() {
 
 async function loadNextPage() {
   if (state.loading || (state.page > 0 && !hasMorePages())) return;
-  // Don't keep paginating while searching by id
-  if (/^\d+$/.test(state.search.trim())) return;
-  if (isEasterEggQuery(state.search)) return;
+  if (isIdSearch() || isEasterEggQuery(state.search)) return;
 
   const requestId = listRequestId;
   state.loading = true;
@@ -110,30 +117,30 @@ async function loadNextPage() {
     });
     if (requestId !== listRequestId) return;
 
-    const items = data.data || [];
+    const items = data.data;
     items.forEach(upsertExercise);
-    state.page = data.page ?? nextPage;
-    state.pages = data.pages ?? data.totalPages ?? 0;
-    state.total = data.total ?? state.exercises.length;
+    state.page = data.page;
+    state.pages = data.pages;
+    state.total = data.total;
 
     if (nextPage === 1) {
-      applyLocalFilters();
+      syncGrid();
     } else {
-      const matches = dedupeById(matchBySearch(items));
+      const unique = dedupeById(items);
       const wasEmpty = state.filtered.length === 0;
-      state.filtered.push(...matches);
+      state.filtered.push(...unique);
       state.filtered = dedupeById(state.filtered);
-      if (matches.length) {
+      if (unique.length) {
         if (wasEmpty) renderGrid();
-        else appendCards(matches);
+        else appendCards(unique);
       }
       updateResultsBar();
     }
   } finally {
     if (requestId !== listRequestId) return;
     state.loading = false;
-    spinnerEl.classList.toggle('visible', hasMorePages() && !/^\d+$/.test(state.search.trim()));
-    if (hasMorePages() && !/^\d+$/.test(state.search.trim())) {
+    spinnerEl.classList.toggle('visible', hasMorePages());
+    if (hasMorePages()) {
       requestAnimationFrame(() => {
         if (requestId !== listRequestId) return;
         const { top } = sentinelEl.getBoundingClientRect();
@@ -146,14 +153,15 @@ async function loadNextPage() {
 function buildSearchIndex(ex) {
   const terms = [
     ex.id,
-    ex.name,
+    exerciseName(ex, 'en'),
+    exerciseName(ex, 'es'),
     ex.category, VALUE_LABELS_ES[ex.category],
     ex.body_part, VALUE_LABELS_ES[ex.body_part],
     ex.target, VALUE_LABELS_ES[ex.target],
     ex.equipment, VALUE_LABELS_ES[ex.equipment],
     ex.muscle_group, VALUE_LABELS_ES[ex.muscle_group],
   ];
-  (ex.secondary_muscles || []).forEach(m => {
+  ex.secondary_muscles.forEach(m => {
     terms.push(m, VALUE_LABELS_ES[m]);
   });
   ex._idx = terms.filter(Boolean).join(' ').toLowerCase();
@@ -169,7 +177,7 @@ function applyLanguage() {
 
   buildFilterOptions();
   syncActiveChips();
-  applyLocalFilters();
+  syncGrid();
 
   if (modalOverlay.classList.contains('open') && modalOverlay.dataset.openId) {
     openModal(modalOverlay.dataset.openId);
@@ -240,12 +248,6 @@ function makeChip(value, filterKey) {
   return btn;
 }
 
-function matchBySearch(list) {
-  const q = state.search.toLowerCase().trim();
-  if (!q) return list;
-  return list.filter(ex => ex._idx.includes(q));
-}
-
 function upsertExercise(ex) {
   buildSearchIndex(ex);
   const i = state.exercises.findIndex(e => String(e.id) === String(ex.id));
@@ -263,12 +265,13 @@ function dedupeById(list) {
   });
 }
 
-function applyLocalFilters() {
-  state.filtered = dedupeById(matchBySearch(state.exercises));
+/** Refresh grid from current in-memory list (server already filtered). */
+function syncGrid() {
+  state.filtered = dedupeById(state.exercises);
   renderGrid();
   updateResultsBar();
   updateActiveBadges();
-  spinnerEl.classList.toggle('visible', hasMorePages() && !/^\d+$/.test(state.search.trim()));
+  spinnerEl.classList.toggle('visible', hasMorePages() && !isIdSearch());
 }
 
 function clearAllFilters() {
@@ -319,22 +322,18 @@ function createCard(ex) {
     </div>`;
 
   const thumb = article.querySelector('.card-thumb');
+  const name = exerciseName(ex);
   thumb.src = assetUrl(ex.image);
-  thumb.alt = ex.name;
+  thumb.alt = name;
   article.querySelector('.card-gif').dataset.src = assetUrl(ex.gif_url);
-  article.querySelector('.card-name').textContent = ex.name;
+  article.querySelector('.card-name').textContent = name;
   article.querySelector('.tag-cat').textContent = label(ex.category);
   article.querySelector('.tag-equip').textContent = label(ex.equipment);
   return article;
 }
 
 function updateResultsBar() {
-  const shown = state.filtered.length;
-  const all = state.total || state.exercises.length;
-
-  countEl.textContent = state.search
-    ? ui('ofExercises', shown, all)
-    : ui('exercises', all);
+  countEl.textContent = ui('exercises', state.total);
 }
 
 function updateActiveBadges() {
@@ -388,9 +387,10 @@ async function openModal(id) {
 }
 
 function fillModal(ex) {
-  modalTitle.textContent = ex.name;
+  const name = exerciseName(ex);
+  modalTitle.textContent = name;
   modalGif.src = assetUrl(ex.gif_url);
-  modalGif.alt = ex.name;
+  modalGif.alt = name;
 
   renderModalMeta(ex);
   renderModalMuscles(ex);
@@ -408,7 +408,7 @@ function closeModal() {
 function renderModalMeta(ex) {
   modalMeta.innerHTML = '';
   [
-    [ui('bodyPart'), label(ex.body_part || ex.category)],
+    [ui('bodyPart'), label(ex.body_part)],
     [ui('equipment'), label(ex.equipment)],
     [ui('targetMeta'), label(ex.target)],
   ].forEach(([metaLabel, value]) => {
@@ -423,8 +423,7 @@ function renderModalMuscles(ex) {
   modalMuscles.innerHTML = '';
 
   const primary = ex.target ? [ex.target] : [];
-  const secondary = (ex.secondary_muscles || (ex.muscle_group ? [ex.muscle_group] : []))
-    .filter(m => m !== ex.target);
+  const secondary = ex.secondary_muscles.filter(m => m !== ex.target);
 
   if (!primary.length && !secondary.length) return;
 
@@ -460,7 +459,7 @@ function renderModalInstructions(ex) {
   modalInstr.innerHTML = '';
 
   const langs = [state.lang, state.lang === 'en' ? 'es' : 'en']
-    .map(code => ({ code, steps: ex.instruction_steps?.[code] ?? [] }))
+    .map(code => ({ code, steps: ex.instruction_steps[code] ?? [] }))
     .filter(l => l.steps.length > 0);
 
   if (!langs.length) return;
@@ -518,6 +517,7 @@ function wireEvents() {
 
     if (isEasterEggQuery(q)) {
       searchRequestId++;
+      listRequestId++;
       state.filtered = [];
       const egg = getEasterEgg(q);
       renderEasterEgg(gridEl, egg);
@@ -527,8 +527,9 @@ function wireEvents() {
     }
 
     // Numeric query → fetch by id (e.g. "0001")
-    if (/^\d+$/.test(q)) {
+    if (isIdSearch(q)) {
       const requestId = ++searchRequestId;
+      listRequestId++;
       try {
         const ex = await getExercise(q);
         if (requestId !== searchRequestId) return;
@@ -541,12 +542,15 @@ function wireEvents() {
         return;
       } catch {
         if (requestId !== searchRequestId) return;
+        state.filtered = [];
+        renderGrid();
+        updateResultsBar();
+        return;
       }
-    } else {
-      searchRequestId++;
     }
 
-    applyLocalFilters();
+    searchRequestId++;
+    await reloadExercises();
   }, 500));
 
   searchClearEl.addEventListener('click', () => {
@@ -554,7 +558,7 @@ function wireEvents() {
     searchEl.value = '';
     state.search = '';
     searchClearEl.classList.remove('visible');
-    applyLocalFilters();
+    reloadExercises();
   });
 
   document.querySelector('.sidebar-body').addEventListener('click', e => {
