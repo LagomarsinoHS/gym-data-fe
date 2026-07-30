@@ -39,6 +39,7 @@ Flujo:
 - Dos mundos en la UI:
   1. **Catálogo** — `GET /exercises` (paginado, filtros, WOD) desde la BD vía API
   2. **Mi entrenamiento** — plan privado del user autenticado
+- Preferencias de UI (tema / idioma): **local** (`localStorage`), no en el user de la API (por ahora).
 
 ---
 
@@ -117,14 +118,35 @@ Ambos responden con el user actualizado (el front hace `setUser` sin otro `/me`)
 - [x] **Agregar a mi plan** (logueado) / “Iniciá sesión para guardar”
 - [x] En catálogo: estado **En tu plan** si ya está
 - [x] En Mi entrenamiento: **Quitar del plan** + undo (~1.5s) con barra; el `remove` al back se confirma al terminar / cerrar
+- [x] Entrada/salida animada (overlay fade + panel scale/slide; sheet en mobile ≤768px)
+
+### Catálogo / boot UX
+
+- [x] Idioma por defecto **español** (`lang=es`, chrome ES en HTML)
+- [x] Filtros ocultos hasta `GET /exercises/labels` → luego reveal en cascade
+- [x] Loading centrado en el grid; contador de ejercicios vacío hasta el primer response
+- [x] Empty state real cuando la API responde `[]` (filtros sin match) — no spinner eterno
+- [x] Cards: título reserva 2 líneas (tags alineados); tags cat filled / equip outline distintivos
+- [x] Thumb: shimmer mientras carga + fade-in al estar lista (`js/utils/cards.js`)
+- [x] Stagger al pintar cards; pop al activar chip; focus activo en search
+
+### Tema claro / oscuro
+
+- [x] Toggle **☀️/🌙 Tema** junto al lang (barra superior)
+- [x] Tokens en `base.css` (`html[data-theme="light|dark"]`)
+- [x] Persistencia `localStorage` (`FLEX_THEME`); boot temprano en `js/theme-boot.js` (sin flash)
+- [x] Transición suave solo al togglear (clase `theme-animating`)
+- [x] Contraste dark revisado (labels, chips, tags de cards)
 
 ### Código relevante
 
 ```
 js/api/auth.js, token.js, users.js, client.js
-js/features/auth-ui.js, session-ui.js, training-ui.js
+js/features/auth-ui.js, session-ui.js, training-ui.js, theme-ui.js
+js/theme-boot.js      # tema antes del paint
 js/utils/cards.js, helpers.js (normalizeSearch)
-js/main.js          # catálogo + modal + plan CTAs
+js/main.js            # catálogo + modal + plan CTAs
+public/css/base.css, app.css
 ```
 
 ---
@@ -157,13 +179,14 @@ js/main.js          # catálogo + modal + plan CTAs
 - [ ] Migrar token a cookie httpOnly (opcional)
 - [ ] Roles en UI (`coach` vs `athlete`)
 - [ ] Historial de programas (hoy: un plan activo embebido)
+- [ ] Sync tema/idioma al user en API (`user.config`) — solo si hace falta cross-device
 
 ### Nice-to-have
 
 - [ ] Favoritos separados del plan (si hace falta distinto a “agregar al plan”)
 - [ ] Deep link más corto (`#0001` unificado como canonical)
 - [ ] Tracking de workouts / progreso
-- [ ] i18n de textos nuevos del plan (ya hay labels ES/EN básicos)
+- [ ] Persistir idioma preferido en `localStorage` (hoy default ES; toggle en sesión)
 
 ---
 
@@ -179,6 +202,9 @@ js/main.js          # catálogo + modal + plan CTAs
 | Quitar | `PUT .../training-program/remove` con `exerciseId` |
 | Undo quitar | Optimista en front; API remove al confirmar (timer / cerrar) |
 | Setup DB en el FE | Eliminado (`setup.html` / `setup/`); catálogo solo vía API |
+| Tema / lang | Preferencias locales; no CSS ni config en BD |
+| Idioma default | Español |
+| Deploy | `main` = prod (Vercel Production); `develop` = preview de trabajo |
 
 ---
 
@@ -188,6 +214,7 @@ js/main.js          # catálogo + modal + plan CTAs
 - Chat profe–alumno
 - App nativa
 - Reemplazar el catálogo público
+- Guardar hojas CSS en la API
 
 ---
 
@@ -196,6 +223,8 @@ js/main.js          # catálogo + modal + plan CTAs
 - Front: [README.md](../README.md)
 - API: `https://gym-data-8d3l.onrender.com` (prod) / `localhost:3000`
 - Deploy front: Vercel
+  - **`main`** → link estable (compartir)
+  - **`develop`** → preview (laburar); merge a `main` cuando esté listo (`git merge develop --no-edit`)
 
 ---
 
