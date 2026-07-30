@@ -229,6 +229,7 @@ html, body { height: 100%; }
   pointer-events: none;
   width: 14px;
   height: 14px;
+  transition: color 0.15s;
 }
 
 .search-box {
@@ -240,11 +241,36 @@ html, body { height: 100%; }
   color: var(--text-primary);
   font-size: 13px;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 
 .search-box::placeholder { color: var(--text-tertiary); }
-.search-box:focus { border-color: var(--accent); }
+
+.search-box:focus {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.search-wrapper:focus-within {
+  animation: search-pop 0.28s ease;
+}
+
+.search-wrapper:focus-within .search-icon {
+  color: var(--accent);
+}
+
+@keyframes search-pop {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-wrapper:focus-within {
+    animation: none;
+  }
+}
 
 .search-clear {
   position: absolute;

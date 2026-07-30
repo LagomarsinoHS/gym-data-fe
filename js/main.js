@@ -399,7 +399,8 @@ function renderGrid() {
   gridEl.innerHTML = '';
 
   if (state.filtered.length === 0) {
-    if (!state.catalogReady || state.loading) {
+    // Solo “cargando” antes del primer response; si ya respondió vacío → empty state
+    if (!state.catalogReady) {
       showCatalogLoading();
       return;
     }
