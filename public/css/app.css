@@ -3,6 +3,25 @@
   --sidebar-w: 260px;
 }
 
+.dev-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid #b91c1c;
+  background: #dc2626;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  pointer-events: none;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.35);
+}
+
 /* ── Base overrides ─────────────────────────────── */
 html, body { height: 100%; }
 
