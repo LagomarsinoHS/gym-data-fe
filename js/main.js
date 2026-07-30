@@ -26,6 +26,7 @@ import { debounce } from './utils/helpers.js';
 import { assetUrl } from './utils/assets.js';
 import { fillCardMedia, wireCardGrid } from './utils/cards.js';
 import { setLang, ui, label, exerciseName } from './utils/labels.js';
+import { getStoredLang, setStoredLang } from './utils/prefs.js';
 
 const FILTER_KEYS = ['category', 'equipment', 'target'];
 const LANG_NAMES = { en: 'English', es: 'Español' };
@@ -38,7 +39,7 @@ const state = {
   labels: { category: [], equipment: [], target: [] },
   wod: null,
   search: '',
-  lang: 'es',
+  lang: getStoredLang(),
   filters: {
     category: new Set(),
     equipment: new Set(),
@@ -106,6 +107,8 @@ async function init() {
   applyLanguage();
   initFilterAccordions();
   revealFilters();
+  collapseFiltersOnMobile();
+  initResultsBarPlacement();
   await restoreSession();
   await reloadExercises();
   wireEvents();
@@ -166,7 +169,8 @@ async function reloadExercises() {
 }
 
 function refreshTrainingGrid() {
-  renderTrainingProgram(getUser(), activeFilters());
+  const { search } = activeFilters();
+  renderTrainingProgram(getUser(), { search });
   updateActiveBadges();
 }
 
@@ -234,7 +238,13 @@ function syncChromeLabels() {
   document.querySelectorAll('[data-ui]').forEach(el => {
     el.textContent = ui(el.dataset.ui);
   });
-  searchEl.placeholder = ui('search');
+  document.querySelectorAll('.lang-toggle-btn').forEach(btn => {
+    const active = btn.dataset.lang === state.lang;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-pressed', String(active));
+  });
+  const onTraining = getView() === 'training' && Boolean(getUser());
+  searchEl.placeholder = onTraining ? ui('searchTraining') : ui('search');
   syncAuthLabels();
   syncSessionLabels();
 }
@@ -339,6 +349,44 @@ function initFilterAccordions() {
       syncFilterSectionHints();
     });
   });
+}
+
+/** En móvil: filtros cerrados por defecto para no comer viewport. */
+function collapseFiltersOnMobile() {
+  if (!window.matchMedia('(max-width: 768px)').matches) return;
+
+  document.querySelectorAll('.filter-section').forEach(section => {
+    section.classList.add('is-collapsed');
+    section.querySelector('.filter-summary')?.setAttribute('aria-expanded', 'false');
+  });
+  syncFilterSectionHints();
+}
+
+/**
+ * Un solo .results-bar: en móvil justo bajo ExerciseDB; en desktop en el main.
+ */
+function placeResultsBarForViewport() {
+  const bar = document.querySelector('.results-bar');
+  const headerRow = document.querySelector('.sidebar-header-row');
+  const header = document.querySelector('.sidebar-header');
+  const main = document.querySelector('.main-content');
+  if (!bar || !headerRow || !header || !main) return;
+
+  const mobile = window.matchMedia('(max-width: 768px)').matches;
+
+  if (mobile) {
+    if (bar.parentElement === header && bar.previousElementSibling === headerRow) return;
+    headerRow.after(bar);
+    return;
+  }
+
+  if (bar.parentElement === main && main.firstElementChild === bar) return;
+  main.insertBefore(bar, main.firstElementChild);
+}
+
+function initResultsBarPlacement() {
+  placeResultsBarForViewport();
+  window.matchMedia('(max-width: 768px)').addEventListener('change', placeResultsBarForViewport);
 }
 
 function renderChips(containerId, values, filterKey, pageSize = null) {
@@ -1116,12 +1164,8 @@ function wireEvents() {
   langToggle?.addEventListener('click', e => {
     const btn = e.target.closest('.lang-toggle-btn');
     if (!btn || btn.dataset.lang === state.lang) return;
-    state.lang = btn.dataset.lang;
-    document.querySelectorAll('.lang-toggle-btn').forEach(b => {
-      const active = b.dataset.lang === state.lang;
-      b.classList.toggle('active', active);
-      b.setAttribute('aria-pressed', String(active));
-    });
+    state.lang = btn.dataset.lang === 'en' ? 'en' : 'es';
+    setStoredLang(state.lang);
     applyLanguage();
   });
 

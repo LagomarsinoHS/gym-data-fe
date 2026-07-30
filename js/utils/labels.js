@@ -3,7 +3,7 @@ import { UI_LABELS, VALUE_LABELS_ES } from '../constants.js';
 let currentLang = 'es';
 
 export function setLang(lang) {
-  currentLang = lang;
+  currentLang = lang === 'en' ? 'en' : 'es';
 }
 
 export function getLang() {

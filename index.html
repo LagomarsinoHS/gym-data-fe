@@ -25,7 +25,7 @@
 <!-- ═══ SHELL: sidebar + catálogo — js/main.js ═══ -->
 <div class="app-shell">
 
-  <!-- Sidebar (logo, Mi plan, search, chips) — js/main.js -->
+  <!-- Sidebar (logo, Mi plan, chips) — js/main.js -->
   <aside class="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-header-row">
@@ -44,40 +44,56 @@
 
       <!-- Con sesión — js/features/session-ui.js -->
       <div id="sidebar-auth" class="sidebar-auth" hidden>
-        <nav class="sidebar-nav" aria-label="App">
-          <button type="button" class="sidebar-nav-btn" id="nav-training" data-view="training">
-            <span class="sidebar-nav-marker" aria-hidden="true"></span>
-            <span data-ui="myTraining">Mi entrenamiento</span>
-          </button>
-          <button type="button" class="sidebar-nav-btn is-active" id="nav-catalog" data-view="catalog" aria-current="page">
-            <span class="sidebar-nav-marker" aria-hidden="true"></span>
-            <span data-ui="catalog">Catálogo</span>
-          </button>
-        </nav>
         <div class="sidebar-user">
-          <span class="sidebar-user-name" id="sidebar-user-name"></span>
+          <div class="sidebar-user-identity">
+            <span class="sidebar-user-avatar" id="sidebar-user-avatar" aria-hidden="true"></span>
+            <div class="sidebar-user-meta">
+              <span class="sidebar-user-name" id="sidebar-user-name"></span>
+            </div>
+          </div>
           <button type="button" class="sidebar-logout" id="logout-btn">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M6 3H3.5A1.5 1.5 0 0 0 2 4.5v7A1.5 1.5 0 0 0 3.5 13H6"/>
+              <path d="M10.5 10.5 13 8l-2.5-2.5"/>
+              <path d="M6.5 8H13"/>
+            </svg>
             <span data-ui="logout">Salir</span>
           </button>
         </div>
+
+        <nav class="sidebar-nav" aria-label="App">
+          <div class="sidebar-nav-group">
+            <div class="sidebar-nav-label" data-ui="navGroupPlan">Mi plan</div>
+            <div class="sidebar-nav-group-items">
+              <button type="button" class="sidebar-nav-btn" id="nav-training" data-view="training">
+                <span class="sidebar-nav-marker" aria-hidden="true"></span>
+                <span data-ui="myTraining">Entrenamiento</span>
+              </button>
+              <button type="button" class="sidebar-nav-btn is-soon" id="nav-progress" disabled title="Próximamente">
+                <span class="sidebar-nav-marker" aria-hidden="true"></span>
+                <span data-ui="progress">Progreso</span>
+              </button>
+            </div>
+          </div>
+          <div class="sidebar-nav-group">
+            <div class="sidebar-nav-label" data-ui="navGroupExplore">Explorar</div>
+            <button type="button" class="sidebar-nav-btn is-active" id="nav-catalog" data-view="catalog" aria-current="page">
+              <span class="sidebar-nav-marker" aria-hidden="true"></span>
+              <span data-ui="catalog">Catálogo</span>
+            </button>
+          </div>
+        </nav>
       </div>
     </div>
     <div class="sidebar-body">
-      <div class="search-wrapper">
-        <svg class="search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
-          <circle cx="6.5" cy="6.5" r="4.5"/>
-          <path d="M10.5 10.5L14 14" stroke-linecap="round"/>
-        </svg>
-        <input type="text" class="search-box" id="search" placeholder="Buscar ejercicios…" autocomplete="off" />
-        <button class="search-clear" id="search-clear" aria-label="Limpiar búsqueda">×</button>
-      </div>
+      <!-- Filtros de librería: solo visibles en vista Catálogo -->
+      <div id="sidebar-catalog-filters" class="sidebar-catalog-filters">
+        <div class="sidebar-filters-status" id="sidebar-filters-status" aria-live="polite">
+          <div class="load-spinner visible" aria-hidden="true"></div>
+          <span data-ui="loadingFilters">Cargando filtros…</span>
+        </div>
 
-      <div class="sidebar-filters-status" id="sidebar-filters-status" aria-live="polite">
-        <div class="load-spinner visible" aria-hidden="true"></div>
-        <span data-ui="loadingFilters">Cargando filtros…</span>
-      </div>
-
-      <div class="sidebar-filters" id="sidebar-filters" hidden>
+        <div class="sidebar-filters" id="sidebar-filters" hidden>
         <div class="filter-section" data-filter-key="category">
           <button type="button" class="filter-summary" aria-expanded="true">
             <span class="filter-summary-label" data-ui="category">Categoría</span>
@@ -105,6 +121,7 @@
           <div class="filter-options" id="target-chips"></div>
         </div>
       </div>
+      </div>
     </div>
   </aside>
 
@@ -114,21 +131,34 @@
       <div id="catalog-bar-extras" class="catalog-bar-extras">
         <div class="active-filters" id="active-filters"></div>
         <span class="results-count" id="results-count"></span>
+      </div>
+
+      <div class="search-wrapper results-search">
+        <svg class="search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <circle cx="6.5" cy="6.5" r="4.5"/>
+          <path d="M10.5 10.5L14 14" stroke-linecap="round"/>
+        </svg>
+        <input type="text" class="search-box" id="search" placeholder="Buscar ejercicios…" autocomplete="off" />
+        <button type="button" class="search-clear" id="search-clear" aria-label="Limpiar búsqueda">×</button>
+      </div>
+
+      <div class="results-bar-actions">
         <button type="button" class="wod-btn" id="wod-btn" title="Random workout">
           <span class="wod-ico" aria-hidden="true">🎲</span>
           <span>WOD</span>
         </button>
-      </div>
-      <div class="results-bar-prefs">
-        <div class="lang-toggle" id="lang-toggle" role="group" aria-label="Language">
-          <button type="button" class="lang-toggle-btn active" data-lang="es" aria-pressed="true">Español</button>
-          <button type="button" class="lang-toggle-btn" data-lang="en" aria-pressed="false">English</button>
-        </div>
 
-        <button type="button" class="theme-toggle-btn" id="theme-toggle-btn" aria-label="Tema">
-          <span class="theme-toggle-emoji" id="theme-toggle-emoji" aria-hidden="true">☀️</span>
-          <span data-ui="theme">Tema</span>
-        </button>
+        <div class="results-bar-prefs">
+          <div class="lang-toggle" id="lang-toggle" role="group" aria-label="Language">
+            <button type="button" class="lang-toggle-btn active" data-lang="es" aria-pressed="true">Español</button>
+            <button type="button" class="lang-toggle-btn" data-lang="en" aria-pressed="false">English</button>
+          </div>
+
+          <button type="button" class="theme-toggle-btn" id="theme-toggle-btn" aria-label="Tema">
+            <span class="theme-toggle-emoji" id="theme-toggle-emoji" aria-hidden="true">☀️</span>
+            <span data-ui="theme">Tema</span>
+          </button>
+        </div>
       </div>
     </div>
 

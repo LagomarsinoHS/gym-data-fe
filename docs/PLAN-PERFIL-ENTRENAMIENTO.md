@@ -143,8 +143,9 @@ Ambos responden con el user actualizado (el front hace `setUser` sin otro `/me`)
 ```
 js/api/auth.js, token.js, users.js, client.js
 js/features/auth-ui.js, session-ui.js, training-ui.js, theme-ui.js
-js/theme-boot.js      # tema antes del paint
-js/utils/cards.js, helpers.js (normalizeSearch)
+js/theme-boot.js      # tema antes del paint (mirror de prefs THEME_KEY)
+js/utils/prefs.js     # FLEX_THEME + FLEX_LANG
+js/utils/cards.js, helpers.js, labels.js
 js/main.js            # catálogo + modal + plan CTAs
 public/css/base.css, app.css
 ```
@@ -186,7 +187,7 @@ public/css/base.css, app.css
 - [ ] Favoritos separados del plan (si hace falta distinto a “agregar al plan”)
 - [ ] Deep link más corto (`#0001` unificado como canonical)
 - [ ] Tracking de workouts / progreso
-- [ ] Persistir idioma preferido en `localStorage` (hoy default ES; toggle en sesión)
+- [x] Persistir idioma preferido en `localStorage` (`FLEX_LANG`; default ES)
 
 ---
 
