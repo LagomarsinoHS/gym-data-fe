@@ -1,15 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ExerciseDB 🏋️</title>
   <link rel="stylesheet" href="public/css/base.css" />
   <link rel="stylesheet" href="public/css/app.css" />
+  <script src="js/theme-boot.js"></script>
   <!--
     Mapa rápido (markup → JS):
     · Catálogo / filtros / grid / modal ejercicio → js/main.js
     · #my-plan-btn + #auth-overlay                 → js/features/auth-ui.js (+ click en main.js)
+    · #theme-toggle-btn                            → js/features/theme-ui.js
+    · theme early (head, sin defer)                → js/theme-boot.js
     · #sidebar-auth / vistas catalog|training      → js/features/session-ui.js
     · #training-grid                               → js/features/training-ui.js
     · Footer                                       → js/features/footer.js
@@ -65,23 +68,30 @@
           <circle cx="6.5" cy="6.5" r="4.5"/>
           <path d="M10.5 10.5L14 14" stroke-linecap="round"/>
         </svg>
-        <input type="text" class="search-box" id="search" placeholder="Search exercises…" autocomplete="off" />
-        <button class="search-clear" id="search-clear" aria-label="Clear search">×</button>
+        <input type="text" class="search-box" id="search" placeholder="Buscar ejercicios…" autocomplete="off" />
+        <button class="search-clear" id="search-clear" aria-label="Limpiar búsqueda">×</button>
       </div>
 
-      <div class="filter-section">
-        <div class="filter-summary" data-ui="category">Category</div>
-        <div class="filter-options" id="category-chips"></div>
+      <div class="sidebar-filters-status" id="sidebar-filters-status" aria-live="polite">
+        <div class="load-spinner visible" aria-hidden="true"></div>
+        <span data-ui="loadingFilters">Cargando filtros…</span>
       </div>
 
-      <div class="filter-section">
-        <div class="filter-summary" data-ui="equipment">Equipment</div>
-        <div class="filter-options" id="equipment-chips"></div>
-      </div>
+      <div class="sidebar-filters" id="sidebar-filters" hidden>
+        <div class="filter-section">
+          <div class="filter-summary" data-ui="category">Categoría</div>
+          <div class="filter-options" id="category-chips"></div>
+        </div>
 
-      <div class="filter-section">
-        <div class="filter-summary" data-ui="target">Target Muscle</div>
-        <div class="filter-options" id="target-chips"></div>
+        <div class="filter-section">
+          <div class="filter-summary" data-ui="equipment">Equipamiento</div>
+          <div class="filter-options" id="equipment-chips"></div>
+        </div>
+
+        <div class="filter-section">
+          <div class="filter-summary" data-ui="target">Músculo objetivo</div>
+          <div class="filter-options" id="target-chips"></div>
+        </div>
       </div>
     </div>
   </aside>
@@ -97,15 +107,27 @@
           <span>WOD</span>
         </button>
       </div>
-      <div class="lang-toggle" id="lang-toggle" role="group" aria-label="Language">
-        <button type="button" class="lang-toggle-btn active" data-lang="es" aria-pressed="true">Spanish</button>
-        <button type="button" class="lang-toggle-btn" data-lang="en" aria-pressed="false">English</button>
+      <div class="results-bar-prefs">
+        <div class="lang-toggle" id="lang-toggle" role="group" aria-label="Language">
+          <button type="button" class="lang-toggle-btn active" data-lang="es" aria-pressed="true">Español</button>
+          <button type="button" class="lang-toggle-btn" data-lang="en" aria-pressed="false">English</button>
+        </div>
+
+        <button type="button" class="theme-toggle-btn" id="theme-toggle-btn" aria-label="Tema">
+          <span class="theme-toggle-emoji" id="theme-toggle-emoji" aria-hidden="true">☀️</span>
+          <span data-ui="theme">Tema</span>
+        </button>
       </div>
     </div>
 
     <div id="catalog-view">
       <div class="grid-wrapper">
-        <div class="exercise-grid" id="exercise-grid"></div>
+        <div class="exercise-grid" id="exercise-grid">
+          <div class="catalog-boot-loading" id="catalog-boot-loading">
+            <div class="load-spinner visible" aria-hidden="true"></div>
+            <span data-ui="loading">Cargando ejercicios…</span>
+          </div>
+        </div>
         <div class="load-sentinel" id="load-sentinel">
           <div class="load-spinner" id="load-spinner"></div>
         </div>

@@ -1,6 +1,8 @@
 # ExerciseDB — Frontend
 
-Frontend estático para explorar una librería de **~1.324 ejercicios** de fitness: filtros, búsqueda, infinite scroll, detalle con GIF e instrucciones bilingües (ES/EN).
+Frontend estático para explorar una librería de **~1.324 ejercicios** de fitness (catálogo desde la API/BD): filtros, búsqueda, infinite scroll, detalle con GIF e instrucciones bilingües (ES/EN).
+
+Con sesión: **Mi plan** → vista **Mi entrenamiento** con el `trainingProgram` del usuario.
 
 Consume la API desplegada en Render (o tu backend local).
 
@@ -10,11 +12,12 @@ Consume la API desplegada en Render (o tu backend local).
 
 ## Features
 
-- Catálogo paginado con **infinite scroll**
-- Filtros por **categoría**, **equipamiento** y **músculo objetivo** (vía API)
-- Búsqueda por texto (sobre lo cargado) y por **ID** (`GET /exercises/:id`)
-- Modal de detalle: meta, músculos, instrucciones ES/EN
+- Catálogo paginado con **infinite scroll** (datos vía API)
+- Filtros por **categoría**, **equipamiento** y **músculo objetivo**
+- Búsqueda por texto y por **ID** (`GET /exercises/:id`)
+- Modal de detalle: meta, músculos, instrucciones ES/EN, compartir enlace
 - Botón **WOD** → ejercicio random (`GET /exercises/random`)
+- Auth (login / registro) + **Mi entrenamiento** (agregar / quitar del plan)
 - UI bilingüe (Español / English)
 - Media local (`public/images`, `public/videos`)
 
@@ -33,25 +36,18 @@ Consume la API desplegada en Render (o tu backend local).
 ```
 gym-data-fe/
 ├── index.html              # App principal
-├── setup.html              # Guía / helpers de setup de DB
 ├── js/
-│   ├── main.js             # UI, estado, eventos
+│   ├── main.js             # Catálogo, modal, plan
 │   ├── constants.js
-│   ├── api/
-│   │   └── exercises.js    # Cliente HTTP + base URL
-│   ├── features/
-│   │   ├── footer.js
-│   │   └── easter-egg.js
-│   └── utils/
-│       ├── assets.js       # Resuelve paths de media → public/
-│       ├── helpers.js
-│       └── labels.js
+│   ├── api/                # client, auth, users, exercises, token
+│   ├── features/           # auth-ui, session-ui, training-ui, …
+│   └── utils/              # assets, cards, helpers, labels
 ├── public/
-│   ├── css/                # base.css, app.css, setup.css
-│   ├── images/             # thumbnails JPG
-│   └── videos/             # GIFs
-└── setup/
-    └── setup.js
+│   ├── css/                # base.css, app.css
+│   ├── images/
+│   └── videos/
+└── docs/
+    └── PLAN-PERFIL-ENTRENAMIENTO.md
 ```
 
 ---
@@ -70,7 +66,7 @@ npx serve .
 
 ### API local vs producción
 
-En `js/api/exercises.js`:
+En `js/api/client.js` (base URL):
 
 | Dónde abrís el front        | API usada                                      |
 |----------------------------|-------------------------------------------------|
@@ -91,6 +87,10 @@ Para desarrollar contra tu API local, levantá el backend en el puerto **3000** 
 | `GET` | `/exercises/:id` | Detalle / búsqueda por id |
 | `GET` | `/exercises/random` | Botón WOD |
 | `GET` | `/exercises/labels` | Chips de filtros |
+| `POST` | `/auth/login` · `/auth/register` | Sesión |
+| `GET` | `/users/me` | Perfil + `trainingProgram` |
+| `PUT` | `/users/:id/training-program` | Reemplazar ids del plan |
+| `PUT` | `/users/:id/training-program/remove` | Quitar un ejercicio |
 
 Respuesta típica de listado:
 
@@ -110,17 +110,11 @@ Los campos `image` y `gif_url` vienen como paths relativos (`images/...`, `video
 
 ---
 
-## Setup de base de datos
-
-`setup.html` incluye documentación y utilidades para generar inserts / ver ejemplos de clientes en varios lenguajes. Abrilo junto al proyecto si estás montando el backend desde cero.
-
----
-
 ## Notas
 
 - Sin build step: editás y refrescás.
 - Render puede “dormir” el servicio gratis; el primer request tras inactividad puede tardar unos segundos.
-- Plan a futuro (login + perfil + ejercicios del profe): ver [`docs/PLAN-PERFIL-ENTRENAMIENTO.md`](docs/PLAN-PERFIL-ENTRENAMIENTO.md).
+- Plan de producto (perfil / coach / pauta): ver [`docs/PLAN-PERFIL-ENTRENAMIENTO.md`](docs/PLAN-PERFIL-ENTRENAMIENTO.md).
 - Maintained by **Mister L** 💪
 
 ---

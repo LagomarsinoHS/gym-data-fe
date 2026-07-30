@@ -3,7 +3,9 @@
    Orange:  --accent #ff4f00; bg #f4f4f5; text #111 / #71717a / #a1a1aa
    Soft teal: --accent #0f766e; bg #eef3f3; text #14201f / #4d6360 / #7a9290
 */
-:root {
+:root,
+html[data-theme="light"] {
+  color-scheme: light;
   --accent:         #1d4ed8;
   --accent-muted:   rgba(29, 78, 216, 0.18);
   --bg-base:        #dbeafe;
@@ -21,6 +23,41 @@
   --radius-xl:      18px;
   --code-bg:        #1a1a1a;
   --mono:           'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --accent:         #7db4ff;
+  --accent-muted:   rgba(125, 180, 255, 0.22);
+  --bg-base:        #0c1528;
+  --bg-surface:     #162338;
+  --bg-elevated:    #223550;
+  --bg-input:       #121e33;
+  --border:         #4a6fa3;
+  --border-hover:   #7db4ff;
+  --text-primary:   #eef4ff;
+  --text-secondary: #b7ccee;
+  --text-tertiary:  #93a9cc;
+  --code-bg:        #060b16;
+}
+
+/* Solo mientras se togglea el tema (no en cada hover) */
+html.theme-animating,
+html.theme-animating *:not(svg):not(path):not(circle):not(ellipse):not(line):not(polyline):not(polygon) {
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease,
+    fill 0.25s ease,
+    stroke 0.25s ease,
+    box-shadow 0.25s ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.theme-animating,
+  html.theme-animating * {
+    transition: none !important;
+  }
 }
 
 /* ── Reset ──────────────────────────────────────── */

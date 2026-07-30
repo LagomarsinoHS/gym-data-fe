@@ -7,6 +7,7 @@ import { isLoggedIn } from './api/token.js';
 import { getEasterEgg, isEasterEggQuery, renderEasterEgg } from './features/easter-egg.js';
 import { initFooter } from './features/footer.js';
 import { initAuthUi, openAuth, syncAuthLabels } from './features/auth-ui.js';
+import { initThemeUi } from './features/theme-ui.js';
 import {
   initSessionUi,
   restoreSession,
@@ -47,6 +48,8 @@ const state = {
   pages: 0,
   total: 0,
   loading: false,
+  /** false hasta el primer fetch de catálogo (evita empty state prematuro) */
+  catalogReady: false,
 };
 
 // ── DOM ────────────────────────────────────────────
@@ -74,7 +77,7 @@ const wodBtn = document.getElementById('wod-btn');
 
 // ── Boot ───────────────────────────────────────────
 async function init() {
-  countEl.textContent = ui('loading');
+  syncChromeLabels();
 
   const labels = await getLabels();
   state.labels = {
@@ -98,8 +101,10 @@ async function init() {
       }
     },
   });
+  initThemeUi();
 
   applyLanguage();
+  revealFilters();
   await restoreSession();
   await reloadExercises();
   wireEvents();
@@ -152,7 +157,9 @@ async function reloadExercises() {
   state.pages = 0;
   state.total = 0;
   state.loading = false;
-  gridEl.innerHTML = '';
+  state.catalogReady = false;
+  showCatalogLoading();
+  updateResultsBar();
   updateActiveBadges();
   await loadNextPage();
 }
@@ -187,6 +194,7 @@ async function loadNextPage() {
     state.total = data.total;
 
     if (nextPage === 1) {
+      state.catalogReady = true;
       syncGrid();
     } else {
       const unique = dedupeById(items);
@@ -219,20 +227,50 @@ function upsertExercise(exercise) {
   else state.exercises.push(exercise);
 }
 
-function applyLanguage() {
+function syncChromeLabels() {
   setLang(state.lang);
-
+  document.documentElement.lang = state.lang;
   document.querySelectorAll('[data-ui]').forEach(el => {
     el.textContent = ui(el.dataset.ui);
   });
   searchEl.placeholder = ui('search');
+  syncAuthLabels();
+  syncSessionLabels();
+}
+
+function revealFilters() {
+  const status = document.getElementById('sidebar-filters-status');
+  const filters = document.getElementById('sidebar-filters');
+  status?.setAttribute('hidden', '');
+  filters?.removeAttribute('hidden');
+
+  if (!filters) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  filters.querySelectorAll('.filter-section').forEach((section, sectionIndex) => {
+    section.style.setProperty('--section-i', String(sectionIndex));
+    section.querySelectorAll('.chip').forEach((chip, chipIndex) => {
+      chip.style.setProperty('--chip-i', String(Math.min(chipIndex, 10)));
+    });
+  });
+
+  filters.classList.remove('is-revealing');
+  void filters.offsetWidth;
+  filters.classList.add('is-revealing');
+
+  window.clearTimeout(revealFilters._timer);
+  revealFilters._timer = window.setTimeout(() => {
+    filters.classList.remove('is-revealing');
+  }, 700);
+}
+
+function applyLanguage() {
+  syncChromeLabels();
 
   buildFilterOptions();
   syncActiveChips();
   syncGrid();
 
-  syncAuthLabels();
-  syncSessionLabels();
   syncShareButtonLabels();
   if (modalOverlay.classList.contains('open') && modalOverlay.dataset.openId) {
     syncPlanAction(modalOverlay.dataset.openId);
@@ -339,14 +377,32 @@ function clearAllFilters() {
 // ── Grid ───────────────────────────────────────────
 function appendCards(exercises) {
   const frag = document.createDocumentFragment();
-  exercises.forEach(exercise => frag.appendChild(createCard(exercise)));
+  exercises.forEach((exercise, i) => {
+    const card = createCard(exercise);
+    card.classList.add('card-enter');
+    card.style.setProperty('--card-i', String(Math.min(i, 11)));
+    frag.appendChild(card);
+  });
   gridEl.appendChild(frag);
+}
+
+function showCatalogLoading() {
+  gridEl.innerHTML = `
+    <div class="catalog-boot-loading">
+      <div class="load-spinner visible" aria-hidden="true"></div>
+      <span>${ui('loading')}</span>
+    </div>
+  `;
 }
 
 function renderGrid() {
   gridEl.innerHTML = '';
 
   if (state.filtered.length === 0) {
+    if (!state.catalogReady || state.loading) {
+      showCatalogLoading();
+      return;
+    }
     const empty = document.createElement('div');
     empty.className = 'empty-state';
     empty.innerHTML = `<p>🔍</p><p>${ui('empty')}</p>`;
@@ -379,6 +435,10 @@ function createCard(exercise) {
 }
 
 function updateResultsBar() {
+  if (!state.catalogReady) {
+    countEl.textContent = '';
+    return;
+  }
   countEl.textContent = ui('exercises', state.total);
 }
 
@@ -408,6 +468,7 @@ function updateActiveBadges() {
 
 // ── Modal ──────────────────────────────────────────
 let modalRequestId = 0;
+let modalCloseClearTimer = 0;
 
 function findCachedExercise(id) {
   const key = String(id);
@@ -424,6 +485,7 @@ async function openModal(id) {
   if (id == null || id === '') return;
   const requestId = ++modalRequestId;
 
+  window.clearTimeout(modalCloseClearTimer);
   modalOverlay.classList.add('open');
   modalOverlay.dataset.openId = id;
   document.body.style.overflow = 'hidden';
@@ -660,16 +722,36 @@ function closeModal({ skipPendingRemove = false } = {}) {
   modalRequestId++;
 
   const pending = planUndoSnapshot;
+  const wasOpen = modalOverlay.classList.contains('open');
 
   // Hide overlay first — clearing is-undo before this caused a blue flash
   modalOverlay.classList.remove('open');
   delete modalOverlay.dataset.openId;
   document.body.style.overflow = '';
-  modalGif.src = '';
   syncExerciseInUrl(null);
   resetShareFeedback();
 
   clearPlanUndoState();
+
+  const finishClear = () => {
+    modalGif.src = '';
+  };
+
+  if (wasOpen && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const onEnd = e => {
+      if (e.target !== modalOverlay || e.propertyName !== 'opacity') return;
+      modalOverlay.removeEventListener('transitionend', onEnd);
+      window.clearTimeout(modalCloseClearTimer);
+      finishClear();
+    };
+    modalOverlay.addEventListener('transitionend', onEnd);
+    modalCloseClearTimer = window.setTimeout(() => {
+      modalOverlay.removeEventListener('transitionend', onEnd);
+      finishClear();
+    }, 320);
+  } else {
+    finishClear();
+  }
 
   // Closing during undo window confirms the removal
   if (pending && !skipPendingRemove) {
@@ -928,7 +1010,13 @@ function wireEvents() {
     }
 
     document.querySelectorAll(`.chip[data-filter="${filter}"]`).forEach(c => {
-      c.classList.toggle('active', set.has(c.dataset.value));
+      const on = set.has(c.dataset.value);
+      c.classList.toggle('active', on);
+      c.classList.remove('chip-pop');
+      if (on && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        void c.offsetWidth;
+        c.classList.add('chip-pop');
+      }
     });
 
     searchRequestId++;

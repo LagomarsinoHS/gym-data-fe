@@ -4,6 +4,26 @@
 import { assetUrl } from './assets.js';
 import { exerciseName, label } from './labels.js';
 
+function revealThumbWhenReady(thumb, media) {
+  if (!thumb) return;
+
+  thumb.classList.remove('is-loaded');
+  media?.classList.remove('is-media-ready');
+
+  const reveal = () => {
+    thumb.classList.add('is-loaded');
+    media?.classList.add('is-media-ready');
+  };
+
+  if (thumb.complete && thumb.naturalWidth > 0) {
+    reveal();
+    return;
+  }
+
+  thumb.addEventListener('load', reveal, { once: true });
+  thumb.addEventListener('error', reveal, { once: true });
+}
+
 /**
  * Fill thumb, gif dataset, name, category/equipment tags on a card root.
  * @param {HTMLElement} card
@@ -12,11 +32,13 @@ import { exerciseName, label } from './labels.js';
  */
 export function fillCardMedia(card, exercise, { nameSelector = '.card-name' } = {}) {
   const name = exerciseName(exercise);
+  const media = card.querySelector('.card-media, .training-card-media');
 
   const thumb = card.querySelector('.card-thumb');
   if (thumb) {
     thumb.src = assetUrl(exercise.image);
     thumb.alt = name;
+    revealThumbWhenReady(thumb, media);
   }
 
   const gif = card.querySelector('.card-gif');

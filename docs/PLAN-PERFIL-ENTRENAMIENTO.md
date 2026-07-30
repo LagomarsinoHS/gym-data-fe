@@ -1,289 +1,206 @@
 # Plan: Perfil de entrenamiento (“Mi plan”)
 
-Documento vivo para implementar de a poco. Hoy el botón **DB Setup** del sidebar es un placeholder técnico; a futuro se convierte en la entrada al **login / perfil del alumno**, con los ejercicios que le asignó un profesor.
+Documento vivo para implementar de a poco.
 
-El catálogo global (~1.324 ejercicios) **no se reemplaza**: sigue siendo la librería. Lo nuevo es una capa de **asignaciones por usuario**.
+El catálogo global (~1.324 ejercicios) **no se reemplaza**: es la librería pública, servida por la API (`GET /exercises…`). Encima hay una capa de **asignaciones por usuario** (`trainingProgram` en `/users/me`).
+
+> **Nota histórica:** el CTA del sidebar era un placeholder “DB Setup” hacia `setup.html`. Eso ya no existe: el botón es **Mi plan**, y la página de setup de DB se eliminó del front (el catálogo vive en la BD detrás de la API).
 
 ---
 
-## Visión
+## Visión de hoy
 
-| Hoy | Mañana |
-|-----|--------|
-| Catálogo público de ejercicios | Igual |
-| Botón → `setup.html` (docs de DB) | Botón → **Mi plan** / login |
-| Sin usuarios | Cada alumno ve su plan personalizado |
-| — | El profe asigna ejercicios desde el catálogo |
+Cada usuario, al entrar a su cuenta, ve **su plan personalizado** (“Mi entrenamiento”): los ejercicios que tiene asignados (hoy puede armarlos él desde el catálogo; a futuro también los que le asigne un profesor), con pauta opcional (series / reps / rest / notes).
 
-Flujo objetivo:
+| Público | Autenticado |
+|---------|-------------|
+| Explora el **catálogo** (API) | Misma librería + **su** `trainingProgram` |
+| CTA **Mi plan** → login / registro | Nav **Mi entrenamiento** \| **Catálogo** |
+| — | Nombre + Salir; plan privado por user |
+
+Flujo:
 
 ```
 [Sidebar: Mi plan]
         ↓
-   ¿hay sesión? ── no → Login
+   ¿hay sesión? ── no → modal login / registro
         ↓ sí
-   Perfil de entrenamiento
-   + lista de ejercicios asignados por el profe
+   GET /users/me → trainingProgram[]
+   Vista “Mi entrenamiento” (filtros locales sobre el plan)
+   Catálogo sigue disponible como librería
 ```
 
 ---
 
 ## Principio de diseño
 
-- **No duplicar** ejercicios en el perfil.
-- Guardar solo la **referencia** (`exerciseId`) al catálogo + la pauta (series, reps, notas, etc.).
-- Así se reutilizan GIF, músculos, instrucciones ES/EN y el resto de la data que ya existe.
-
-Dos mundos en la app:
-
-1. **Catálogo** — lo actual (`GET /exercises`, filtros, WOD, etc.)
-2. **Perfil / plan** — privado, por usuario autenticado
+- **No duplicar** ejercicios: solo `exerciseId` (+ pauta opcional).
+- Populate del ejercicio desde el catálogo (`image`, `gif_url`, `name`, etc.).
+- Dos mundos en la UI:
+  1. **Catálogo** — `GET /exercises` (paginado, filtros, WOD) desde la BD vía API
+  2. **Mi entrenamiento** — plan privado del user autenticado
 
 ---
 
-## Modelo de datos
+## Modelo (como quedó)
 
-Colecciones / tablas sugeridas (ajustar nombres al stack del backend):
-
-### `users`
+### Usuario (`GET /users/me`)
 
 | Campo | Notas |
 |-------|--------|
-| `id` | PK |
-| `email` | único, login |
-| `name` | display |
-| `role` | `"athlete"` \| `"coach"` (o `"admin"`) |
-| `createdAt` | |
+| `id` | UUID del user |
+| `email` | login |
+| `firstName` / `lastName` | display |
+| `role` | `athlete` (set por el back al registrar) |
+| `coachId` | opcional |
+| `trainingProgram[]` | plan embebido |
 
-### `programs` (plan del alumno)
-
-| Campo | Notas |
-|-------|--------|
-| `id` | PK |
-| `athleteId` | → `users` |
-| `coachId` | → `users` (quién lo armó) |
-| `title` | ej. “Bloque fuerza — mes 1” |
-| `notes` | mensaje / indicaciones del profe |
-| `active` | boolean (un plan activo por alumno al MVP) |
-| `updatedAt` | |
-
-### `program_exercises`
+### Ítem de `trainingProgram`
 
 | Campo | Notas |
 |-------|--------|
-| `id` | PK |
-| `programId` | → `programs` |
-| `exerciseId` | → catálogo existente (mismo id que `/exercises/:id`) |
-| `order` | orden en la lista |
-| `sets` | opcional |
-| `reps` | opcional (string o number; a veces “8-12”) |
-| `rest` | opcional (segundos o texto) |
-| `notes` | nota por ejercicio |
-| `day` / `week` | opcional (si después agrupamos por día) |
+| `exerciseId` | id del catálogo (`"0001"`, …) |
+| `exercise` | populate (id, name, image, gif_url, category, equipment, …) |
+| `order` | opcional |
+| `sets` / `reps` / `rest` / `notes` | opcionales (pauta) |
 
-**Mongo (alternativa al inicio):** un documento `programs` con un array embebido de ejercicios asignados. Cuando crezca, normalizar a `program_exercises`.
+Un ítem puede ser solo `{ exerciseId }` → UI muestra “Sin pauta asignada”.
 
 ---
 
-## Auth
-
-Opciones razonables (de más simple a más “producto”):
-
-| Opción | Cuándo usarla |
-|--------|----------------|
-| Email + password / JWT | MVP clásico con tu API en Render |
-| Magic link / OTP por email | Sin passwords |
-| Google OAuth | Si el público ya usa Google |
-| Código + PIN | Solo prototipo entre amigos (poco seguro) |
-
-**Recomendación MVP:** login email + **JWT** en header `Authorization: Bearer …`.
-
-Front (Vercel) + API (Render): JWT evita pelear con cookies cross-site. Guardar el token en `localStorage` o `sessionStorage` al principio; migrar a httpOnly cookie más adelante si hace falta.
-
----
-
-## API (backend)
-
-Encima de lo que ya existe. El catálogo público **no cambia**.
-
-### Auth / sesión
+## Auth (hecho)
 
 | Método | Path | Uso |
 |--------|------|-----|
-| `POST` | `/auth/login` | Credenciales → token |
-| `POST` | `/auth/register` | Opcional al inicio |
-| `GET` | `/me` | Usuario actual (requiere token) |
+| `POST` | `/auth/login` | → `{ accessToken, user }` |
+| `POST` | `/auth/register` | → `{ accessToken, user }` (sin `role` desde el front) |
+| `GET` | `/users/me` | Bearer → user + `trainingProgram` |
 
-### Plan del alumno
-
-| Método | Path | Uso |
-|--------|------|-----|
-| `GET` | `/me/program` | Plan activo + ejercicios (populate desde catálogo) |
-| `GET` | `/me/program/exercises` | Alternativa: solo la lista plana |
-
-### Coach / admin (fase posterior)
-
-| Método | Path | Uso |
-|--------|------|-----|
-| `POST` | `/programs` | Crear plan para un athlete |
-| `PATCH` | `/programs/:id` | Notas, título, active |
-| `POST` | `/programs/:id/exercises` | Asignar ejercicio |
-| `PATCH` | `/programs/:id/exercises/:itemId` | sets/reps/orden |
-| `DELETE` | `/programs/:id/exercises/:itemId` | Quitar del plan |
-
-**Respuesta ejemplo** `GET /me/program`:
-
-```json
-{
-  "id": "prog_1",
-  "title": "Bloque fuerza — mes 1",
-  "notes": "3 días esta semana. Sin ego en el press.",
-  "coach": { "name": "Profe X" },
-  "exercises": [
-    {
-      "assignmentId": "ae_1",
-      "order": 1,
-      "sets": 3,
-      "reps": "8-10",
-      "rest": 90,
-      "notes": "Controlar la bajada",
-      "exercise": {
-        "id": "0001",
-        "name": "...",
-        "category": "...",
-        "image": "images/...",
-        "gif_url": "videos/..."
-      }
-    }
-  ]
-}
-```
-
-CORS: permitir el origen del front en Vercel y enviar/recibir el header `Authorization`.
+- Token en `localStorage` (`FLEX_TOKEN`).
+- Client: `Authorization: Bearer …` cuando `{ auth: true }`.
 
 ---
 
-## Frontend (este repo)
+## API de plan (hecho)
 
-### UI
+| Método | Path | Body | Uso |
+|--------|------|------|-----|
+| `PUT` | `/users/:userId/training-program` | `{ exerciseIds: string[] }` | Reemplaza la lista de ids del plan |
+| `PUT` | `/users/:userId/training-program/remove` | `{ exerciseId: string }` | Quita un ejercicio |
 
-1. Renombrar / reactivar el CTA del sidebar: **Mi plan** (hoy: DB Setup `is-disabled`).
-2. Sin sesión → pantalla o modal de **login**.
-3. Con sesión → **perfil de entrenamiento**:
-   - Nombre del alumno
-   - Título / notas del profe
-   - Lista de ejercicios asignados (mismas cards / modal que el catálogo, más sets/reps/notas)
-4. El catálogo en home **sigue igual**; el plan es vista aparte (o filtro “Solo mi plan” más adelante).
-
-### Archivos previstos (orientativo)
-
-```
-js/
-├── api/
-│   ├── exercises.js      # ya existe
-│   ├── auth.js           # login, me, token helpers
-│   └── programs.js       # GET /me/program
-├── features/
-│   ├── profile.js        # render del perfil / plan
-│   └── auth-ui.js        # login form, logout
-profile.html              # opcional; o panel dentro de index.html
-```
-
-### `setup.html`
-
-No borrar de golpe: es documentación de DB. Mover a otra ruta, dejarlo solo en local, o sacarlo del CTA del sidebar. El botón de producción apunta a **Mi plan**, no a setup.
+Ambos responden con el user actualizado (el front hace `setUser` sin otro `/me`).
 
 ---
 
-## Fases de implementación
+## Frontend — hecho
 
-Hacer **una fase a la vez**. No mezclar auth + UI + panel coach en el mismo PR.
+### Sesión / navegación
 
-### Fase 0 — Preparación (front, sin backend real)
+- [x] CTA **Mi plan** → login si no hay sesión (ya no hay “DB Setup”)
+- [x] Con sesión: nav **Mi entrenamiento** | **Catálogo** (estado activo claro)
+- [x] Nombre (`firstName` + `lastName`) + **Salir**
+- [x] Restaurar sesión al boot con `/users/me`
 
-- [ ] Definir copy del botón: “Mi plan” / icono
-- [ ] Quitar `is-disabled` cuando haya algo que mostrar (aunque sea mock)
-- [ ] Decidir: ¿`profile.html` o panel en `index.html`?
+### Mi entrenamiento
 
-### Fase 1 — Contrato de datos + mock
+- [x] Vista propia (`#training-view`) con cards distintas al catálogo
+- [x] Mostrar sets / reps / rest / notes (o “Sin pauta asignada”)
+- [x] Filtros + search **en memoria** sobre el plan (sin llamar `/exercises`)
+- [x] Search sin tildes (`normalizeSearch`)
+- [x] Empty state si no hay ejercicios
+- [x] Hover GIF + modal de detalle (mismo que catálogo)
+- [x] Scroll del contenido bajo el header fijo (catálogo y plan)
 
-- [ ] Acordar schema (`users`, `programs`, `program_exercises`)
-- [ ] Seed / mock de un plan de ejemplo
-- [ ] Endpoint (o JSON estático) que devuelva la forma de `GET /me/program`
-- [ ] Front: pantalla de perfil leyendo ese mock **sin login**
+### Modal
 
-### Fase 2 — UI del perfil
+- [x] Copiar enlace (`?exercise=0001`) + deep link al abrir
+- [x] **Agregar a mi plan** (logueado) / “Iniciá sesión para guardar”
+- [x] En catálogo: estado **En tu plan** si ya está
+- [x] En Mi entrenamiento: **Quitar del plan** + undo (~1.5s) con barra; el `remove` al back se confirma al terminar / cerrar
 
-- [ ] Layout del perfil (header + notas del profe + lista)
-- [ ] Reusar cards / modal del catálogo para cada `exercise`
-- [ ] Mostrar sets / reps / rest / notes de la asignación
-- [ ] Empty state: “Todavía no tenés ejercicios asignados”
+### Código relevante
 
-### Fase 3 — Auth real
-
-- [ ] `POST /auth/login` + JWT en la API
-- [ ] `js/api/auth.js` + guardar token
-- [ ] Proteger `GET /me` y `GET /me/program`
-- [ ] Redirect a login si 401
-- [ ] Logout en el UI
-
-### Fase 4 — Backend de verdad + assignaciones
-
-- [ ] Colecciones en la BD de producción
-- [ ] Populate `exerciseId` → documento del catálogo
-- [ ] Al menos un athlete + un program seedados a mano (script o Compass/SQL)
-
-### Fase 5 — Herramientas del profe
-
-- [ ] Endpoints CRUD de program exercises
-- [ ] UI admin mínima **o** script/CLI para asignar (válido al inicio)
-- [ ] Después: panel coach en la web
-
-### Fase 6 — Pulido
-
-- [ ] “Solo mi plan” como filtro en el grid (opcional)
-- [ ] Recordar sesión, errores de red, loading states
-- [ ] i18n ES/EN en textos del perfil
-- [ ] Revisar CORS y Deployment Protection si aplica
+```
+js/api/auth.js, token.js, users.js, client.js
+js/features/auth-ui.js, session-ui.js, training-ui.js
+js/utils/cards.js, helpers.js (normalizeSearch)
+js/main.js          # catálogo + modal + plan CTAs
+```
 
 ---
 
-## Decisiones abiertas
+## Checklist — pendiente
 
-Anotar acá cuando se resuelvan:
+### Producto / UX del plan
 
-| Tema | Opciones | Decisión |
-|------|----------|----------|
-| BD | Mongo vs SQL (la del backend actual) | _pendiente_ |
-| Auth | JWT email vs OAuth vs OTP | _pendiente_ |
-| Vista perfil | `profile.html` vs panel en `index` | _pendiente_ |
-| Roles | solo athlete al inicio vs coach en UI | _pendiente_ |
-| Un plan activo vs historial de programas | MVP: uno activo | sugerido |
+- [ ] Editar pauta (sets / reps / rest / notes) desde el front (atleta o solo coach)
+- [ ] Mostrar título / notas del programa o del coach en la vista (si el back los expone)
+- [ ] Agrupar por día / semana (`day` / `week`)
+- [ ] Quitar desde catálogo (hoy solo “En tu plan” disabled)
+- [ ] Confirmación o feedback más claro al agregar desde catálogo
+
+### Modal / entrenamiento
+
+- [ ] Checklist interactiva de pasos de instrucciones (marcar mientras entrenás)
+- [ ] GIF / media del modal más dominante (sin franjas vacías)
+- [ ] Timer de descanso usando `rest` del assignment
+- [ ] Marcar series hechas en sesión (local o persistido)
+
+### Coach / admin
+
+- [ ] Endpoints CRUD de asignación con pauta (sets/reps/orden) — no solo lista de ids
+- [ ] UI coach para armar planes a athletes
+- [ ] Seed / flujo: coach asigna → athlete ve pauta
+
+### Auth / plataforma
+
+- [ ] Migrar token a cookie httpOnly (opcional)
+- [ ] Roles en UI (`coach` vs `athlete`)
+- [ ] Historial de programas (hoy: un plan activo embebido)
+
+### Nice-to-have
+
+- [ ] Favoritos separados del plan (si hace falta distinto a “agregar al plan”)
+- [ ] Deep link más corto (`#0001` unificado como canonical)
+- [ ] Tracking de workouts / progreso
+- [ ] i18n de textos nuevos del plan (ya hay labels ES/EN básicos)
+
+---
+
+## Decisiones tomadas
+
+| Tema | Decisión |
+|------|----------|
+| Vista perfil | Panel en `index.html` (no `profile.html`) |
+| Plan en API | Embebido en `/users/me` como `trainingProgram` |
+| Auth MVP | Email + password + JWT en `localStorage` |
+| Nombres | `firstName` / `lastName` |
+| Agregar al plan | `PUT .../training-program` con `exerciseIds[]` completo |
+| Quitar | `PUT .../training-program/remove` con `exerciseId` |
+| Undo quitar | Optimista en front; API remove al confirmar (timer / cerrar) |
+| Setup DB en el FE | Eliminado (`setup.html` / `setup/`); catálogo solo vía API |
 
 ---
 
 ## Fuera de alcance (por ahora)
 
 - Pagos / suscripciones
-- Tracking de series completadas / historial de workouts
 - Chat profe–alumno
 - App nativa
 - Reemplazar el catálogo público
 
-Se pueden sumar después sin romper este modelo (`exerciseId` + asignaciones).
-
 ---
 
-## Relación con el repo actual
+## Relación con el repo
 
-- Front: [README.md](../README.md) (o raíz del repo)
-- API producción (catálogo): `https://gym-data-8d3l.onrender.com`
-- Deploy front: Vercel (`outputDirectory: "."` en `vercel.json`)
-
-Este plan vive en el front como guía de producto; la mayor parte del trabajo de **Fases 1, 3, 4 y 5** ocurre en el **backend**. El front consume y presenta.
+- Front: [README.md](../README.md)
+- API: `https://gym-data-8d3l.onrender.com` (prod) / `localhost:3000`
+- Deploy front: Vercel
 
 ---
 
 ## Próximo paso sugerido
 
-Cuando retomen: **Fase 1** — fijar el schema según la BD real del backend y exponer un `GET /me/program` mockeado (aunque sea hardcodeado) para poder armar la UI del perfil sin esperar auth completo.
+1. **Editar pauta** (sets/reps/rest) en ítems del plan — requiere contrato back (PATCH de un ítem o body más rico).  
+2. O **checklist de pasos** en el modal (solo front).  
+3. O arrancar **UI coach** si el producto es “profe asigna”.

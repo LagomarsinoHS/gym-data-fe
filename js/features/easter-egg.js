@@ -28,24 +28,10 @@ const EASTER_EGGS = {
     meta: ['Rol: leyenda', 'Status: inalcanzable', 'PR personal: existir'],
     foot: 'Si estás leyendo esto, ya formas parte del fan club oficial. Bienvenido. Trae snacks.',
   },
-
-  'number1': {
-    kicker: 'Code: number1',
-    title: 'Pase VIP #1',
-    lead: 'Entraste con el código del asiento de adelante. Acá no hay cola, no hay warm-up y el agua del cooler siempre está fría.',
-    steps: [
-      'Prioridad absoluta en la máquina que “siempre está ocupada”.',
-      'Licencia para cantar en el gym (volumen 3, no 11).',
-      'Derecho a decir “ya casi termino”… y mentir con dignidad.',
-    ],
-    meta: ['Tier: number1', 'Beneficio: aura', 'Cargo: protagonista'],
-    foot: 'Guardá este código. Es personal e intransferible… aunque ya lo compartiste, ¿no?',
-  },
-
   '962583602': {
     kicker: 'Code: 962583602 · Destinataria: Deyanira',
     title: 'Alerta de Oruga Arrugada',
-    lead: 'Deyanira: te estamos esperando. La mutación de oruga arrugada a mariposa con peos ya tiene fecha… falta que aparezcas.',
+    lead: 'Dayanira: te estamos esperando. La mutación de oruga arrugada a mariposa con peos ya tiene fecha… falta que aparezcas.',
     steps: [
       'Baja del sofá. El sofá ya mandó un ticket de soporte.',
       'Una sentadilla cuenta. Dos son progreso. Cero es muerta de floja.',
@@ -55,7 +41,7 @@ const EASTER_EGGS = {
     foot: 'Con cariño del staff: menos arruga, más aleteo. Te queremos igual… pero más si te mueves.',
   },
 
-  '987976626': {
+  '987976626-disabled': {
     kicker: 'Code: 987976626 · Para: Peque',
     title: 'Misión Dominadas 🏋️',
     lead: 'Peque: fin de año se acerca y las dominadas no se van a hacer solas. Tu puedes. El rack ya tiene tu nombre (mentalmente).',
