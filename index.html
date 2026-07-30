@@ -78,18 +78,30 @@
       </div>
 
       <div class="sidebar-filters" id="sidebar-filters" hidden>
-        <div class="filter-section">
-          <div class="filter-summary" data-ui="category">Categoría</div>
+        <div class="filter-section" data-filter-key="category">
+          <button type="button" class="filter-summary" aria-expanded="true">
+            <span class="filter-summary-label" data-ui="category">Categoría</span>
+            <span class="filter-summary-hint" hidden></span>
+            <span class="filter-summary-chevron" aria-hidden="true"></span>
+          </button>
           <div class="filter-options" id="category-chips"></div>
         </div>
 
-        <div class="filter-section">
-          <div class="filter-summary" data-ui="equipment">Equipamiento</div>
+        <div class="filter-section" data-filter-key="equipment">
+          <button type="button" class="filter-summary" aria-expanded="true">
+            <span class="filter-summary-label" data-ui="equipment">Equipamiento</span>
+            <span class="filter-summary-hint" hidden></span>
+            <span class="filter-summary-chevron" aria-hidden="true"></span>
+          </button>
           <div class="filter-options" id="equipment-chips"></div>
         </div>
 
-        <div class="filter-section">
-          <div class="filter-summary" data-ui="target">Músculo objetivo</div>
+        <div class="filter-section" data-filter-key="target">
+          <button type="button" class="filter-summary" aria-expanded="true">
+            <span class="filter-summary-label" data-ui="target">Músculo objetivo</span>
+            <span class="filter-summary-hint" hidden></span>
+            <span class="filter-summary-chevron" aria-hidden="true"></span>
+          </button>
           <div class="filter-options" id="target-chips"></div>
         </div>
       </div>

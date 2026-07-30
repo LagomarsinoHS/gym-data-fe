@@ -1,5 +1,5 @@
 // Equipment chips shown before "show more"
-export const EQUIP_INITIAL = 10;
+export const EQUIP_INITIAL = 5;
 
 // UI chrome labels by language
 export const UI_LABELS = {
@@ -10,6 +10,7 @@ export const UI_LABELS = {
     search: 'Search exercises…',
     clearAll: 'Clear all',
     more: n => `+${n} more`,
+    remaining: n => `${n} remaining`,
     exercises: n => `${n.toLocaleString()} exercises`,
     ofExercises: (t, a) => `${t.toLocaleString()} of ${a.toLocaleString()} exercises`,
     bodyPart: 'Body Part',
@@ -66,6 +67,7 @@ export const UI_LABELS = {
     search: 'Buscar ejercicios…',
     clearAll: 'Limpiar todo',
     more: n => `+${n} más`,
+    remaining: n => `${n} restantes`,
     exercises: n => `${n.toLocaleString()} ejercicios`,
     ofExercises: (t, a) => `${t.toLocaleString()} de ${a.toLocaleString()} ejercicios`,
     bodyPart: 'Parte del cuerpo',

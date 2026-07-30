@@ -296,6 +296,8 @@ html, body { height: 100%; }
 .filter-summary {
   display: flex;
   align-items: center;
+  gap: 6px;
+  width: 100%;
   padding: 8px 6px;
   font-size: 11px;
   font-weight: 700;
@@ -303,6 +305,62 @@ html, body { height: 100%; }
   text-transform: uppercase;
   color: var(--text-secondary);
   user-select: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color 0.12s, background 0.12s;
+}
+
+.filter-summary:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-elevated) 55%, transparent);
+}
+
+.filter-summary-label {
+  flex-shrink: 0;
+}
+
+.filter-summary-hint {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: capitalize;
+  color: var(--accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.filter-summary-hint:not([hidden])::before {
+  content: '· ';
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+.filter-summary-chevron {
+  margin-left: auto;
+  flex-shrink: 0;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+  opacity: 0.7;
+  transition: transform 0.2s ease;
+}
+
+.filter-section.is-collapsed .filter-summary-chevron {
+  transform: rotate(-90deg);
+}
+
+.filter-section.is-collapsed .filter-options {
+  display: none;
+}
+
+.filter-section.has-active-filter:not(.is-collapsed) .filter-summary-label {
+  color: var(--accent);
 }
 
 .filter-options {
@@ -311,15 +369,6 @@ html, body { height: 100%; }
   flex-wrap: wrap;
   gap: 5px;
 }
-
-.chip-overflow {
-  display: none;
-  flex-wrap: wrap;
-  gap: 5px;
-  width: 100%;
-}
-
-.chip-overflow.open { display: flex; }
 
 .filter-show-more {
   font-size: 11px;
