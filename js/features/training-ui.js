@@ -7,6 +7,7 @@
 import { fillCardMedia } from '../utils/cards.js';
 import { normalizeSearch } from '../utils/helpers.js';
 import { exerciseName, label, ui } from '../utils/labels.js';
+import { setView } from './session-ui.js';
 
 /**
  * @param {object|null} user
@@ -18,22 +19,38 @@ export function renderTrainingProgram(user, filters = {}) {
 
   grid.innerHTML = '';
 
-  const program = [...(user?.trainingProgram || [])]
-    .filter(item => item?.exercise)
+  const assigned = (user?.trainingProgram || []).filter(item => item?.exercise);
+  const program = assigned
     .filter(item => matchesTrainingFilters(item, filters))
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   if (!program.length) {
-    const empty = document.createElement('div');
-    empty.className = 'empty-state';
-    empty.innerHTML = `<p>📋</p><p>${ui('trainingEmpty')}</p>`;
-    grid.appendChild(empty);
+    grid.appendChild(createTrainingEmptyState(!assigned.length));
     return;
   }
 
   const frag = document.createDocumentFragment();
   program.forEach(item => frag.appendChild(createProgramCard(item)));
   grid.appendChild(frag);
+}
+
+/** @param {boolean} planEmpty true = no exercises in plan; false = filters/search hid all */
+function createTrainingEmptyState(planEmpty) {
+  const empty = document.createElement('div');
+  empty.className = 'empty-state';
+
+  if (!planEmpty) {
+    empty.innerHTML = `<p>🔍</p><p>${ui('empty')}</p>`;
+    return empty;
+  }
+
+  empty.innerHTML = `
+    <p>📋</p>
+    <p>${ui('trainingEmpty')}</p>
+    <button type="button" class="empty-state-cta" id="training-go-catalog">${ui('goToCatalog')}</button>
+  `;
+  empty.querySelector('#training-go-catalog')?.addEventListener('click', () => setView('catalog'));
+  return empty;
 }
 
 function matchesTrainingFilters(item, { category, equipment, target, search } = {}) {

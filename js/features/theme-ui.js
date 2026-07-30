@@ -1,19 +1,6 @@
-const STORAGE_KEY = 'FLEX_THEME';
+import { getStoredTheme, setStoredTheme } from '../utils/prefs.js';
+
 const THEME_ANIM_MS = 280;
-
-function readStoredTheme() {
-  try {
-    const t = localStorage.getItem(STORAGE_KEY);
-    if (t === 'dark' || t === 'light') return t;
-  } catch (_) { /* ignore */ }
-  return 'light';
-}
-
-function writeStoredTheme(theme) {
-  try {
-    localStorage.setItem(STORAGE_KEY, theme);
-  } catch (_) { /* ignore */ }
-}
 
 function syncToggleUi(theme) {
   const emoji = document.getElementById('theme-toggle-emoji');
@@ -40,7 +27,7 @@ export function applyTheme(theme, opts = {}) {
   const next = theme === 'dark' ? 'dark' : 'light';
   if (opts.animate) runThemeTransition();
   document.documentElement.setAttribute('data-theme', next);
-  writeStoredTheme(next);
+  setStoredTheme(next);
   syncToggleUi(next);
   return next;
 }
@@ -55,7 +42,7 @@ export function toggleTheme() {
 
 /** Restaura tema guardado y cablea el botón ☀️/🌙. */
 export function initThemeUi() {
-  applyTheme(readStoredTheme());
+  applyTheme(getStoredTheme());
   document.getElementById('theme-toggle-btn')?.addEventListener('click', () => {
     toggleTheme();
   });

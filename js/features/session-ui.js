@@ -105,9 +105,23 @@ export function syncSessionLabels() {
 }
 
 function renderUserName() {
-  const el = document.getElementById('sidebar-user-name');
-  if (!el || !user) return;
-  el.textContent = `${user.firstName} ${user.lastName}`;
+  const nameEl = document.getElementById('sidebar-user-name');
+  const avatarEl = document.getElementById('sidebar-user-avatar');
+  if (!user) return;
+
+  const first = String(user.firstName || '').trim();
+  const last = String(user.lastName || '').trim();
+  const full = [first, last].filter(Boolean).join(' ');
+
+  if (nameEl) {
+    nameEl.textContent = full;
+    nameEl.title = full;
+  }
+
+  if (avatarEl) {
+    const initials = `${first.charAt(0)}${last.charAt(0)}`.toUpperCase() || '?';
+    avatarEl.textContent = initials;
+  }
 }
 
 function syncNavActive() {
@@ -133,6 +147,9 @@ function renderSessionChrome() {
   const catalogView = document.getElementById('catalog-view');
   const trainingView = document.getElementById('training-view');
   const catalogBar = document.getElementById('catalog-bar-extras');
+  const catalogFilters = document.getElementById('sidebar-catalog-filters');
+  const wodBtn = document.getElementById('wod-btn');
+  const searchEl = document.getElementById('search');
   const loggedIn = Boolean(user);
 
   if (guest) guest.hidden = loggedIn;
@@ -142,6 +159,12 @@ function renderSessionChrome() {
   if (catalogView) catalogView.hidden = showTraining;
   if (trainingView) trainingView.hidden = !showTraining;
   if (catalogBar) catalogBar.hidden = showTraining;
+  if (wodBtn) wodBtn.hidden = showTraining;
+  if (catalogFilters) catalogFilters.hidden = showTraining;
+
+  if (searchEl) {
+    searchEl.placeholder = showTraining ? ui('searchTraining') : ui('search');
+  }
 
   renderUserName();
   syncNavActive();

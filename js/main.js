@@ -26,6 +26,7 @@ import { debounce } from './utils/helpers.js';
 import { assetUrl } from './utils/assets.js';
 import { fillCardMedia, wireCardGrid } from './utils/cards.js';
 import { setLang, ui, label, exerciseName } from './utils/labels.js';
+import { getStoredLang, setStoredLang } from './utils/prefs.js';
 
 const FILTER_KEYS = ['category', 'equipment', 'target'];
 const LANG_NAMES = { en: 'English', es: 'Español' };
@@ -38,7 +39,7 @@ const state = {
   labels: { category: [], equipment: [], target: [] },
   wod: null,
   search: '',
-  lang: 'es',
+  lang: getStoredLang(),
   filters: {
     category: new Set(),
     equipment: new Set(),
@@ -104,7 +105,10 @@ async function init() {
   initThemeUi();
 
   applyLanguage();
+  initFilterAccordions();
   revealFilters();
+  collapseFiltersOnMobile();
+  initResultsBarPlacement();
   await restoreSession();
   await reloadExercises();
   wireEvents();
@@ -165,7 +169,8 @@ async function reloadExercises() {
 }
 
 function refreshTrainingGrid() {
-  renderTrainingProgram(getUser(), activeFilters());
+  const { search } = activeFilters();
+  renderTrainingProgram(getUser(), { search });
   updateActiveBadges();
 }
 
@@ -233,7 +238,13 @@ function syncChromeLabels() {
   document.querySelectorAll('[data-ui]').forEach(el => {
     el.textContent = ui(el.dataset.ui);
   });
-  searchEl.placeholder = ui('search');
+  document.querySelectorAll('.lang-toggle-btn').forEach(btn => {
+    const active = btn.dataset.lang === state.lang;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-pressed', String(active));
+  });
+  const onTraining = getView() === 'training' && Boolean(getUser());
+  searchEl.placeholder = onTraining ? ui('searchTraining') : ui('search');
   syncAuthLabels();
   syncSessionLabels();
 }
@@ -304,37 +315,127 @@ function buildFilterOptions() {
   renderChips('category-chips', sortedFilterValues(state.labels.category), 'category');
   renderChips('equipment-chips', sortedFilterValues(state.labels.equipment), 'equipment', EQUIP_INITIAL);
   renderChips('target-chips', sortedFilterValues(state.labels.target), 'target', EQUIP_INITIAL);
+  syncFilterSectionHints();
 }
 
-function renderChips(containerId, values, filterKey, initialLimit = null) {
-  const container = document.getElementById(containerId);
-  container.innerHTML = '';
+/** Hint en el título si la sección está colapsada y hay filtro activo. */
+function syncFilterSectionHints() {
+  document.querySelectorAll('.filter-section[data-filter-key]').forEach(section => {
+    const key = section.dataset.filterKey;
+    const hint = section.querySelector('.filter-summary-hint');
+    if (!hint) return;
 
-  const toShow = initialLimit ? values.slice(0, initialLimit) : values;
-  const rest = initialLimit ? values.slice(initialLimit) : [];
+    const selected = [...(state.filters[key] || [])][0];
+    const collapsed = section.classList.contains('is-collapsed');
+    section.classList.toggle('has-active-filter', Boolean(selected));
 
-  toShow.forEach(val => container.appendChild(makeChip(val, filterKey)));
-  if (rest.length === 0) return;
+    if (collapsed && selected) {
+      hint.hidden = false;
+      hint.textContent = label(selected);
+    } else {
+      hint.hidden = true;
+      hint.textContent = '';
+    }
+  });
+}
 
-  const hiddenWrap = document.createElement('div');
-  hiddenWrap.className = 'chip-overflow';
-  rest.forEach(val => hiddenWrap.appendChild(makeChip(val, filterKey)));
-  container.appendChild(hiddenWrap);
+function initFilterAccordions() {
+  document.querySelectorAll('.filter-summary').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const section = btn.closest('.filter-section');
+      if (!section) return;
+      const collapsed = section.classList.toggle('is-collapsed');
+      btn.setAttribute('aria-expanded', String(!collapsed));
+      syncFilterSectionHints();
+    });
+  });
+}
 
-  // Keep overflow open if a selected filter is hidden
-  if (rest.some(val => state.filters[filterKey]?.has(val))) {
-    hiddenWrap.classList.add('open');
+/** En móvil: filtros cerrados por defecto para no comer viewport. */
+function collapseFiltersOnMobile() {
+  if (!window.matchMedia('(max-width: 768px)').matches) return;
+
+  document.querySelectorAll('.filter-section').forEach(section => {
+    section.classList.add('is-collapsed');
+    section.querySelector('.filter-summary')?.setAttribute('aria-expanded', 'false');
+  });
+  syncFilterSectionHints();
+}
+
+/**
+ * Un solo .results-bar: en móvil justo bajo ExerciseDB; en desktop en el main.
+ */
+function placeResultsBarForViewport() {
+  const bar = document.querySelector('.results-bar');
+  const headerRow = document.querySelector('.sidebar-header-row');
+  const header = document.querySelector('.sidebar-header');
+  const main = document.querySelector('.main-content');
+  if (!bar || !headerRow || !header || !main) return;
+
+  const mobile = window.matchMedia('(max-width: 768px)').matches;
+
+  if (mobile) {
+    if (bar.parentElement === header && bar.previousElementSibling === headerRow) return;
+    headerRow.after(bar);
     return;
   }
 
+  if (bar.parentElement === main && main.firstElementChild === bar) return;
+  main.insertBefore(bar, main.firstElementChild);
+}
+
+function initResultsBarPlacement() {
+  placeResultsBarForViewport();
+  window.matchMedia('(max-width: 768px)').addEventListener('change', placeResultsBarForViewport);
+}
+
+function renderChips(containerId, values, filterKey, pageSize = null) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+
+  if (!pageSize || values.length <= pageSize) {
+    values.forEach(val => container.appendChild(makeChip(val, filterKey)));
+    return;
+  }
+
+  let shown = 0;
   const moreBtn = document.createElement('button');
+  moreBtn.type = 'button';
   moreBtn.className = 'chip filter-show-more';
-  moreBtn.textContent = ui('more', rest.length);
-  moreBtn.addEventListener('click', () => {
-    hiddenWrap.classList.add('open');
-    moreBtn.remove();
+
+  const syncMoreBtn = () => {
+    const remaining = values.length - shown;
+    if (remaining <= 0) {
+      moreBtn.remove();
+      return;
+    }
+    moreBtn.textContent = ui('remaining', remaining);
+    if (!moreBtn.isConnected) container.appendChild(moreBtn);
+  };
+
+  const revealNext = (count) => {
+    const end = Math.min(shown + count, values.length);
+    const frag = document.createDocumentFragment();
+    for (let i = shown; i < end; i++) {
+      frag.appendChild(makeChip(values[i], filterKey));
+    }
+    container.insertBefore(frag, moreBtn.isConnected ? moreBtn : null);
+    shown = end;
+    syncActiveChips();
+    syncMoreBtn();
+  };
+
+  // Primera tanda; si hay filtro activo oculto, revelar lotes hasta incluirlo
+  let initial = pageSize;
+  state.filters[filterKey]?.forEach(val => {
+    const idx = values.indexOf(val);
+    if (idx >= initial) {
+      initial = Math.ceil((idx + 1) / pageSize) * pageSize;
+    }
   });
-  container.appendChild(moreBtn);
+
+  revealNext(Math.min(initial, values.length));
+  moreBtn.addEventListener('click', () => revealNext(pageSize));
 }
 
 function makeChip(value, filterKey) {
@@ -399,7 +500,8 @@ function renderGrid() {
   gridEl.innerHTML = '';
 
   if (state.filtered.length === 0) {
-    if (!state.catalogReady || state.loading) {
+    // Solo “cargando” antes del primer response; si ya respondió vacío → empty state
+    if (!state.catalogReady) {
       showCatalogLoading();
       return;
     }
@@ -456,6 +558,8 @@ function updateActiveBadges() {
       activeFilEl.appendChild(badge);
     });
   });
+
+  syncFilterSectionHints();
 
   if (!hasAny) return;
 
@@ -1018,6 +1122,7 @@ function wireEvents() {
         c.classList.add('chip-pop');
       }
     });
+    syncFilterSectionHints();
 
     searchRequestId++;
     searchEl.value = '';
@@ -1059,12 +1164,8 @@ function wireEvents() {
   langToggle?.addEventListener('click', e => {
     const btn = e.target.closest('.lang-toggle-btn');
     if (!btn || btn.dataset.lang === state.lang) return;
-    state.lang = btn.dataset.lang;
-    document.querySelectorAll('.lang-toggle-btn').forEach(b => {
-      const active = b.dataset.lang === state.lang;
-      b.classList.toggle('active', active);
-      b.setAttribute('aria-pressed', String(active));
-    });
+    state.lang = btn.dataset.lang === 'en' ? 'en' : 'es';
+    setStoredLang(state.lang);
     applyLanguage();
   });
 
