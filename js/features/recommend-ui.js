@@ -36,6 +36,7 @@ export function initRecommendUi({
   if (!overlay || !form) return;
 
   document.getElementById('recommend-open-btn')?.addEventListener('click', openRecommendModal);
+  document.getElementById('recommend-again-btn')?.addEventListener('click', openRecommendModal);
   document.getElementById('recommend-modal-close')?.addEventListener('click', closeRecommendModal);
   overlay.addEventListener('click', e => {
     if (e.target === overlay) closeRecommendModal();
@@ -52,6 +53,7 @@ export function initRecommendUi({
   });
 
   syncRecommendLabels();
+  syncRecommendChrome();
 }
 
 export function openRecommendModal() {
@@ -75,6 +77,7 @@ export function clearRecommendPlan() {
   closeRecommendModal();
   const grid = document.getElementById('recommend-grid');
   if (grid) grid.innerHTML = '';
+  syncRecommendChrome();
 }
 
 export function syncRecommendLabels() {
@@ -85,6 +88,7 @@ export function syncRecommendLabels() {
 
   if (overlay?.classList.contains('open')) populateOptions();
   if (lastPlan) renderRecommendPlan(lastPlan);
+  else syncRecommendChrome();
 }
 
 /**
@@ -104,12 +108,23 @@ export function renderRecommendPlan(plan) {
     empty.className = 'empty-state';
     empty.innerHTML = `<p>🔍</p><p>${ui('empty')}</p>`;
     grid.appendChild(empty);
+    syncRecommendChrome();
     return;
   }
 
   const frag = document.createDocumentFragment();
   items.forEach(item => frag.appendChild(createRecommendCard(item)));
   grid.appendChild(frag);
+  syncRecommendChrome();
+}
+
+function syncRecommendChrome() {
+  const empty = document.getElementById('recommend-empty');
+  const results = document.getElementById('recommend-results');
+  const hasPlan = Boolean(lastPlan) && normalizeRecommendItems(lastPlan).length > 0;
+
+  if (empty) empty.hidden = hasPlan;
+  if (results) results.hidden = !hasPlan;
 }
 
 function normalizeRecommendItems(plan) {

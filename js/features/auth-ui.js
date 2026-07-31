@@ -71,7 +71,8 @@ async function onSubmit(e) {
     } else {
       const firstName = form.querySelector('#auth-first-name')?.value.trim() ?? '';
       const lastName = form.querySelector('#auth-last-name')?.value.trim() ?? '';
-      ({ accessToken } = await createUser({ firstName, lastName, email, password }));
+      const role = form.querySelector('input[name="role"]:checked')?.value || 'athlete';
+      ({ accessToken } = await createUser({ firstName, lastName, email, password, role }));
     }
 
     setToken(accessToken);
@@ -130,14 +131,16 @@ export function syncAuthLabels() {
 
   form.querySelectorAll('.auth-register-only').forEach(el => {
     el.hidden = isLogin;
-    const input = el.querySelector('input');
-    if (input) input.required = !isLogin;
+    el.querySelectorAll('input:not([type="radio"])').forEach(input => {
+      input.required = !isLogin;
+    });
   });
 
   const firstName = form.querySelector('#auth-first-name');
   const lastName = form.querySelector('#auth-last-name');
   const email = form.querySelector('#auth-email');
   const password = form.querySelector('#auth-password');
+  const roleToggle = form.querySelector('#auth-role-toggle');
 
   if (firstName) firstName.placeholder = ui('firstName');
   if (lastName) lastName.placeholder = ui('lastName');
@@ -146,4 +149,11 @@ export function syncAuthLabels() {
     password.placeholder = ui('password');
     password.autocomplete = isLogin ? 'current-password' : 'new-password';
   }
+  if (roleToggle) {
+    roleToggle.setAttribute('aria-label', ui('authRole'));
+  }
+
+  form.querySelectorAll('[data-ui]').forEach(el => {
+    el.textContent = ui(el.dataset.ui);
+  });
 }

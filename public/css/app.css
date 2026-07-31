@@ -208,7 +208,9 @@ html, body { height: 100%; }
 }
 
 #sidebar-guest[hidden],
-#sidebar-auth[hidden] {
+#sidebar-auth[hidden],
+#nav-athlete[hidden],
+#nav-coach[hidden] {
   display: none;
 }
 
@@ -2017,6 +2019,9 @@ html[data-theme="dark"] .chip.active {
 
 .sidebar-user-meta {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .sidebar-user-name {
@@ -2028,6 +2033,35 @@ html[data-theme="dark"] .chip.active {
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 1.25;
+}
+
+.sidebar-user-role {
+  display: inline-flex;
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  background: color-mix(in srgb, var(--bg-elevated) 80%, transparent);
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-user-role[data-role="coach"],
+.sidebar-user-role[data-role="admin"] {
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+
+.sidebar-user-role[hidden] {
+  display: none;
 }
 
 .sidebar-logout {
@@ -2078,13 +2112,16 @@ html[data-theme="dark"] .chip.active {
 
 #catalog-view[hidden],
 #training-view[hidden],
-#recommend-view[hidden] {
+#recommend-view[hidden],
+#coach-plan-view[hidden],
+#students-view[hidden] {
   display: none !important;
 }
 
 #catalog-view,
 .training-view,
-.recommend-view {
+.recommend-view,
+.placeholder-view {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -2102,6 +2139,13 @@ html[data-theme="dark"] .chip.active {
   gap: 24px;
 }
 
+.placeholder-view {
+  padding: 28px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
 .recommend-panel {
   width: min(420px, 100%);
   align-self: center;
@@ -2111,6 +2155,56 @@ html[data-theme="dark"] .chip.active {
   background: var(--bg-surface);
   border: 1px solid var(--border);
   box-shadow: 0 8px 24px color-mix(in srgb, var(--text-primary) 6%, transparent);
+}
+
+.recommend-panel[hidden],
+.recommend-results[hidden] {
+  display: none !important;
+}
+
+.recommend-results {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.recommend-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.recommend-toolbar-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.recommend-again-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.recommend-again-btn:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-surface));
 }
 
 .recommend-title {
@@ -2531,7 +2625,9 @@ html[data-theme="dark"] .chip.active {
   color: var(--text-secondary);
 }
 
-.auth-field input {
+.auth-field input[type="text"],
+.auth-field input[type="email"],
+.auth-field input[type="password"] {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--border);
@@ -2542,8 +2638,74 @@ html[data-theme="dark"] .chip.active {
   transition: border-color 0.15s;
 }
 
-.auth-field input:focus {
+.auth-field input[type="text"]:focus,
+.auth-field input[type="email"]:focus,
+.auth-field input[type="password"]:focus {
   border-color: var(--accent);
+}
+
+.auth-role-field {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-inline-size: 0;
+}
+
+.auth-role-field .auth-label {
+  padding: 0;
+  margin: 0 0 6px;
+}
+
+.auth-role-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+
+.auth-role-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  cursor: pointer;
+}
+
+.auth-role-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.auth-role-option span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: calc(var(--radius-md) - 2px);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: color 0.15s, background 0.15s;
+}
+
+.auth-role-option:hover span {
+  color: var(--text-primary);
+}
+
+.auth-role-option input:checked + span {
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+
+.auth-role-option input:focus-visible + span {
+  outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: 1px;
 }
 
 .auth-submit {
