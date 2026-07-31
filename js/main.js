@@ -75,6 +75,7 @@ const modalPanel = document.getElementById('modal-panel');
 const modalTitle = document.getElementById('modal-title');
 const modalGif = document.getElementById('modal-gif');
 const modalMeta = document.getElementById('modal-meta');
+const modalActions = document.getElementById('modal-actions');
 const modalAddPlan = document.getElementById('modal-add-plan');
 const modalPlanBtnLabel = document.getElementById('modal-plan-btn-label');
 const modalPlanBtnFill = document.getElementById('modal-plan-btn-fill');
@@ -670,10 +671,20 @@ function syncPlanAction(exerciseId) {
   if (!modalAddPlan) return;
 
   exerciseId = String(exerciseId || '');
-  modalAddPlan.hidden = !exerciseId;
   modalAddPlan.classList.remove('is-in-plan', 'is-remove', 'is-undo', 'is-busy');
   stopPlanUndoFill();
   delete modalAddPlan.dataset.error;
+
+  // Coach/admin: catalog is browse-only (no self-serve training view)
+  if (isCoach()) {
+    modalAddPlan.hidden = true;
+    setPrescriptionEditorVisible(false);
+    if (modalActions) modalActions.hidden = true;
+    return;
+  }
+
+  if (modalActions) modalActions.hidden = !exerciseId;
+  modalAddPlan.hidden = !exerciseId;
 
   if (!exerciseId) {
     setPrescriptionEditorVisible(false);
@@ -1043,7 +1054,7 @@ async function saveProgramIds(exerciseIds) {
 }
 
 async function onPlanActionClick() {
-  if (!modalAddPlan || modalAddPlan.disabled) return;
+  if (!modalAddPlan || modalAddPlan.disabled || isCoach()) return;
 
   const mode = modalAddPlan.dataset.mode;
   if (mode === 'login') {
