@@ -17,6 +17,7 @@
     · #sidebar-auth / vistas catalog|training|recommend|coach-plan|students → js/features/session-ui.js
     · #recommend-overlay                               → js/features/recommend-ui.js
     · #students-view / #add-student-overlay             → js/features/students-ui.js
+    · #coach-invite-banner                             → js/features/coach-invite-ui.js
     · #training-grid                               → js/features/training-ui.js
     · Footer                                       → js/features/footer.js
     · Easter eggs (search codes)                   → js/features/easter-egg.js
@@ -86,6 +87,11 @@
                 <span class="sidebar-nav-marker" aria-hidden="true"></span>
                 <span data-ui="myTraining">Entrenamiento</span>
               </button>
+              <button type="button" class="sidebar-nav-btn" id="nav-coach-plan" data-view="coach-plan">
+                <span class="sidebar-nav-marker" aria-hidden="true"></span>
+                <span data-ui="coachPlan">Plan del coach</span>
+                <span class="sidebar-nav-dot" id="nav-coach-plan-dot" hidden aria-hidden="true"></span>
+              </button>
               <button type="button" class="sidebar-nav-btn" id="nav-recommend" data-view="recommend">
                 <span class="sidebar-nav-marker" aria-hidden="true"></span>
                 <span data-ui="recommendPlan">Recomendar Entrenamiento</span>
@@ -93,10 +99,6 @@
                   <span class="sidebar-nav-pro-emoji" aria-hidden="true">✨</span>
                   <span class="sidebar-nav-pro-label">Pro</span>
                 </span>
-              </button>
-              <button type="button" class="sidebar-nav-btn" id="nav-coach-plan" data-view="coach-plan">
-                <span class="sidebar-nav-marker" aria-hidden="true"></span>
-                <span data-ui="coachPlan">Plan del coach</span>
               </button>
             </div>
           </div>
@@ -161,6 +163,23 @@
 
   <!-- Main — catálogo (main.js) | entrenamiento (session-ui.js) -->
   <main class="main-content">
+    <!-- Invitación coach pendiente — js/features/coach-invite-ui.js -->
+    <div class="coach-invite-banner" id="coach-invite-banner" hidden role="status" aria-live="polite">
+      <div class="coach-invite-banner-copy">
+        <p class="coach-invite-banner-label" data-ui="coachInviteLabel">Invitación pendiente</p>
+        <p class="coach-invite-banner-text" id="coach-invite-message"></p>
+      </div>
+      <div class="coach-invite-banner-actions">
+        <button type="button" class="coach-invite-accept" id="coach-invite-accept">
+          <span data-ui="coachInviteAccept">Aceptar</span>
+        </button>
+        <button type="button" class="coach-invite-reject" id="coach-invite-reject">
+          <span data-ui="coachInviteReject">Rechazar</span>
+        </button>
+      </div>
+      <p class="coach-invite-banner-status" id="coach-invite-status" hidden></p>
+    </div>
+
     <div class="results-bar">
       <div id="catalog-bar-extras" class="catalog-bar-extras">
         <div class="active-filters" id="active-filters"></div>
@@ -236,7 +255,7 @@
     </div>
 
     <div id="coach-plan-view" class="recommend-view" hidden>
-      <div class="recommend-panel">
+      <div class="recommend-panel" id="coach-plan-empty">
         <h2 class="recommend-title" id="coach-plan-title" data-ui="coachPlanEmpty">Aún no tienes coach</h2>
         <p class="recommend-lead" id="coach-plan-lead" data-ui="coachPlanEmptyLead">
           Cuando un coach te asigne, aquí verás el plan que preparó para ti. Mientras tanto, entrena con tu plan o explora el catálogo.
@@ -245,7 +264,12 @@
           <span data-ui="goToCatalog">Ir a Catálogo</span>
         </button>
       </div>
-      <div class="recommend-grid" id="coach-plan-grid" hidden></div>
+      <div class="recommend-results" id="coach-plan-results" hidden>
+        <div class="recommend-toolbar">
+          <h2 class="recommend-toolbar-title" data-ui="coachPlan">Plan del coach</h2>
+        </div>
+        <div class="recommend-grid training-grid" id="coach-plan-grid"></div>
+      </div>
     </div>
 
     <div id="students-view" class="students-view" hidden>
@@ -253,16 +277,16 @@
         <div class="recommend-toolbar">
           <h2 class="recommend-toolbar-title" data-ui="myStudents">Mis alumnos</h2>
           <button type="button" class="recommend-again-btn" id="students-add-btn">
-            <span data-ui="addStudent">Agregar alumno</span>
+            <span data-ui="addStudent">Invitar alumno</span>
           </button>
         </div>
         <div class="students-empty" id="students-empty">
           <p class="students-empty-title" data-ui="studentsEmptyTitle">Aún no tienes alumnos</p>
           <p class="students-empty-lead" data-ui="studentsEmptyLead">
-            Agrega un atleta por su email exacto. Cuando exista el vínculo, aparecerá acá.
+            Invita a un atleta por su email exacto. Cuando acepte, aparecerá acá.
           </p>
           <button type="button" class="recommend-cta" id="students-empty-add-btn">
-            <span data-ui="addStudent">Agregar alumno</span>
+            <span data-ui="addStudent">Invitar alumno</span>
           </button>
         </div>
         <div class="students-list" id="students-list" hidden></div>
@@ -381,7 +405,7 @@
 <div class="recommend-overlay" id="add-student-overlay" role="dialog" aria-modal="true" aria-labelledby="add-student-title">
   <div class="recommend-modal">
     <div class="recommend-modal-header">
-      <h2 class="recommend-modal-title" id="add-student-title" data-ui="addStudent">Agregar alumno</h2>
+      <h2 class="recommend-modal-title" id="add-student-title" data-ui="addStudent">Invitar alumno</h2>
       <button type="button" class="modal-close" id="add-student-close" aria-label="Close">✕</button>
     </div>
     <form class="recommend-form" id="add-student-form">
@@ -394,7 +418,8 @@
       </p>
       <p class="recommend-status" id="add-student-status" hidden></p>
       <button type="submit" class="recommend-submit" id="add-student-submit">
-        <span data-ui="addStudentSubmit">Vincular</span>
+        <span class="recommend-submit-fill" id="add-student-submit-fill" hidden></span>
+        <span class="recommend-submit-label" data-ui="addStudentSubmit">Enviar invitación</span>
       </button>
     </form>
   </div>

@@ -1,15 +1,21 @@
 /**
- * Coach — Mis alumnos: list shell + “Agregar alumno” modal (email exacto).
+ * Coach — Mis alumnos: list shell + invite modal (email exacto).
  * Markup: #students-view, #add-student-overlay
- * API de vincular: pendiente en back.
+ * API: POST /users/coach/invites
  */
+import { inviteCoachAthlete } from '../api/users.js';
 import { ui } from '../utils/labels.js';
+
+const SUCCESS_CLOSE_MS = 1200;
 
 let overlay;
 let form;
 let emailInput;
 let statusEl;
 let submitBtn;
+let submitLabel;
+let submitFill;
+let closeTimer = 0;
 
 export function initStudentsUi() {
   overlay = document.getElementById('add-student-overlay');
@@ -17,6 +23,8 @@ export function initStudentsUi() {
   emailInput = document.getElementById('add-student-email');
   statusEl = document.getElementById('add-student-status');
   submitBtn = document.getElementById('add-student-submit');
+  submitLabel = submitBtn?.querySelector('.recommend-submit-label');
+  submitFill = document.getElementById('add-student-submit-fill');
   if (!overlay || !form) return;
 
   document.getElementById('students-add-btn')?.addEventListener('click', openAddStudentModal);
@@ -39,15 +47,19 @@ export function initStudentsUi() {
 
 export function openAddStudentModal() {
   if (!overlay) return;
+  clearCloseTimer();
   setStatus('');
   form?.reset();
+  resetSubmitBtn();
   overlay.classList.add('open');
   emailInput?.focus();
 }
 
 export function closeAddStudentModal() {
+  clearCloseTimer();
   overlay?.classList.remove('open');
   setStatus('');
+  resetSubmitBtn();
 }
 
 export function syncStudentsLabels() {
@@ -56,7 +68,43 @@ export function syncStudentsLabels() {
       el.textContent = ui(el.dataset.ui);
     });
 
-  if (emailInput) emailInput.placeholder = ui('email');
+  if (emailInput) emailInput.placeholder = ui('inviteEmailPlaceholder');
+  if (submitBtn && !submitBtn.classList.contains('is-sent') && submitLabel) {
+    submitLabel.textContent = ui('addStudentSubmit');
+  }
+}
+
+function clearCloseTimer() {
+  if (!closeTimer) return;
+  window.clearTimeout(closeTimer);
+  closeTimer = 0;
+}
+
+function resetSubmitBtn() {
+  if (!submitBtn) return;
+  submitBtn.disabled = false;
+  submitBtn.classList.remove('is-sent');
+  if (submitLabel) {
+    submitLabel.dataset.ui = 'addStudentSubmit';
+    submitLabel.textContent = ui('addStudentSubmit');
+  }
+  stopSubmitFill();
+}
+
+function stopSubmitFill() {
+  if (!submitFill) return;
+  submitFill.hidden = true;
+  submitFill.style.animation = 'none';
+  submitFill.style.width = '0%';
+}
+
+function startSubmitFill() {
+  if (!submitFill) return;
+  submitFill.hidden = false;
+  submitFill.style.width = '';
+  submitFill.style.animation = 'none';
+  void submitFill.offsetWidth;
+  submitFill.style.animation = '';
 }
 
 function setStatus(message, kind = '') {
@@ -73,15 +121,46 @@ function setStatus(message, kind = '') {
   statusEl.classList.toggle('is-ok', kind === 'ok');
 }
 
+function inviteErrorMessage(err) {
+  const status = err?.status;
+  const raw = Array.isArray(err?.message) ? err.message.join(' ') : String(err?.message || '');
+  const lower = raw.toLowerCase();
+
+  if (status === 404) return ui('inviteNotFound');
+  if (status === 409) {
+    if (lower.includes('pending')) return ui('invitePending');
+    return ui('inviteHasCoach');
+  }
+  return ui('inviteFail');
+}
+
 async function onSubmit(e) {
   e.preventDefault();
   const email = emailInput?.value.trim() ?? '';
   if (!email) return;
 
-  // API pendiente: por ahora solo feedback de UI.
-  setStatus(ui('addStudentSoon'), 'ok');
+  clearCloseTimer();
+  setStatus('');
   if (submitBtn) submitBtn.disabled = true;
-  window.setTimeout(() => {
-    if (submitBtn) submitBtn.disabled = false;
-  }, 600);
+
+  try {
+    await inviteCoachAthlete(email);
+    if (submitBtn) {
+      submitBtn.classList.add('is-sent');
+      submitBtn.disabled = true;
+    }
+    if (submitLabel) {
+      submitLabel.dataset.ui = 'inviteSent';
+      submitLabel.textContent = ui('inviteSent');
+    }
+    startSubmitFill();
+    closeTimer = window.setTimeout(() => {
+      closeTimer = 0;
+      closeAddStudentModal();
+    }, SUCCESS_CLOSE_MS);
+  } catch (err) {
+    console.error(err);
+    setStatus(inviteErrorMessage(err), 'error');
+    resetSubmitBtn();
+  }
 }

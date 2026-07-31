@@ -11,21 +11,51 @@ import { setView } from './session-ui.js';
 
 /**
  * @param {object|null} user
- * @param {{ category?: string, equipment?: string, target?: string, search?: string }} [filters]
+ * @param {{ category?: string, equipment?: string, target?: string, search?: string, highlightId?: string }} [filters]
  */
 export function renderTrainingProgram(user, filters = {}) {
-  const grid = document.getElementById('training-grid');
+  renderProgramIntoGrid({
+    gridId: 'training-grid',
+    items: user?.trainingProgram,
+    filters,
+    emptyKey: 'trainingEmpty',
+    showCatalogCta: true,
+  });
+}
+
+/**
+ * Plan del coach — paints user.coachTrainingProgram (same item shape as trainingProgram for now).
+ * Markup: #coach-plan-grid
+ */
+export function renderCoachTrainingProgram(user, filters = {}) {
+  renderProgramIntoGrid({
+    gridId: 'coach-plan-grid',
+    items: user?.coachTrainingProgram,
+    filters,
+    emptyKey: 'coachPlanProgramEmpty',
+    showCatalogCta: false,
+  });
+}
+
+function renderProgramIntoGrid({
+  gridId,
+  items,
+  filters = {},
+  emptyKey,
+  showCatalogCta,
+}) {
+  const grid = document.getElementById(gridId);
   if (!grid) return;
 
   grid.innerHTML = '';
 
-  const assigned = (user?.trainingProgram || []).filter(item => item?.exercise);
+  const assigned = (items || []).filter(item => item?.exercise);
   const program = assigned
     .filter(item => matchesTrainingFilters(item, filters))
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   if (!program.length) {
-    grid.appendChild(createTrainingEmptyState(!assigned.length));
+    grid.appendChild(createTrainingEmptyState(!assigned.length, { emptyKey, showCatalogCta }));
     return;
   }
 
@@ -42,7 +72,7 @@ export function renderTrainingProgram(user, filters = {}) {
 }
 
 /** @param {boolean} planEmpty true = no exercises in plan; false = filters/search hid all */
-function createTrainingEmptyState(planEmpty) {
+function createTrainingEmptyState(planEmpty, { emptyKey = 'trainingEmpty', showCatalogCta = true } = {}) {
   const empty = document.createElement('div');
   empty.className = 'empty-state';
 
@@ -51,9 +81,17 @@ function createTrainingEmptyState(planEmpty) {
     return empty;
   }
 
+  if (!showCatalogCta) {
+    empty.innerHTML = `
+      <p>📋</p>
+      <p>${ui(emptyKey)}</p>
+    `;
+    return empty;
+  }
+
   empty.innerHTML = `
     <p>📋</p>
-    <p>${ui('trainingEmpty')}</p>
+    <p>${ui(emptyKey)}</p>
     <button type="button" class="empty-state-cta" id="training-go-catalog">${ui('goToCatalog')}</button>
   `;
   empty.querySelector('#training-go-catalog')?.addEventListener('click', () => setView('catalog'));

@@ -505,6 +505,249 @@ html, body { height: 100%; }
   min-height: 0;
 }
 
+/* ── Coach invite banner ────────────────────────── */
+.coach-invite-banner {
+  --invite-pulse: color-mix(in srgb, var(--accent) 35%, transparent);
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  padding: 14px 20px 14px 22px;
+  overflow: hidden;
+  isolation: isolate;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+  background:
+    linear-gradient(
+      105deg,
+      color-mix(in srgb, var(--accent) 22%, var(--bg-surface)) 0%,
+      color-mix(in srgb, var(--accent) 10%, var(--bg-base)) 42%,
+      var(--bg-base) 100%
+    );
+  box-shadow:
+    inset 4px 0 0 var(--accent),
+    0 8px 20px color-mix(in srgb, var(--accent) 14%, transparent);
+  animation:
+    coach-invite-enter 0.55s cubic-bezier(0.22, 1, 0.36, 1) both,
+    coach-invite-breathe 2.8s ease-in-out 0.55s infinite;
+}
+
+.coach-invite-banner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    color-mix(in srgb, var(--accent) 28%, transparent) 45%,
+    transparent 70%
+  );
+  background-size: 220% 100%;
+  animation: coach-invite-shimmer 3.4s ease-in-out infinite;
+}
+
+.coach-invite-banner::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  z-index: 1;
+  background: var(--accent);
+  box-shadow: 0 0 16px var(--invite-pulse);
+  animation: coach-invite-bar 1.8s ease-in-out infinite;
+}
+
+.coach-invite-banner > * {
+  position: relative;
+  z-index: 1;
+}
+
+.coach-invite-banner[hidden] {
+  display: none !important;
+}
+
+.coach-invite-banner-copy {
+  flex: 1 1 220px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.coach-invite-banner-label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  line-height: 1.2;
+}
+
+.coach-invite-banner-text {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+
+.coach-invite-name {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.coach-invite-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.coach-invite-accept,
+.coach-invite-reject {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 750;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s, transform 0.15s;
+}
+
+.coach-invite-accept:disabled,
+.coach-invite-reject:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  animation: none;
+}
+
+.coach-invite-accept {
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
+  background: var(--accent);
+  color: #fff;
+  animation: coach-invite-cta 2.2s ease-in-out infinite;
+}
+
+.coach-invite-accept:hover:not(:disabled) {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+.coach-invite-reject {
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+}
+
+.coach-invite-reject:hover:not(:disabled) {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.coach-invite-banner-status {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.coach-invite-banner-status.is-error {
+  color: #b91c1c;
+}
+
+.coach-invite-banner-status[hidden] {
+  display: none !important;
+}
+
+.sidebar-nav-dot {
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+  animation: coach-invite-dot 1.6s ease-in-out infinite;
+}
+
+.sidebar-nav-dot[hidden] {
+  display: none !important;
+}
+
+@keyframes coach-invite-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes coach-invite-breathe {
+  0%, 100% {
+    box-shadow:
+      inset 4px 0 0 var(--accent),
+      0 8px 20px color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+  50% {
+    box-shadow:
+      inset 4px 0 0 var(--accent),
+      0 10px 28px color-mix(in srgb, var(--accent) 28%, transparent);
+  }
+}
+
+@keyframes coach-invite-shimmer {
+  0%, 100% { background-position: 120% 0; }
+  50% { background-position: -40% 0; }
+}
+
+@keyframes coach-invite-bar {
+  0%, 100% { opacity: 0.75; filter: brightness(1); }
+  50% { opacity: 1; filter: brightness(1.25); }
+}
+
+@keyframes coach-invite-cta {
+  0%, 100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+}
+
+@keyframes coach-invite-dot {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+  50% {
+    transform: scale(1.25);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coach-invite-banner,
+  .coach-invite-banner::before,
+  .coach-invite-banner::after,
+  .coach-invite-accept,
+  .sidebar-nav-dot {
+    animation: none;
+  }
+}
+
 /* ── Results Bar ────────────────────────────────── */
 .results-bar {
   padding: 14px 20px 10px;
@@ -2755,21 +2998,60 @@ html[data-theme="dark"] .chip.active {
 .recommend-status.is-ok { color: var(--accent); }
 
 .recommend-submit {
+  position: relative;
+  overflow: hidden;
   margin-top: 2px;
   padding: 11px 14px;
   border-radius: var(--radius-sm);
+  border: 1px solid var(--accent);
   background: var(--accent);
   color: #fff;
   font-weight: 600;
   font-size: 14px;
   font-family: inherit;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.recommend-submit-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0%;
+  background: color-mix(in srgb, #14532d 45%, transparent);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.recommend-submit-label {
+  position: relative;
+  z-index: 1;
 }
 
 .recommend-submit:hover:not(:disabled) { opacity: 0.9; }
 .recommend-submit:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.recommend-submit.is-sent {
+  background: #15803d;
+  border-color: #15803d;
+  color: #fff;
+  opacity: 1;
+  cursor: default;
+  transition: none;
+}
+
+.recommend-submit.is-sent .recommend-submit-fill {
+  display: block;
+  background: color-mix(in srgb, #14532d 45%, transparent);
+  animation: plan-undo-fill 1.2s linear forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recommend-submit.is-sent .recommend-submit-fill {
+    animation: none;
+    width: 100%;
+  }
 }
 
 .training-grid {

@@ -158,11 +158,12 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 ---
 
-## 8. Mis alumnos (coach) — shell
+## 8. Mis alumnos (coach)
 
-- Toolbar + empty state + “Agregar alumno”.
-- Modal email exacto → **sin API** (mensaje “próximamente”).
-- Lista de alumnos: markup listo, **aún no se pinta**.
+- Toolbar + empty state + “Invitar alumno”.
+- Modal email exacto → `POST /users/coach/invites` (Bearer).
+- Success: “Invitación enviada”; 404/409 mapeados a copy local.
+- Lista de alumnos: markup listo, **aún no se pinta** (falta `GET .../athletes`).
 
 ---
 
@@ -193,8 +194,9 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 | POST | `/users/training-program` | Sí | Agregar al plan |
 | PUT | `/users/training-program/remove` | Sí | Confirmar quitar |
 | PUT | `/users/training-program/:exerciseId` | Sí | Guardar pauta |
+| POST | `/users/coach/invites` | Sí | Coach invita atleta por email |
 
-No hay llamadas de coach–alumno todavía.
+No hay accept/reject ni listado de alumnos todavía.
 
 ---
 
