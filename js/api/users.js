@@ -1,4 +1,4 @@
-import { get, put } from './client.js';
+import { get, post, put } from './client.js';
 
 const USERS = '/users';
 
@@ -8,25 +8,40 @@ export function getMe() {
 }
 
 /**
- * PUT /users/:userId/training-program
- * Replaces program exercise list. Body: { exerciseIds: string[] }
+ * POST /users/training-program
+ * Appends catalog exercises (by id). Skips duplicates. Body: { exerciseIds: string[] }
+ * User id comes from JWT.
  */
-export function putTrainingProgram(userId, exerciseIds) {
-  return put(
-    `${USERS}/${userId}/training-program`,
+export function addToTrainingProgram(exerciseIds) {
+  return post(
+    `${USERS}/training-program`,
     { exerciseIds },
     { auth: true },
   );
 }
 
 /**
- * PUT /users/:userId/training-program/remove
+ * PUT /users/training-program/remove
  * Body: { exerciseId: string }
+ * User id comes from JWT.
  */
-export function removeTrainingProgramExercise(userId, exerciseId) {
+export function removeTrainingProgramExercise(exerciseId) {
   return put(
-    `${USERS}/${userId}/training-program/remove`,
+    `${USERS}/training-program/remove`,
     { exerciseId },
+    { auth: true },
+  );
+}
+
+/**
+ * PUT /users/training-program/:exerciseId
+ * Updates sets / reps / rest / notes for one program item.
+ * User id comes from JWT.
+ */
+export function updateTrainingProgramExercise(exerciseId, updates) {
+  return put(
+    `${USERS}/training-program/${exerciseId}`,
+    updates,
     { auth: true },
   );
 }

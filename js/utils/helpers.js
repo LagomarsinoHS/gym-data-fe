@@ -14,3 +14,14 @@ export function normalizeSearch(text) {
     .toLowerCase()
     .trim();
 }
+
+/** First occurrence wins; identity via `exercise.id`. */
+export function dedupeById(list) {
+  const seen = new Set();
+  return list.filter(exercise => {
+    const id = String(exercise.id);
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+}

@@ -12,21 +12,29 @@ El catálogo global (~1.324 ejercicios) **no se reemplaza**: es la librería pú
 
 Cada usuario, al entrar a su cuenta, ve **su plan personalizado** (“Mi entrenamiento”): los ejercicios que tiene asignados (hoy puede armarlos él desde el catálogo; a futuro también los que le asigne un profesor), con pauta opcional (series / reps / rest / notes).
 
+La nav depende del **rol** (`athlete` | `coach` | `admin`):
+
+| Rol | Nav típica |
+|-----|------------|
+| Atleta | Mi plan → Entrenamiento, Recomendar (Pro), Plan del coach · Catálogo |
+| Coach / Admin | Mis alumnos · Catálogo |
+
 | Público | Autenticado |
 |---------|-------------|
 | Explora el **catálogo** (API) | Misma librería + **su** `trainingProgram` |
-| CTA **Mi plan** → login / registro | Nav **Mi entrenamiento** \| **Catálogo** |
-| — | Nombre + Salir; plan privado por user |
+| CTA **Mi plan** → login / registro | Vistas según rol + Catálogo |
+| — | Nombre + badge de rol + Salir; plan privado por user |
 
-Flujo:
+Flujo atleta:
 
 ```
-[Sidebar: Mi plan]
+[Sidebar: Mi plan / Entrenamiento]
         ↓
    ¿hay sesión? ── no → modal login / registro
         ↓ sí
    GET /users/me → trainingProgram[]
    Vista “Mi entrenamiento” (filtros locales sobre el plan)
+   Modal: agregar / quitar / editar pauta (lápiz)
    Catálogo sigue disponible como librería
 ```
 
@@ -36,9 +44,11 @@ Flujo:
 
 - **No duplicar** ejercicios: solo `exerciseId` (+ pauta opcional).
 - Populate del ejercicio desde el catálogo (`image`, `gif_url`, `name`, etc.).
-- Dos mundos en la UI:
-  1. **Catálogo** — `GET /exercises` (paginado, filtros, WOD) desde la BD vía API
+- Mundos en la UI:
+  1. **Catálogo** — `GET /exercises` (paginado, filtros, WOD)
   2. **Mi entrenamiento** — plan privado del user autenticado
+  3. **Recomendar** — `GET /exercises/recommend` (gate `isPremium`)
+  4. **Mis alumnos** (coach) — shell; API de vínculo pendiente
 - Preferencias de UI (tema / idioma): **local** (`localStorage`), no en el user de la API (por ahora).
 
 ---
@@ -51,10 +61,12 @@ Flujo:
 |-------|--------|
 | `id` | UUID del user |
 | `email` | login |
-| `firstName` / `lastName` | display |
-| `role` | `athlete` (set por el back al registrar) |
-| `coachId` | opcional |
-| `trainingProgram[]` | plan embebido |
+| `name` / `lastName` | display (sidebar) |
+| `role` | `athlete` \| `coach` \| `admin` |
+| `isPremium` | gate de Recomendar |
+| `coachId` | opcional (atleta vinculado a un coach) |
+| `trainingProgram[]` | plan self-serve |
+| `coachTrainingProgram[]` | plan asignado por coach (futuro UI) |
 
 ### Ítem de `trainingProgram`
 
@@ -63,7 +75,10 @@ Flujo:
 | `exerciseId` | id del catálogo (`"0001"`, …) |
 | `exercise` | populate (id, name, image, gif_url, category, equipment, …) |
 | `order` | opcional |
-| `sets` / `reps` / `rest` / `notes` | opcionales (pauta) |
+| `sets` | number opcional |
+| `reps` | string (`"6"` o `"8 - 12"`) |
+| `rest` | number en **segundos** |
+| `notes` | string opcional |
 
 Un ítem puede ser solo `{ exerciseId }` → UI muestra “Sin pauta asignada”.
 
@@ -74,8 +89,8 @@ Un ítem puede ser solo `{ exerciseId }` → UI muestra “Sin pauta asignada”
 | Método | Path | Uso |
 |--------|------|-----|
 | `POST` | `/auth/login` | → `{ accessToken, user }` |
-| `POST` | `/auth/register` | → `{ accessToken, user }` (sin `role` desde el front) |
-| `GET` | `/users/me` | Bearer → user + `trainingProgram` |
+| `POST` | `/auth/register` | body incluye `role: athlete \| coach` |
+| `GET` | `/users/me` | Bearer → user + planes enriquecidos |
 
 - Token en `localStorage` (`FLEX_TOKEN`).
 - Client: `Authorization: Bearer …` cuando `{ auth: true }`.
@@ -84,12 +99,15 @@ Un ítem puede ser solo `{ exerciseId }` → UI muestra “Sin pauta asignada”
 
 ## API de plan (hecho)
 
+User id viene del **JWT** (no va en el path).
+
 | Método | Path | Body | Uso |
 |--------|------|------|-----|
-| `PUT` | `/users/:userId/training-program` | `{ exerciseIds: string[] }` | Reemplaza la lista de ids del plan |
-| `PUT` | `/users/:userId/training-program/remove` | `{ exerciseId: string }` | Quita un ejercicio |
+| `POST` | `/users/training-program` | `{ exerciseIds: string[] }` | Agrega solo ids **nuevos** (al inicio; skip duplicados) |
+| `PUT` | `/users/training-program/remove` | `{ exerciseId: string }` | Quita un ejercicio |
+| `PUT` | `/users/training-program/:exerciseId` | `{ sets?, reps?, rest?, notes? }` | Edita pauta de un ítem |
 
-Ambos responden con el user actualizado (el front hace `setUser` sin otro `/me`).
+Responden con el user enriquecido (el front hace `setUser` sin otro `/me` obligatorio).
 
 ---
 
@@ -98,56 +116,51 @@ Ambos responden con el user actualizado (el front hace `setUser` sin otro `/me`)
 ### Sesión / navegación
 
 - [x] CTA **Mi plan** → login si no hay sesión (ya no hay “DB Setup”)
-- [x] Con sesión: nav **Mi entrenamiento** | **Catálogo** (estado activo claro)
-- [x] Nombre (`firstName` + `lastName`) + **Salir**
-- [x] Restaurar sesión al boot con `/users/me`
+- [x] Nav por **rol** + badge (Atleta / Entrenador / Admin)
+- [x] Register: toggle Atleta / Entrenador
+- [x] Nombre + **Salir**; restaurar sesión al boot con `/users/me`
 
 ### Mi entrenamiento
 
 - [x] Vista propia (`#training-view`) con cards distintas al catálogo
-- [x] Mostrar sets / reps / rest / notes (o “Sin pauta asignada”)
-- [x] Filtros + search **en memoria** sobre el plan (sin llamar `/exercises`)
-- [x] Search sin tildes (`normalizeSearch`)
-- [x] Empty state si no hay ejercicios
-- [x] Hover GIF + modal de detalle (mismo que catálogo)
-- [x] Scroll del contenido bajo el header fijo (catálogo y plan)
+- [x] RX: emoji + valor en columna con línea izquierda; nota clamp 2 líneas
+- [x] Filtros + search **en memoria** sobre el plan
+- [x] Empty state + CTA a catálogo
+- [x] Hover GIF + modal de detalle
+- [x] Flash de card tras guardar pauta y cerrar modal
+
+### Pauta (self-serve)
+
+- [x] Lápiz junto a Quitar del plan → form sets / reps / rest / notes
+- [x] Resumen chips + nota; animación open/close del form; pop al guardar
+- [x] Validación reps (`js/utils/reps.js`: `cleanReps` / `formatReps`)
 
 ### Modal
 
-- [x] Copiar enlace (`?exercise=0001`) + deep link al abrir
-- [x] **Agregar a mi plan** (logueado) / “Iniciá sesión para guardar”
-- [x] En catálogo: estado **En tu plan** si ya está
-- [x] En Mi entrenamiento: **Quitar del plan** + undo (~1.5s) con barra; el `remove` al back se confirma al terminar / cerrar
-- [x] Entrada/salida animada (overlay fade + panel scale/slide; sheet en mobile ≤768px)
+- [x] Copiar enlace (`?exercise=`) + deep link (`js/utils/url.js`)
+- [x] Agregar / quitar del plan + undo corto
+- [x] Enter modal notorio (fade + scale/slide; sheet en mobile)
 
-### Catálogo / boot UX
+### Recomendar / Coach shell
 
-- [x] Idioma por defecto **español** (`lang=es`, chrome ES en HTML)
-- [x] Filtros ocultos hasta `GET /exercises/labels` → luego reveal en cascade
-- [x] Loading centrado en el grid; contador de ejercicios vacío hasta el primer response
-- [x] Empty state real cuando la API responde `[]` (filtros sin match) — no spinner eterno
-- [x] Cards: título reserva 2 líneas (tags alineados); tags cat filled / equip outline distintivos
-- [x] Thumb: shimmer mientras carga + fade-in al estar lista (`js/utils/cards.js`)
-- [x] Stagger al pintar cards; pop al activar chip; focus activo en search
+- [x] Módulo Recomendar (zona + equipo; Pro)
+- [x] Mis alumnos: toolbar + empty state + modal email (API pendiente)
 
-### Tema claro / oscuro
+### Catálogo / tema / chrome
 
-- [x] Toggle **☀️/🌙 Tema** junto al lang (barra superior)
-- [x] Tokens en `base.css` (`html[data-theme="light|dark"]`)
-- [x] Persistencia `localStorage` (`FLEX_THEME`); boot temprano en `js/theme-boot.js` (sin flash)
-- [x] Transición suave solo al togglear (clase `theme-animating`)
-- [x] Contraste dark revisado (labels, chips, tags de cards)
+- [x] Idioma default ES; tema claro/oscuro persistido
+- [x] Filtros, loading, cards, shimmer, etc. (ver historial de commits)
 
 ### Código relevante
 
 ```
-js/api/auth.js, token.js, users.js, client.js
+js/api/auth.js, token.js, users.js, client.js, exercises.js
 js/features/auth-ui.js, session-ui.js, training-ui.js, theme-ui.js
-js/theme-boot.js      # tema antes del paint (mirror de prefs THEME_KEY)
-js/utils/prefs.js     # FLEX_THEME + FLEX_LANG
-js/utils/cards.js, helpers.js, labels.js
-js/main.js            # catálogo + modal + plan CTAs
+js/features/recommend-ui.js, students-ui.js, nav-drawer.js, footer.js
+js/utils/reps.js, url.js, cards.js, helpers.js, labels.js, prefs.js
+js/main.js
 public/css/base.css, app.css
+docs/TODO.md
 ```
 
 ---
@@ -156,38 +169,36 @@ public/css/base.css, app.css
 
 ### Producto / UX del plan
 
-- [ ] Editar pauta (sets / reps / rest / notes) desde el front (atleta o solo coach)
-- [ ] Mostrar título / notas del programa o del coach en la vista (si el back los expone)
-- [ ] Agrupar por día / semana (`day` / `week`)
-- [ ] Quitar desde catálogo (hoy solo “En tu plan” disabled)
-- [ ] Confirmación o feedback más claro al agregar desde catálogo
+- [ ] Mostrar plan del coach (`coachTrainingProgram`) en UI atleta
+- [ ] Agrupar por día / semana o sesiones
+- [ ] Quitar desde catálogo (hoy solo “En tu plan”)
+- [ ] Confirmación más clara al agregar desde catálogo / recommend
 
-### Modal / entrenamiento
+### Modal / sesión de gym
 
-- [ ] Checklist interactiva de pasos de instrucciones (marcar mientras entrenás)
-- [ ] GIF / media del modal más dominante (sin franjas vacías)
-- [ ] Timer de descanso usando `rest` del assignment
-- [ ] Marcar series hechas en sesión (local o persistido)
+- [ ] Checklist interactiva de pasos
+- [ ] GIF / media del modal más dominante
+- [ ] Timer de descanso usando `rest`
+- [ ] Marcar series hechas en sesión
 
 ### Coach / admin
 
-- [ ] Endpoints CRUD de asignación con pauta (sets/reps/orden) — no solo lista de ids
-- [ ] UI coach para armar planes a athletes
-- [ ] Seed / flujo: coach asigna → athlete ve pauta
+- [ ] API + UI: vincular atleta (email exacto / invite)
+- [ ] Lista alumnos (acordeón) + detalle / editar plan asignado
+- [ ] Plan por bloques o sesiones
 
 ### Auth / plataforma
 
 - [ ] Migrar token a cookie httpOnly (opcional)
-- [ ] Roles en UI (`coach` vs `athlete`)
-- [ ] Historial de programas (hoy: un plan activo embebido)
-- [ ] Sync tema/idioma al user en API (`user.config`) — solo si hace falta cross-device
+- [ ] Historial de programas
+- [ ] Sync tema/idioma al user en API — solo si hace falta cross-device
 
 ### Nice-to-have
 
-- [ ] Favoritos separados del plan (si hace falta distinto a “agregar al plan”)
-- [ ] Deep link más corto (`#0001` unificado como canonical)
+- [ ] Favoritos separados del plan
+- [ ] Deep link más corto (`#0001` canonical)
 - [ ] Tracking de workouts / progreso
-- [x] Persistir idioma preferido en `localStorage` (`FLEX_LANG`; default ES)
+- [x] Persistir idioma preferido (`FLEX_LANG`; default ES)
 
 ---
 
@@ -198,14 +209,16 @@ public/css/base.css, app.css
 | Vista perfil | Panel en `index.html` (no `profile.html`) |
 | Plan en API | Embebido en `/users/me` como `trainingProgram` |
 | Auth MVP | Email + password + JWT en `localStorage` |
-| Nombres | `firstName` / `lastName` |
-| Agregar al plan | `PUT .../training-program` con `exerciseIds[]` completo |
-| Quitar | `PUT .../training-program/remove` con `exerciseId` |
-| Undo quitar | Optimista en front; API remove al confirmar (timer / cerrar) |
-| Setup DB en el FE | Eliminado (`setup.html` / `setup/`); catálogo solo vía API |
-| Tema / lang | Preferencias locales; no CSS ni config en BD |
-| Idioma default | Español |
-| Deploy | `main` = prod (Vercel Production); `develop` = preview de trabajo |
+| Roles | `athlete` / `coach` en register; `admin` solo DB |
+| Agregar al plan | `POST /users/training-program` con **solo ids nuevos** |
+| Quitar | `PUT .../remove` con `exerciseId` |
+| Editar pauta | `PUT .../training-program/:exerciseId` |
+| Rest | Segundos en BD y UI |
+| Reps | String: número simple o rango `A - B` |
+| Undo quitar | Optimista en front; API al confirmar |
+| Setup DB en el FE | Eliminado |
+| Tema / lang | Preferencias locales |
+| Deploy | `main` = prod (Vercel); `develop` = preview |
 
 ---
 
@@ -222,15 +235,17 @@ public/css/base.css, app.css
 ## Relación con el repo
 
 - Front: [README.md](../README.md)
+- FE TODO: [TODO.md](./TODO.md)
+- Inventario de capacidades: [FRONTEND-CAPACIDADES.md](./FRONTEND-CAPACIDADES.md)
 - API: `https://gym-data-8d3l.onrender.com` (prod) / `localhost:3000`
 - Deploy front: Vercel
   - **`main`** → link estable (compartir)
-  - **`develop`** → preview (laburar); merge a `main` cuando esté listo (`git merge develop --no-edit`)
+  - **`develop`** → preview (laburar); merge a `main` cuando esté listo
 
 ---
 
 ## Próximo paso sugerido
 
-1. **Editar pauta** (sets/reps/rest) en ítems del plan — requiere contrato back (PATCH de un ítem o body más rico).  
-2. O **checklist de pasos** en el modal (solo front).  
-3. O arrancar **UI coach** si el producto es “profe asigna”.
+1. **Coach:** cablear Unir atleta (API email exacto / invite) + lista de alumnos.  
+2. O **Plan del coach** visible para el atleta.  
+3. O polish de sesión (timer `rest` / checklist de pasos).
