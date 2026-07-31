@@ -45,3 +45,28 @@ export function updateTrainingProgramExercise(exerciseId, updates) {
     { auth: true },
   );
 }
+
+/**
+ * POST /users/coach/invites
+ * Invite an athlete by exact email. Body: { email }
+ * Coach id comes from JWT.
+ */
+export function inviteCoachAthlete(email) {
+  return post(
+    `${USERS}/coach/invites`,
+    { email },
+    { auth: true },
+  );
+}
+
+/**
+ * POST /users/coach/invites/respond
+ * Athlete accepts or rejects pending invite. Body: { action: 'accept' | 'reject' }
+ */
+export function respondCoachInvite(action) {
+  return post(
+    `${USERS}/coach/invites/respond`,
+    { action },
+    { auth: true },
+  );
+}

@@ -16,6 +16,12 @@ const COACH_VIEWS = new Set(['students']);
 let view = 'catalog'; // 'catalog' | 'training' | 'recommend' | 'coach-plan' | 'students'
 let user = null;
 let onViewChange = () => {};
+const chromeListeners = new Set();
+
+/** Run after session chrome re-renders (banner, extras). */
+export function onSessionChrome(fn) {
+  if (typeof fn === 'function') chromeListeners.add(fn);
+}
 
 export function isCoach(u = user) {
   if (!u) return false;
@@ -203,9 +209,16 @@ function syncCoachPlanPanel() {
   const titleEl = document.getElementById('coach-plan-title');
   const leadEl = document.getElementById('coach-plan-lead');
   const ctaBtn = document.getElementById('coach-plan-catalog-btn');
+  const emptyPanel = document.getElementById('coach-plan-empty');
+  const results = document.getElementById('coach-plan-results');
   if (!titleEl || !leadEl) return;
 
   const linked = hasCoach();
+  const hasProgram = (user?.coachTrainingProgram || []).some(item => item?.exercise);
+
+  if (emptyPanel) emptyPanel.hidden = hasProgram;
+  if (results) results.hidden = !hasProgram;
+
   titleEl.dataset.ui = linked ? 'coachPlan' : 'coachPlanEmpty';
   leadEl.dataset.ui = linked ? 'coachPlanLead' : 'coachPlanEmptyLead';
   titleEl.textContent = ui(titleEl.dataset.ui);
@@ -316,4 +329,6 @@ function renderSessionChrome() {
   syncRecommendAccess();
   syncCoachPlanPanel();
   syncRoleNav();
+
+  for (const fn of chromeListeners) fn();
 }

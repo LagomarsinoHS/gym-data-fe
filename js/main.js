@@ -11,6 +11,7 @@ import { initThemeUi } from './features/theme-ui.js';
 import { initNavDrawer } from './features/nav-drawer.js';
 import { initRecommendUi, syncRecommendLabels, renderRecommendPlan } from './features/recommend-ui.js';
 import { initStudentsUi, syncStudentsLabels } from './features/students-ui.js';
+import { initCoachInviteUi, syncCoachInviteBanner } from './features/coach-invite-ui.js';
 import {
   initSessionUi,
   restoreSession,
@@ -22,7 +23,7 @@ import {
   getProgramExerciseIds,
   isCoach,
 } from './features/session-ui.js';
-import { renderTrainingProgram } from './features/training-ui.js';
+import { renderTrainingProgram, renderCoachTrainingProgram } from './features/training-ui.js';
 import { getExercises, getExercise, getLabels, getRandomExercise, getRecommendedExercises } from './api/exercises.js';
 import { addToTrainingProgram, removeTrainingProgramExercise, updateTrainingProgramExercise } from './api/users.js';
 import { EQUIP_INITIAL } from './constants.js';
@@ -110,6 +111,7 @@ async function init() {
   initSessionUi({
     onViewChange(view) {
       if (view === 'training') refreshTrainingGrid();
+      else if (view === 'coach-plan') refreshCoachPlanGrid();
       else if (view === 'catalog') reloadExercises();
     },
   });
@@ -125,6 +127,7 @@ async function init() {
   initThemeUi();
   initNavDrawer();
   initStudentsUi();
+  initCoachInviteUi();
   initRecommendUi({
     getFilterLabels: () => state.labels,
     onSubmit: async ({ zone, equipment }) => {
@@ -207,6 +210,10 @@ function refreshTrainingGrid({ highlightId } = {}) {
   updateActiveBadges();
 }
 
+function refreshCoachPlanGrid() {
+  renderCoachTrainingProgram(getUser());
+}
+
 async function loadNextPage() {
   if (getView() === 'training') return;
   if (state.loading || (state.page > 0 && !hasMorePages())) return;
@@ -282,6 +289,7 @@ function syncChromeLabels() {
   syncSessionLabels();
   syncRecommendLabels();
   syncStudentsLabels();
+  syncCoachInviteBanner();
 }
 
 function revealFilters() {

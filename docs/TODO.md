@@ -18,20 +18,21 @@
 - [x] Register: toggle Atleta / Entrenador → `role` en `POST /auth/register`
 - [x] Recomendar entrenamiento (zona + equipo; gate `isPremium`)
 - [ ] Vista “Plan del coach” con datos reales (`coachTrainingProgram` cuando el back lo exponga bien)
-- [ ] Quitar desde catálogo (hoy solo “En tu plan”)
 - [ ] Timer de descanso / checklist de pasos en sesión (nice-to-have)
 
 ## Coach
 
+> Paso a paso BE → FE: [PLAN-COACH-INVITE.md](./PLAN-COACH-INVITE.md)
+
 ### Unir atleta
-- Vincular atleta ↔ coach (`coachId` en el atleta).
+- Vincular atleta ↔ coach vía **invitación** (email exacto → atleta acepta/rechaza → `coachId`).
 - UI: botón **Agregar alumno** dentro de Mis alumnos (no nav aparte).
-- Preferir email **exacto** o código de invitación. Evitar autocomplete parcial (seguridad / PII).
+- Preferir email **exacto**. Evitar autocomplete parcial (seguridad / PII).
 
 ### Mis alumnos
 - [x] Shell: toolbar (título + Agregar alumno) + empty state
-- [x] Modal Agregar alumno (email exacto; API pendiente → mensaje “próximamente”)
-- [ ] Lista en filas / acordeón (no cards)
+- [x] Modal Agregar alumno → `POST /users/coach/invites` (“Invitación enviada” / errores 404·409)
+- [ ] Banner atleta: accept / reject invite
+- [ ] Lista en filas / acordeón (no cards) desde `GET /users/coach/athletes`
 - [ ] Al expandir: info + CTA agregar/editar entrenamiento
 - [ ] Entrenamiento por bloques (Lun/Mié/Vie) o por sesiones (Sesión 1, 2…)
-- [ ] Modal cableado a API de vínculo coach–atleta
