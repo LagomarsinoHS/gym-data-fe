@@ -1,20 +1,35 @@
 /**
- * Session shell: guest vs logged-in sidebar, catalog | training views.
- * Markup: #sidebar-guest, #sidebar-auth, #catalog-view, #training-view in index.html
+ * Session shell: guest vs logged-in sidebar, catalog | training | recommend views.
+ * Markup: #sidebar-guest, #sidebar-auth, #catalog-view, #training-view, #recommend-view
  * Training grid rendering is driven by main.js (filters live there).
  */
 import { getMe } from '../api/users.js';
 import { clearToken, isLoggedIn } from '../api/token.js';
 import { ui } from '../utils/labels.js';
 
-let view = 'catalog'; // 'catalog' | 'training'
+const VIEWS = new Set(['catalog', 'training', 'recommend']);
+
+let view = 'catalog'; // 'catalog' | 'training' | 'recommend'
 let user = null;
 let onViewChange = () => {};
+
+/**
+ * Acceso a “Recomendar Entrenamiento”.
+ * Gate: user.isPremium (GET /users/me).
+ */
+export function canAccessRecommendPlan(u = user) {
+  if (!u) return false;
+  return u.isPremium === true;
+}
 
 export function initSessionUi({ onViewChange: cb } = {}) {
   if (cb) onViewChange = cb;
 
   document.getElementById('nav-training')?.addEventListener('click', () => setView('training'));
+  document.getElementById('nav-recommend')?.addEventListener('click', () => {
+    if (!canAccessRecommendPlan()) return;
+    setView('recommend');
+  });
   document.getElementById('nav-catalog')?.addEventListener('click', () => setView('catalog'));
   document.getElementById('logout-btn')?.addEventListener('click', logout);
 
@@ -77,7 +92,8 @@ export function getView() {
 }
 
 export function setView(next) {
-  if (next !== 'catalog' && next !== 'training') return;
+  if (!VIEWS.has(next)) return;
+  if (next === 'recommend' && !canAccessRecommendPlan()) return;
   view = next;
   renderSessionChrome();
   onViewChange(view);
@@ -92,7 +108,7 @@ export function logout() {
 }
 
 export function syncSessionLabels() {
-  document.querySelectorAll('#sidebar-guest [data-ui], #sidebar-auth [data-ui]')
+  document.querySelectorAll('#sidebar-guest [data-ui], #sidebar-auth [data-ui], #recommend-view [data-ui]')
     .forEach(el => {
       el.textContent = ui(el.dataset.ui);
     });
@@ -102,6 +118,7 @@ export function syncSessionLabels() {
 
   renderUserName();
   syncNavActive();
+  syncRecommendAccess();
 }
 
 function renderUserName() {
@@ -124,21 +141,37 @@ function renderUserName() {
   }
 }
 
+function syncRecommendAccess() {
+  const btn = document.getElementById('nav-recommend');
+  if (!btn) return;
+
+  const allowed = canAccessRecommendPlan();
+  btn.disabled = !allowed;
+  btn.classList.toggle('is-locked', !allowed);
+  btn.title = allowed ? '' : ui('recommendPlanLocked');
+}
+
 function syncNavActive() {
   const training = document.getElementById('nav-training');
+  const recommend = document.getElementById('nav-recommend');
   const catalog = document.getElementById('nav-catalog');
+
   const onTraining = view === 'training';
+  const onRecommend = view === 'recommend';
+  const onCatalog = view === 'catalog';
 
   training?.classList.toggle('is-active', onTraining);
-  catalog?.classList.toggle('is-active', !onTraining);
+  recommend?.classList.toggle('is-active', onRecommend);
+  catalog?.classList.toggle('is-active', onCatalog);
 
-  if (onTraining) {
-    training?.setAttribute('aria-current', 'page');
-    catalog?.removeAttribute('aria-current');
-  } else {
-    catalog?.setAttribute('aria-current', 'page');
-    training?.removeAttribute('aria-current');
-  }
+  if (onTraining) training?.setAttribute('aria-current', 'page');
+  else training?.removeAttribute('aria-current');
+
+  if (onRecommend) recommend?.setAttribute('aria-current', 'page');
+  else recommend?.removeAttribute('aria-current');
+
+  if (onCatalog) catalog?.setAttribute('aria-current', 'page');
+  else catalog?.removeAttribute('aria-current');
 }
 
 function renderSessionChrome() {
@@ -146,21 +179,32 @@ function renderSessionChrome() {
   const auth = document.getElementById('sidebar-auth');
   const catalogView = document.getElementById('catalog-view');
   const trainingView = document.getElementById('training-view');
+  const recommendView = document.getElementById('recommend-view');
   const catalogBar = document.getElementById('catalog-bar-extras');
   const catalogFilters = document.getElementById('sidebar-catalog-filters');
   const wodBtn = document.getElementById('wod-btn');
   const searchEl = document.getElementById('search');
+  const searchWrap = searchEl?.closest('.results-search');
   const loggedIn = Boolean(user);
 
   if (guest) guest.hidden = loggedIn;
   if (auth) auth.hidden = !loggedIn;
 
+  if (view === 'recommend' && !canAccessRecommendPlan()) {
+    view = 'catalog';
+  }
+
   const showTraining = loggedIn && view === 'training';
-  if (catalogView) catalogView.hidden = showTraining;
+  const showRecommend = loggedIn && view === 'recommend';
+  const hideCatalogChrome = showTraining || showRecommend;
+
+  if (catalogView) catalogView.hidden = showTraining || showRecommend;
   if (trainingView) trainingView.hidden = !showTraining;
-  if (catalogBar) catalogBar.hidden = showTraining;
-  if (wodBtn) wodBtn.hidden = showTraining;
-  if (catalogFilters) catalogFilters.hidden = showTraining;
+  if (recommendView) recommendView.hidden = !showRecommend;
+  if (catalogBar) catalogBar.hidden = hideCatalogChrome;
+  if (wodBtn) wodBtn.hidden = hideCatalogChrome;
+  if (catalogFilters) catalogFilters.hidden = hideCatalogChrome;
+  if (searchWrap) searchWrap.hidden = showRecommend;
 
   if (searchEl) {
     searchEl.placeholder = showTraining ? ui('searchTraining') : ui('search');
@@ -168,4 +212,5 @@ function renderSessionChrome() {
 
   renderUserName();
   syncNavActive();
+  syncRecommendAccess();
 }

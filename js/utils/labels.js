@@ -19,8 +19,15 @@ export function ui(key, ...args) {
 /** Translate a data value (category, equipment, muscle, …) */
 export function label(value) {
   if (!value) return '';
-  if (currentLang === 'es') return VALUE_LABELS_ES[value] ?? value;
-  return value;
+  if (currentLang === 'es') return VALUE_LABELS_ES[value] ?? titleCase(value);
+  return titleCase(value);
+}
+
+/** "upper legs" / "vertical_pull" → "Upper Legs" / "Vertical Pull" */
+export function titleCase(value) {
+  return String(value)
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, ch => ch.toUpperCase());
 }
 
 /** Resolve bilingual fields like { en, es }. */
