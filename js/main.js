@@ -8,6 +8,7 @@ import { getEasterEgg, isEasterEggQuery, renderEasterEgg } from './features/east
 import { initFooter } from './features/footer.js';
 import { initAuthUi, openAuth, syncAuthLabels } from './features/auth-ui.js';
 import { initThemeUi } from './features/theme-ui.js';
+import { initNavDrawer } from './features/nav-drawer.js';
 import { initRecommendUi, syncRecommendLabels, renderRecommendPlan } from './features/recommend-ui.js';
 import {
   initSessionUi,
@@ -104,6 +105,7 @@ async function init() {
     },
   });
   initThemeUi();
+  initNavDrawer();
   initRecommendUi({
     getFilterLabels: () => state.labels,
     onSubmit: async ({ zone, equipment }) => {
@@ -376,23 +378,12 @@ function collapseFiltersOnMobile() {
 }
 
 /**
- * Un solo .results-bar: en móvil justo bajo ExerciseDB; en desktop en el main.
+ * Keep results-bar in main (search stays visible on mobile with hamburger drawer).
  */
 function placeResultsBarForViewport() {
   const bar = document.querySelector('.results-bar');
-  const headerRow = document.querySelector('.sidebar-header-row');
-  const header = document.querySelector('.sidebar-header');
   const main = document.querySelector('.main-content');
-  if (!bar || !headerRow || !header || !main) return;
-
-  const mobile = window.matchMedia('(max-width: 768px)').matches;
-
-  if (mobile) {
-    if (bar.parentElement === header && bar.previousElementSibling === headerRow) return;
-    headerRow.after(bar);
-    return;
-  }
-
+  if (!bar || !main) return;
   if (bar.parentElement === main && main.firstElementChild === bar) return;
   main.insertBefore(bar, main.firstElementChild);
 }
