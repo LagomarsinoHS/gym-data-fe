@@ -1,9 +1,9 @@
 /**
  * Coach — Mis alumnos: list shell + invite modal (email exacto).
  * Markup: #students-view, #add-student-overlay
- * API: POST /users/coach/invites
+ * API: POST /users/coach/invites · GET /users/coach/athletes
  */
-import { inviteCoachAthlete } from '../api/users.js';
+import { getCoachAthletes, inviteCoachAthlete } from '../api/users.js';
 import { ui } from '../utils/labels.js';
 
 const SUCCESS_CLOSE_MS = 1200;
@@ -16,6 +16,9 @@ let submitBtn;
 let submitLabel;
 let submitFill;
 let closeTimer = 0;
+let athletes = [];
+let athletesLoaded = false;
+let loadSeq = 0;
 
 export function initStudentsUi() {
   overlay = document.getElementById('add-student-overlay');
@@ -43,6 +46,40 @@ export function initStudentsUi() {
   });
 
   syncStudentsLabels();
+}
+
+/**
+ * Fetch linked athletes for the authenticated coach.
+ * Cached in memory until force refresh, logout, or session restore.
+ * @param {{ force?: boolean }} [opts]
+ */
+export async function loadCoachAthletes({ force = false } = {}) {
+  if (athletesLoaded && !force) return athletes;
+
+  const seq = ++loadSeq;
+  try {
+    const data = await getCoachAthletes();
+    if (seq !== loadSeq) return athletes;
+    athletes = Array.isArray(data) ? data : [];
+    athletesLoaded = true;
+    return athletes;
+  } catch (err) {
+    console.error(err);
+    if (seq !== loadSeq) return athletes;
+    athletes = [];
+    athletesLoaded = false;
+    return athletes;
+  }
+}
+
+export function clearCoachAthletesCache() {
+  loadSeq += 1;
+  athletes = [];
+  athletesLoaded = false;
+}
+
+export function getStudents() {
+  return athletes;
 }
 
 export function openAddStudentModal() {
@@ -145,6 +182,7 @@ async function onSubmit(e) {
 
   try {
     await inviteCoachAthlete(email);
+    void loadCoachAthletes({ force: true });
     if (submitBtn) {
       submitBtn.classList.add('is-sent');
       submitBtn.disabled = true;

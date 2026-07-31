@@ -99,8 +99,12 @@ const UI_LABELS_EN = {
     coachInviteAcceptFail: 'Could not accept the invitation.',
     coachInviteRejectFail: 'Could not decline the invitation.',
   },
-  coach: {
+    coach: {
     navGroupCoach: 'Coach',
+    coachPanel: 'Home',
+    coachPanelLead: 'Your coaching overview. Soon you\'ll see athletes, invites, and quick actions here.',
+    coachTemplates: 'Templates',
+    coachTemplatesLead: 'Build reusable routines here to assign to your athletes.',
     myStudents: 'My athletes',
     studentsEmptyTitle: 'No athletes yet',
     studentsEmptyLead: 'Invite an athlete with their exact email. When they accept, they will show up here.',
@@ -216,6 +220,10 @@ const UI_LABELS_ES = {
   },
   coach: {
     navGroupCoach: 'Coach',
+    coachPanel: 'Panel',
+    coachPanelLead: 'Resumen de tu actividad como coach. Pronto verás alumnos, invitaciones y accesos rápidos.',
+    coachTemplates: 'Plantillas',
+    coachTemplatesLead: 'Acá vas a armar rutinas reutilizables para asignar a tus alumnos.',
     myStudents: 'Mis alumnos',
     studentsEmptyTitle: 'Aún no tienes alumnos',
     studentsEmptyLead: 'Invita a un atleta por su email exacto. Cuando acepte, aparecerá acá.',

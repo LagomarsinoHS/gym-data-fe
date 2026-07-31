@@ -10,7 +10,7 @@ import { initAuthUi, openAuth, syncAuthLabels } from './features/auth-ui.js';
 import { initThemeUi } from './features/theme-ui.js';
 import { initNavDrawer } from './features/nav-drawer.js';
 import { initRecommendUi, syncRecommendLabels, renderRecommendPlan } from './features/recommend-ui.js';
-import { initStudentsUi, syncStudentsLabels } from './features/students-ui.js';
+import { initStudentsUi, syncStudentsLabels, loadCoachAthletes } from './features/students-ui.js';
 import { initCoachInviteUi, syncCoachInviteBanner } from './features/coach-invite-ui.js';
 import {
   initSessionUi,
@@ -112,13 +112,14 @@ async function init() {
     onViewChange(view) {
       if (view === 'training') refreshTrainingGrid();
       else if (view === 'coach-plan') refreshCoachPlanGrid();
+      else if (view === 'students') void loadCoachAthletes();
       else if (view === 'catalog') reloadExercises();
     },
   });
   initAuthUi({
     onAuthSuccess: async () => {
       await restoreSession();
-      setView(isCoach() ? 'students' : 'training');
+      setView(isCoach() ? 'coach-panel' : 'training');
       if (modalOverlay.classList.contains('open') && modalOverlay.dataset.openId) {
         syncPlanAction(modalOverlay.dataset.openId);
       }

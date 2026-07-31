@@ -70,3 +70,12 @@ export function respondCoachInvite(action) {
     { auth: true },
   );
 }
+
+/**
+ * GET /users/coach/athletes
+ * Athletes linked to the authenticated coach (coachId === me).
+ * Returns CoachAthleteDto[]
+ */
+export function getCoachAthletes() {
+  return get(`${USERS}/coach/athletes`, {}, { auth: true });
+}

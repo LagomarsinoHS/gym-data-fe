@@ -2647,6 +2647,8 @@ html[data-theme="dark"] .chip.active {
 #training-view[hidden],
 #recommend-view[hidden],
 #coach-plan-view[hidden],
+#coach-panel-view[hidden],
+#coach-templates-view[hidden],
 #students-view[hidden] {
   display: none !important;
 }

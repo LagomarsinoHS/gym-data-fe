@@ -1,19 +1,28 @@
 /**
  * Session shell: guest vs logged-in sidebar; role-based nav (athlete | coach).
  * Markup: #sidebar-guest, #sidebar-auth, #nav-athlete, #nav-coach,
- * views: catalog | training | recommend | coach-plan | students
+ * views: catalog | training | recommend | coach-plan | coach-panel | coach-templates | students
  * Training grid rendering is driven by main.js (filters live there).
  */
 import { getMe } from '../api/users.js';
 import { clearToken, isLoggedIn } from '../api/token.js';
 import { ui } from '../utils/labels.js';
 import { clearRecommendPlan } from './recommend-ui.js';
+import { clearCoachAthletesCache } from './students-ui.js';
 
-const VIEWS = new Set(['catalog', 'training', 'recommend', 'coach-plan', 'students']);
+const VIEWS = new Set([
+  'catalog',
+  'training',
+  'recommend',
+  'coach-plan',
+  'coach-panel',
+  'coach-templates',
+  'students',
+]);
 const ATHLETE_VIEWS = new Set(['training', 'recommend', 'coach-plan']);
-const COACH_VIEWS = new Set(['students']);
+const COACH_VIEWS = new Set(['coach-panel', 'coach-templates', 'students']);
 
-let view = 'catalog'; // 'catalog' | 'training' | 'recommend' | 'coach-plan' | 'students'
+let view = 'catalog';
 let user = null;
 let onViewChange = () => {};
 const chromeListeners = new Set();
@@ -58,6 +67,14 @@ export function initSessionUi({ onViewChange: cb } = {}) {
     if (!isAthlete()) return;
     setView('coach-plan');
   });
+  document.getElementById('nav-coach-panel')?.addEventListener('click', () => {
+    if (!isCoach()) return;
+    setView('coach-panel');
+  });
+  document.getElementById('nav-coach-templates')?.addEventListener('click', () => {
+    if (!isCoach()) return;
+    setView('coach-templates');
+  });
   document.getElementById('nav-students')?.addEventListener('click', () => {
     if (!isCoach()) return;
     setView('students');
@@ -73,18 +90,21 @@ export function initSessionUi({ onViewChange: cb } = {}) {
 export async function restoreSession() {
   if (!isLoggedIn()) {
     user = null;
+    clearCoachAthletesCache();
     renderSessionChrome();
     return null;
   }
 
   try {
     user = await getMe();
+    clearCoachAthletesCache();
     renderSessionChrome();
     return user;
   } catch (err) {
     console.error(err);
     clearToken();
     user = null;
+    clearCoachAthletesCache();
     renderSessionChrome();
     return null;
   }
@@ -128,7 +148,6 @@ export function setView(next) {
   if (!VIEWS.has(next)) return;
   if (next === 'recommend' && !canAccessRecommendPlan()) return;
   if (next === 'coach-plan' && !isAthlete()) return;
-  if (next === 'students' && !isCoach()) return;
   if (ATHLETE_VIEWS.has(next) && !isAthlete()) return;
   if (COACH_VIEWS.has(next) && !isCoach()) return;
   view = next;
@@ -141,13 +160,14 @@ export function logout() {
   user = null;
   view = 'catalog';
   clearRecommendPlan();
+  clearCoachAthletesCache();
   renderSessionChrome();
   onViewChange(view);
 }
 
 export function syncSessionLabels() {
   document.querySelectorAll(
-    '#sidebar-guest [data-ui], #sidebar-auth [data-ui], #recommend-view [data-ui], #coach-plan-view [data-ui], #students-view [data-ui]',
+    '#sidebar-guest [data-ui], #sidebar-auth [data-ui], #recommend-view [data-ui], #coach-plan-view [data-ui], #coach-panel-view [data-ui], #coach-templates-view [data-ui], #students-view [data-ui]',
   ).forEach(el => {
     el.textContent = ui(el.dataset.ui);
   });
@@ -239,6 +259,8 @@ function syncNavActive() {
   const training = document.getElementById('nav-training');
   const recommend = document.getElementById('nav-recommend');
   const coachPlan = document.getElementById('nav-coach-plan');
+  const coachPanel = document.getElementById('nav-coach-panel');
+  const coachTemplates = document.getElementById('nav-coach-templates');
   const students = document.getElementById('nav-students');
   const catalog = document.getElementById('nav-catalog');
 
@@ -246,6 +268,8 @@ function syncNavActive() {
     [training, view === 'training'],
     [recommend, view === 'recommend'],
     [coachPlan, view === 'coach-plan'],
+    [coachPanel, view === 'coach-panel'],
+    [coachTemplates, view === 'coach-templates'],
     [students, view === 'students'],
     [catalog, view === 'catalog'],
   ];
@@ -290,6 +314,8 @@ function renderSessionChrome() {
   const trainingView = document.getElementById('training-view');
   const recommendView = document.getElementById('recommend-view');
   const coachPlanView = document.getElementById('coach-plan-view');
+  const coachPanelView = document.getElementById('coach-panel-view');
+  const coachTemplatesView = document.getElementById('coach-templates-view');
   const studentsView = document.getElementById('students-view');
   const catalogBar = document.getElementById('catalog-bar-extras');
   const catalogFilters = document.getElementById('sidebar-catalog-filters');
@@ -306,14 +332,27 @@ function renderSessionChrome() {
   const showTraining = loggedIn && view === 'training';
   const showRecommend = loggedIn && view === 'recommend';
   const showCoachPlan = loggedIn && view === 'coach-plan';
+  const showCoachPanel = loggedIn && view === 'coach-panel';
+  const showCoachTemplates = loggedIn && view === 'coach-templates';
   const showStudents = loggedIn && view === 'students';
-  const hideCatalogChrome = showTraining || showRecommend || showCoachPlan || showStudents;
-  const hideSearch = showRecommend || showCoachPlan || showStudents;
+  const hideCatalogChrome = showTraining
+    || showRecommend
+    || showCoachPlan
+    || showCoachPanel
+    || showCoachTemplates
+    || showStudents;
+  const hideSearch = showRecommend
+    || showCoachPlan
+    || showCoachPanel
+    || showCoachTemplates
+    || showStudents;
 
   if (catalogView) catalogView.hidden = hideCatalogChrome;
   if (trainingView) trainingView.hidden = !showTraining;
   if (recommendView) recommendView.hidden = !showRecommend;
   if (coachPlanView) coachPlanView.hidden = !showCoachPlan;
+  if (coachPanelView) coachPanelView.hidden = !showCoachPanel;
+  if (coachTemplatesView) coachTemplatesView.hidden = !showCoachTemplates;
   if (studentsView) studentsView.hidden = !showStudents;
   if (catalogBar) catalogBar.hidden = hideCatalogChrome;
   if (wodBtn) wodBtn.hidden = hideCatalogChrome;
