@@ -29,8 +29,15 @@ export function renderTrainingProgram(user, filters = {}) {
     return;
   }
 
+  const highlightId = filters.highlightId != null ? String(filters.highlightId) : '';
   const frag = document.createDocumentFragment();
-  program.forEach(item => frag.appendChild(createProgramCard(item)));
+  program.forEach(item => {
+    const card = createProgramCard(item);
+    if (highlightId && card.dataset.id === highlightId) {
+      card.classList.add('is-updated');
+    }
+    frag.appendChild(card);
+  });
   grid.appendChild(frag);
 }
 
@@ -97,9 +104,11 @@ function createProgramCard(item) {
         <span class="tag tag-cat"></span>
         <span class="tag tag-equip"></span>
       </div>
-      <ul class="training-rx" hidden></ul>
-      <p class="training-rx-empty" hidden></p>
-      <p class="training-card-note" hidden></p>
+      <div class="training-rx-slot">
+        <ul class="training-rx" hidden></ul>
+        <p class="training-rx-empty" hidden></p>
+      </div>
+      <p class="training-card-note is-empty"></p>
     </div>`;
 
   fillCardMedia(article, ex, { nameSelector: '.training-card-name' });
@@ -107,9 +116,15 @@ function createProgramCard(item) {
   if (lines.length) {
     const rx = article.querySelector('.training-rx');
     rx.hidden = false;
-    lines.forEach(text => {
+    lines.forEach(({ ico, text }) => {
       const li = document.createElement('li');
-      li.textContent = text;
+      const icoEl = document.createElement('span');
+      icoEl.className = 'training-rx-ico';
+      icoEl.setAttribute('aria-hidden', 'true');
+      icoEl.textContent = ico;
+      const textEl = document.createElement('span');
+      textEl.textContent = text;
+      li.append(icoEl, textEl);
       rx.appendChild(li);
     });
   } else {
@@ -118,19 +133,24 @@ function createProgramCard(item) {
     empty.textContent = ui('programBare');
   }
 
+  const noteEl = article.querySelector('.training-card-note');
   if (note) {
-    const noteEl = article.querySelector('.training-card-note');
-    noteEl.hidden = false;
+    noteEl.classList.remove('is-empty');
     noteEl.textContent = note;
+    noteEl.title = note;
+  } else {
+    noteEl.classList.add('is-empty');
+    noteEl.textContent = '\u00a0';
+    noteEl.removeAttribute('title');
   }
 
   return article;
 }
 
-function prescriptionLines(item) {
+export function prescriptionLines(item) {
   const lines = [];
-  if (item.sets != null) lines.push(ui('programSets', item.sets));
-  if (item.reps) lines.push(ui('programReps', item.reps));
-  if (item.rest != null) lines.push(ui('programRest', item.rest));
+  if (item?.sets != null) lines.push({ ico: '🏋️', text: String(item.sets) });
+  if (item?.reps) lines.push({ ico: '🔁', text: String(item.reps) });
+  if (item?.rest != null) lines.push({ ico: '⏱️', text: `${item.rest}s` });
   return lines;
 }

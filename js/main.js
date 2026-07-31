@@ -10,6 +10,7 @@ import { initAuthUi, openAuth, syncAuthLabels } from './features/auth-ui.js';
 import { initThemeUi } from './features/theme-ui.js';
 import { initNavDrawer } from './features/nav-drawer.js';
 import { initRecommendUi, syncRecommendLabels, renderRecommendPlan } from './features/recommend-ui.js';
+import { initStudentsUi, syncStudentsLabels } from './features/students-ui.js';
 import {
   initSessionUi,
   restoreSession,
@@ -19,20 +20,26 @@ import {
   getUser,
   getView,
   getProgramExerciseIds,
+  isCoach,
 } from './features/session-ui.js';
 import { renderTrainingProgram } from './features/training-ui.js';
 import { getExercises, getExercise, getLabels, getRandomExercise, getRecommendedExercises } from './api/exercises.js';
-import { putTrainingProgram, removeTrainingProgramExercise } from './api/users.js';
+import { addToTrainingProgram, removeTrainingProgramExercise, updateTrainingProgramExercise } from './api/users.js';
 import { EQUIP_INITIAL } from './constants.js';
-import { debounce } from './utils/helpers.js';
+import { debounce, dedupeById } from './utils/helpers.js';
 import { assetUrl } from './utils/assets.js';
 import { fillCardMedia, wireCardGrid } from './utils/cards.js';
 import { setLang, ui, label, exerciseName } from './utils/labels.js';
 import { getStoredLang, setStoredLang } from './utils/prefs.js';
+import { cleanReps, formatReps } from './utils/reps.js';
+import { exerciseShareUrl, readExerciseFromUrl, syncExerciseInUrl } from './utils/url.js';
 
 const FILTER_KEYS = ['category', 'equipment', 'target'];
 const LANG_NAMES = { en: 'English', es: 'Español' };
 const PAGE_SIZE = 12;
+
+/** Card to soft-flash on training grid after closing the modal. */
+let pendingTrainingFlashId = null;
 
 // ── State ──────────────────────────────────────────
 const state = {
@@ -64,12 +71,22 @@ const activeFilEl = document.getElementById('active-filters');
 const searchEl = document.getElementById('search');
 const searchClearEl = document.getElementById('search-clear');
 const modalOverlay = document.getElementById('modal-overlay');
+const modalPanel = document.getElementById('modal-panel');
 const modalTitle = document.getElementById('modal-title');
 const modalGif = document.getElementById('modal-gif');
 const modalMeta = document.getElementById('modal-meta');
 const modalAddPlan = document.getElementById('modal-add-plan');
 const modalPlanBtnLabel = document.getElementById('modal-plan-btn-label');
 const modalPlanBtnFill = document.getElementById('modal-plan-btn-fill');
+const modalRxBtn = document.getElementById('modal-rx-btn');
+const modalRxForm = document.getElementById('modal-rx-form');
+const modalRxSummary = document.getElementById('modal-rx-summary');
+const modalRxSets = document.getElementById('modal-rx-sets');
+const modalRxReps = document.getElementById('modal-rx-reps');
+const modalRxRest = document.getElementById('modal-rx-rest');
+const modalRxNotes = document.getElementById('modal-rx-notes');
+const modalRxStatus = document.getElementById('modal-rx-status');
+const modalRxSubmit = document.getElementById('modal-rx-submit');
 const modalMuscles = document.getElementById('modal-muscles');
 const modalInstr = document.getElementById('modal-instructions');
 const modalClose = document.getElementById('modal-close');
@@ -98,7 +115,7 @@ async function init() {
   initAuthUi({
     onAuthSuccess: async () => {
       await restoreSession();
-      setView('training');
+      setView(isCoach() ? 'students' : 'training');
       if (modalOverlay.classList.contains('open') && modalOverlay.dataset.openId) {
         syncPlanAction(modalOverlay.dataset.openId);
       }
@@ -106,6 +123,7 @@ async function init() {
   });
   initThemeUi();
   initNavDrawer();
+  initStudentsUi();
   initRecommendUi({
     getFilterLabels: () => state.labels,
     onSubmit: async ({ zone, equipment }) => {
@@ -182,9 +200,9 @@ async function reloadExercises() {
   await loadNextPage();
 }
 
-function refreshTrainingGrid() {
+function refreshTrainingGrid({ highlightId } = {}) {
   const { search } = activeFilters();
-  renderTrainingProgram(getUser(), { search });
+  renderTrainingProgram(getUser(), { search, highlightId });
   updateActiveBadges();
 }
 
@@ -262,6 +280,7 @@ function syncChromeLabels() {
   syncAuthLabels();
   syncSessionLabels();
   syncRecommendLabels();
+  syncStudentsLabels();
 }
 
 function revealFilters() {
@@ -451,16 +470,6 @@ function makeChip(value, filterKey) {
   return btn;
 }
 
-function dedupeById(list) {
-  const seen = new Set();
-  return list.filter(exercise => {
-    const id = String(exercise.id);
-    if (seen.has(id)) return false;
-    seen.add(id);
-    return true;
-  });
-}
-
 /** Refresh grid from current in-memory list (server already filtered). */
 function syncGrid() {
   state.filtered = dedupeById(state.exercises);
@@ -592,6 +601,7 @@ function findCachedExercise(id) {
 async function openModal(id) {
   if (id == null || id === '') return;
   const requestId = ++modalRequestId;
+  const wasOpen = modalOverlay.classList.contains('open');
 
   window.clearTimeout(modalCloseClearTimer);
   modalOverlay.classList.add('open');
@@ -600,6 +610,12 @@ async function openModal(id) {
   syncExerciseInUrl(id);
   syncShareButtonLabels();
   modalClose.focus();
+
+  if (wasOpen && modalPanel) {
+    modalPanel.classList.remove('is-swap');
+    void modalPanel.offsetWidth;
+    modalPanel.classList.add('is-swap');
+  }
 
   const cached = findCachedExercise(id);
   if (cached) fillModal(cached);
@@ -653,22 +669,26 @@ function startPlanUndoFill() {
 function syncPlanAction(exerciseId) {
   if (!modalAddPlan) return;
 
-  const id = String(exerciseId || '');
-  modalAddPlan.hidden = !id;
+  exerciseId = String(exerciseId || '');
+  modalAddPlan.hidden = !exerciseId;
   modalAddPlan.classList.remove('is-in-plan', 'is-remove', 'is-undo', 'is-busy');
   stopPlanUndoFill();
   delete modalAddPlan.dataset.error;
 
-  if (!id) return;
+  if (!exerciseId) {
+    setPrescriptionEditorVisible(false);
+    return;
+  }
 
   if (!getUser()) {
     modalAddPlan.disabled = false;
     modalAddPlan.dataset.mode = 'login';
     setPlanBtnLabel(ui('addToPlanLogin'));
+    setPrescriptionEditorVisible(false);
     return;
   }
 
-  const inPlan = getProgramExerciseIds().includes(id);
+  const inPlan = getProgramExerciseIds().includes(exerciseId);
 
   // Mi entrenamiento: quitar (no mostrar "En tu plan")
   if (getView() === 'training' && inPlan) {
@@ -676,6 +696,7 @@ function syncPlanAction(exerciseId) {
     modalAddPlan.dataset.mode = 'remove';
     modalAddPlan.classList.add('is-remove');
     setPlanBtnLabel(ui('removeFromPlan'));
+    setPrescriptionEditorVisible(true, { keepOpen: false });
     return;
   }
 
@@ -683,10 +704,264 @@ function syncPlanAction(exerciseId) {
   modalAddPlan.disabled = inPlan;
   modalAddPlan.classList.toggle('is-in-plan', inPlan);
   setPlanBtnLabel(ui(inPlan ? 'inPlan' : 'addToPlan'));
+  setPrescriptionEditorVisible(inPlan, { keepOpen: false });
+}
+
+function getProgramItem(exerciseId) {
+  exerciseId = String(exerciseId || '');
+  const user = getUser();
+  if (!exerciseId || !user) return null;
+  return (user.trainingProgram || []).find(
+    item => String(item.exercise?.id || item.exerciseId) === exerciseId,
+  ) || null;
+}
+
+function setPrescriptionEditorVisible(visible, { keepOpen = false } = {}) {
+  if (modalRxBtn) {
+    modalRxBtn.hidden = !visible;
+    modalRxBtn.title = ui('editPrescription');
+  }
+  if (!visible) {
+    collapsePrescriptionForm({ instant: true });
+    syncPrescriptionSummary(null);
+    return;
+  }
+  if (!keepOpen) collapsePrescriptionForm({ instant: true });
+  populatePrescriptionForm(modalOverlay.dataset.openId);
+  if (!keepOpen && modalRxForm?.hidden) {
+    syncPrescriptionSummary(modalOverlay.dataset.openId);
+  }
+}
+
+/** @param {{ instant?: boolean }} [opts] */
+function collapsePrescriptionForm({ instant = false } = {}) {
+  modalRxBtn?.classList.remove('is-open');
+  modalRxBtn?.setAttribute('aria-expanded', 'false');
+  setPrescriptionStatus('');
+
+  if (!modalRxForm) return Promise.resolve();
+  if (modalRxForm.hidden && !modalRxForm.classList.contains('is-open')) {
+    return Promise.resolve();
+  }
+
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (instant || prefersReduced) {
+    modalRxForm.classList.remove('is-open');
+    modalRxForm.hidden = true;
+    return Promise.resolve();
+  }
+
+  return new Promise(resolve => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      modalRxForm.hidden = true;
+      modalRxForm.removeEventListener('transitionend', onEnd);
+      window.clearTimeout(fallback);
+      resolve();
+    };
+    const onEnd = e => {
+      if (e.target !== modalRxForm) return;
+      if (e.propertyName !== 'opacity' && e.propertyName !== 'max-height') return;
+      finish();
+    };
+    modalRxForm.addEventListener('transitionend', onEnd);
+    const fallback = window.setTimeout(finish, 260);
+    // Ensure a frame so the browser applies the open styles before closing
+    requestAnimationFrame(() => {
+      modalRxForm.classList.remove('is-open');
+    });
+  });
+}
+
+function openPrescriptionForm() {
+  if (!modalRxForm) return;
+  populatePrescriptionForm(modalOverlay.dataset.openId);
+  modalRxForm.hidden = false;
+  modalRxBtn?.classList.add('is-open');
+  modalRxBtn?.setAttribute('aria-expanded', 'true');
+  syncPrescriptionSummary(modalOverlay.dataset.openId);
+  requestAnimationFrame(() => {
+    modalRxForm.classList.add('is-open');
+    modalRxSets?.focus();
+  });
+}
+
+function syncPrescriptionSummary(exerciseId, { celebrate = false } = {}) {
+  if (!modalRxSummary) return;
+
+  // Hide while editing
+  if (modalRxForm && !modalRxForm.hidden) {
+    modalRxSummary.hidden = true;
+    return;
+  }
+
+  if (exerciseId == null || modalRxBtn?.hidden) {
+    modalRxSummary.hidden = true;
+    modalRxSummary.replaceChildren();
+    modalRxSummary.classList.remove('is-empty', 'is-saved-pop');
+    return;
+  }
+
+  const item = getProgramItem(exerciseId);
+  const metrics = [];
+  if (item?.sets != null) {
+    metrics.push({ ico: '🏋️', text: String(item.sets) });
+  }
+  if (item?.reps) {
+    metrics.push({ ico: '🔁', text: String(item.reps) });
+  }
+  if (item?.rest != null) {
+    metrics.push({ ico: '⏱️', text: `${item.rest}s` });
+  }
+  const note = item?.notes ? String(item.notes).trim() : '';
+
+  modalRxSummary.replaceChildren();
+  modalRxSummary.classList.remove('is-saved-pop');
+
+  if (!metrics.length && !note) {
+    modalRxSummary.hidden = false;
+    modalRxSummary.classList.add('is-empty');
+    const empty = document.createElement('p');
+    empty.className = 'modal-rx-summary-empty';
+    empty.textContent = ui('programBare');
+    modalRxSummary.appendChild(empty);
+    return;
+  }
+
+  modalRxSummary.hidden = false;
+  modalRxSummary.classList.remove('is-empty');
+
+  if (metrics.length) {
+    const row = document.createElement('div');
+    row.className = 'modal-rx-metrics';
+    metrics.forEach((m, i) => {
+      const chip = document.createElement('span');
+      chip.className = 'modal-rx-metric';
+      if (celebrate) {
+        chip.classList.add('is-pop');
+        chip.style.setProperty('--rx-pop-delay', `${i * 45}ms`);
+      }
+      const ico = document.createElement('span');
+      ico.className = 'modal-rx-metric-ico';
+      ico.setAttribute('aria-hidden', 'true');
+      ico.textContent = m.ico;
+      const labelEl = document.createElement('span');
+      labelEl.textContent = m.text;
+      chip.append(ico, labelEl);
+      row.appendChild(chip);
+    });
+    modalRxSummary.appendChild(row);
+  }
+
+  if (note) {
+    const noteEl = document.createElement('p');
+    noteEl.className = 'modal-rx-summary-note';
+    if (celebrate) noteEl.classList.add('is-fade');
+    noteEl.textContent = note;
+    modalRxSummary.appendChild(noteEl);
+  }
+
+  if (celebrate) {
+    requestAnimationFrame(() => {
+      modalRxSummary.classList.add('is-saved-pop');
+    });
+  }
+}
+
+async function togglePrescriptionForm() {
+  if (!modalRxForm || modalRxBtn?.hidden) return;
+  if (modalRxForm.hidden || !modalRxForm.classList.contains('is-open')) {
+    openPrescriptionForm();
+  } else {
+    await collapsePrescriptionForm();
+    syncPrescriptionSummary(modalOverlay.dataset.openId);
+  }
+}
+
+function populatePrescriptionForm(exerciseId) {
+  const item = getProgramItem(exerciseId);
+  if (modalRxSets) modalRxSets.value = item?.sets != null ? String(item.sets) : '';
+  if (modalRxReps) modalRxReps.value = item?.reps ? cleanReps(item.reps) : '';
+  if (modalRxRest) modalRxRest.value = item?.rest != null ? String(item.rest) : '';
+  if (modalRxNotes) modalRxNotes.value = item?.notes ? String(item.notes) : '';
+  setPrescriptionStatus('');
+}
+
+function setPrescriptionStatus(message, kind = '') {
+  if (!modalRxStatus) return;
+  if (!message) {
+    modalRxStatus.hidden = true;
+    modalRxStatus.textContent = '';
+    modalRxStatus.classList.remove('is-error', 'is-ok');
+    return;
+  }
+  modalRxStatus.hidden = false;
+  modalRxStatus.textContent = message;
+  modalRxStatus.classList.toggle('is-error', kind === 'error');
+  modalRxStatus.classList.toggle('is-ok', kind === 'ok');
+}
+
+function buildPrescriptionUpdate() {
+  const updates = {};
+  const setsRaw = modalRxSets?.value.trim() ?? '';
+  const repsRaw = modalRxReps?.value.trim() ?? '';
+  const restRaw = modalRxRest?.value.trim() ?? '';
+  const notesRaw = modalRxNotes?.value ?? '';
+
+  if (setsRaw !== '') {
+    const sets = Number(setsRaw);
+    if (!Number.isInteger(sets) || sets < 1) return { error: ui('prescriptionNeedField') };
+    updates.sets = sets;
+  }
+  if (repsRaw) {
+    const reps = formatReps(repsRaw);
+    if (!reps) return { error: ui('prescriptionRepsFormat') };
+    updates.reps = reps;
+  }
+  if (restRaw !== '') {
+    const rest = Number(restRaw);
+    if (!Number.isInteger(rest) || rest < 0) return { error: ui('prescriptionNeedField') };
+    updates.rest = rest;
+  }
+  if (notesRaw.trim() !== '') updates.notes = notesRaw.trim();
+
+  if (!Object.keys(updates).length) return { error: ui('prescriptionNeedField') };
+  return { updates };
+}
+
+async function onPrescriptionSubmit(e) {
+  e.preventDefault();
+  const exerciseId = String(modalOverlay.dataset.openId || '');
+  if (!exerciseId || !getUser()) return;
+
+  const built = buildPrescriptionUpdate();
+  if (built.error) {
+    setPrescriptionStatus(built.error, 'error');
+    return;
+  }
+
+  if (modalRxSubmit) modalRxSubmit.disabled = true;
+  setPrescriptionStatus('');
+
+  try {
+    await applyUserUpdate(
+      await updateTrainingProgramExercise(exerciseId, built.updates),
+      { highlightId: exerciseId },
+    );
+    await collapsePrescriptionForm();
+    syncPrescriptionSummary(exerciseId, { celebrate: true });
+  } catch (err) {
+    console.error(err);
+    setPrescriptionStatus(ui('prescriptionSaveFail'), 'error');
+  } finally {
+    if (modalRxSubmit) modalRxSubmit.disabled = false;
+  }
 }
 
 let planUndoTimer = 0;
-/** @type {{ userId: string, exerciseId: string, prevUser: object } | null} */
+/** @type {{ exerciseId: string, prevUser: object } | null} */
 let planUndoSnapshot = null;
 
 function clearPlanUndoTimer() {
@@ -716,11 +991,12 @@ function armPlanUndo(snapshot) {
   modalAddPlan.dataset.mode = 'undo';
   setPlanBtnLabel(ui('undo'));
   startPlanUndoFill();
+  setPrescriptionEditorVisible(false);
 
   clearPlanUndoTimer();
   planUndoTimer = window.setTimeout(() => {
     commitPendingRemove();
-  }, 1500);
+  }, 1000);
 }
 
 async function commitPendingRemove() {
@@ -735,7 +1011,7 @@ async function commitPendingRemove() {
 
   try {
     await applyUserUpdate(
-      await removeTrainingProgramExercise(snapshot.userId, snapshot.exerciseId),
+      await removeTrainingProgramExercise(snapshot.exerciseId),
     );
   } catch (err) {
     console.error(err);
@@ -744,14 +1020,26 @@ async function commitPendingRemove() {
   }
 }
 
-async function applyUserUpdate(updated) {
+async function applyUserUpdate(updated, { highlightId } = {}) {
   setUser(updated);
-  if (getView() === 'training') refreshTrainingGrid();
+  if (highlightId != null) pendingTrainingFlashId = String(highlightId);
+  if (getView() === 'training') refreshTrainingGrid({ highlightId });
   return updated;
 }
 
-async function saveProgramIds(userId, exerciseIds) {
-  return applyUserUpdate(await putTrainingProgram(userId, exerciseIds));
+function flashTrainingCard(id) {
+  if (id == null || id === '') return;
+  const card = document.querySelector(
+    `#training-grid .training-card[data-id="${CSS.escape(String(id))}"]`,
+  );
+  if (!card) return;
+  card.classList.remove('is-updated');
+  void card.offsetWidth;
+  card.classList.add('is-updated');
+}
+
+async function saveProgramIds(exerciseIds) {
+  return applyUserUpdate(await addToTrainingProgram(exerciseIds));
 }
 
 async function onPlanActionClick() {
@@ -776,15 +1064,13 @@ async function onPlanActionClick() {
   const user = getUser();
   if (!exerciseId || !user?.id) return;
 
-  const nextIds = [...new Set([...getProgramExerciseIds(user), String(exerciseId)])];
-
   modalAddPlan.disabled = true;
   modalAddPlan.classList.add('is-busy');
   setPlanBtnLabel(ui('loading'));
 
   try {
     clearPlanUndoState();
-    await saveProgramIds(user.id, nextIds);
+    await saveProgramIds([String(exerciseId)]);
     syncPlanAction(exerciseId);
   } catch (err) {
     console.error(err);
@@ -813,7 +1099,7 @@ function removeFromPlan() {
 
   setUser(optimistic);
   if (getView() === 'training') refreshTrainingGrid();
-  armPlanUndo({ userId: user.id, exerciseId, prevUser });
+  armPlanUndo({ exerciseId, prevUser });
 }
 
 function undoRemoveFromPlan() {
@@ -828,6 +1114,7 @@ function undoRemoveFromPlan() {
 
 function closeModal({ skipPendingRemove = false } = {}) {
   modalRequestId++;
+  collapsePrescriptionForm({ instant: true });
 
   const pending = planUndoSnapshot;
   const wasOpen = modalOverlay.classList.contains('open');
@@ -840,6 +1127,12 @@ function closeModal({ skipPendingRemove = false } = {}) {
   resetShareFeedback();
 
   clearPlanUndoState();
+
+  const flashId = pendingTrainingFlashId;
+  pendingTrainingFlashId = null;
+  if (flashId && getView() === 'training') {
+    requestAnimationFrame(() => flashTrainingCard(flashId));
+  }
 
   const finishClear = () => {
     modalGif.src = '';
@@ -856,14 +1149,14 @@ function closeModal({ skipPendingRemove = false } = {}) {
     modalCloseClearTimer = window.setTimeout(() => {
       modalOverlay.removeEventListener('transitionend', onEnd);
       finishClear();
-    }, 320);
+    }, 420);
   } else {
     finishClear();
   }
 
   // Closing during undo window confirms the removal
   if (pending && !skipPendingRemove) {
-    removeTrainingProgramExercise(pending.userId, pending.exerciseId)
+    removeTrainingProgramExercise(pending.exerciseId)
       .then(updated => {
         setUser(updated);
         if (getView() === 'training') refreshTrainingGrid();
@@ -874,31 +1167,6 @@ function closeModal({ skipPendingRemove = false } = {}) {
         if (getView() === 'training') refreshTrainingGrid();
       });
   }
-}
-
-function exerciseShareUrl(id) {
-  const url = new URL(window.location.href);
-  url.searchParams.set('exercise', id);
-  url.hash = '';
-  return url.toString();
-}
-
-function readExerciseFromUrl() {
-  const params = new URLSearchParams(window.location.search);
-  const fromQuery = params.get('exercise');
-  if (fromQuery) return fromQuery.trim();
-
-  const hash = window.location.hash.replace(/^#/, '').trim();
-  if (/^\d+$/.test(hash)) return hash;
-  return null;
-}
-
-function syncExerciseInUrl(id) {
-  const url = new URL(window.location.href);
-  if (id) url.searchParams.set('exercise', id);
-  else url.searchParams.delete('exercise');
-  if (/^\d+$/.test(url.hash.replace(/^#/, ''))) url.hash = '';
-  history.replaceState(null, '', url);
 }
 
 function syncShareButtonLabels() {
@@ -1162,6 +1430,12 @@ function wireEvents() {
     copyExerciseLink();
   });
   modalAddPlan?.addEventListener('click', onPlanActionClick);
+  modalRxBtn?.addEventListener('click', togglePrescriptionForm);
+  modalRxForm?.addEventListener('submit', onPrescriptionSubmit);
+  modalRxReps?.addEventListener('input', () => {
+    const next = cleanReps(modalRxReps.value);
+    if (modalRxReps.value !== next) modalRxReps.value = next;
+  });
   modalOverlay.addEventListener('click', e => {
     if (e.target === modalOverlay) closeModal();
   });

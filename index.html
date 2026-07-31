@@ -16,6 +16,7 @@
     · #nav-drawer-toggle / #app-sidebar (móvil)    → js/features/nav-drawer.js
     · #sidebar-auth / vistas catalog|training|recommend|coach-plan|students → js/features/session-ui.js
     · #recommend-overlay                               → js/features/recommend-ui.js
+    · #students-view / #add-student-overlay             → js/features/students-ui.js
     · #training-grid                               → js/features/training-ui.js
     · Footer                                       → js/features/footer.js
     · Easter eggs (search codes)                   → js/features/easter-egg.js
@@ -247,10 +248,24 @@
       <div class="recommend-grid" id="coach-plan-grid" hidden></div>
     </div>
 
-    <div id="students-view" class="placeholder-view" hidden>
-      <div class="recommend-panel">
-        <h2 class="recommend-title" data-ui="myStudents">Mis alumnos</h2>
-        <p class="recommend-lead" data-ui="studentsLead">Próximamente: lista de alumnos y planes asignados.</p>
+    <div id="students-view" class="students-view" hidden>
+      <div class="recommend-results students-shell">
+        <div class="recommend-toolbar">
+          <h2 class="recommend-toolbar-title" data-ui="myStudents">Mis alumnos</h2>
+          <button type="button" class="recommend-again-btn" id="students-add-btn">
+            <span data-ui="addStudent">Agregar alumno</span>
+          </button>
+        </div>
+        <div class="students-empty" id="students-empty">
+          <p class="students-empty-title" data-ui="studentsEmptyTitle">Aún no tienes alumnos</p>
+          <p class="students-empty-lead" data-ui="studentsEmptyLead">
+            Agrega un atleta por su email exacto. Cuando exista el vínculo, aparecerá acá.
+          </p>
+          <button type="button" class="recommend-cta" id="students-empty-add-btn">
+            <span data-ui="addStudent">Agregar alumno</span>
+          </button>
+        </div>
+        <div class="students-list" id="students-list" hidden></div>
       </div>
     </div>
   </main>
@@ -289,10 +304,44 @@
     </div>
     <div class="modal-meta" id="modal-meta"></div>
     <div class="modal-actions" id="modal-actions">
-      <button type="button" class="modal-plan-btn" id="modal-add-plan">
-        <span class="modal-plan-btn-fill" id="modal-plan-btn-fill" hidden></span>
-        <span class="modal-plan-btn-label" id="modal-plan-btn-label"></span>
-      </button>
+      <div class="modal-actions-row">
+        <button type="button" class="modal-plan-btn" id="modal-add-plan">
+          <span class="modal-plan-btn-fill" id="modal-plan-btn-fill" hidden></span>
+          <span class="modal-plan-btn-label" id="modal-plan-btn-label"></span>
+        </button>
+        <button type="button" class="modal-rx-btn" id="modal-rx-btn" hidden aria-expanded="false" aria-controls="modal-rx-form">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 20h9"/>
+            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+          </svg>
+          <span class="sr-only" data-ui="editPrescription">Editar pauta</span>
+        </button>
+      </div>
+      <div class="modal-rx-summary" id="modal-rx-summary" hidden></div>
+      <form class="modal-rx-form" id="modal-rx-form" hidden>
+        <div class="modal-rx-grid">
+          <label class="modal-rx-field">
+            <span class="modal-rx-label" data-ui="prescriptionSets">Series</span>
+            <input type="number" id="modal-rx-sets" name="sets" min="1" inputmode="numeric" />
+          </label>
+          <label class="modal-rx-field">
+            <span class="modal-rx-label" data-ui="prescriptionReps">Reps</span>
+            <input type="text" id="modal-rx-reps" name="reps" placeholder="6 o 8-12" inputmode="text" autocomplete="off" spellcheck="false" />
+          </label>
+          <label class="modal-rx-field">
+            <span class="modal-rx-label" data-ui="prescriptionRest">Descanso (seg)</span>
+            <input type="number" id="modal-rx-rest" name="rest" min="0" inputmode="numeric" />
+          </label>
+        </div>
+        <label class="modal-rx-field">
+          <span class="modal-rx-label" data-ui="prescriptionNotes">Notas</span>
+          <textarea id="modal-rx-notes" name="notes" rows="1"></textarea>
+        </label>
+        <p class="modal-rx-status" id="modal-rx-status" hidden></p>
+        <button type="submit" class="modal-rx-submit" id="modal-rx-submit">
+          <span data-ui="prescriptionSave">Guardar pauta</span>
+        </button>
+      </form>
     </div>
     <div class="modal-muscles" id="modal-muscles"></div>
     <div class="modal-instructions" id="modal-instructions"></div>
@@ -323,6 +372,29 @@
       <p class="recommend-status" id="recommend-status" hidden></p>
       <button type="submit" class="recommend-submit" id="recommend-submit" disabled>
         <span data-ui="recommendSubmit">Generar plan</span>
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- ═══ MODAL agregar alumno — js/features/students-ui.js ═══ -->
+<div class="recommend-overlay" id="add-student-overlay" role="dialog" aria-modal="true" aria-labelledby="add-student-title">
+  <div class="recommend-modal">
+    <div class="recommend-modal-header">
+      <h2 class="recommend-modal-title" id="add-student-title" data-ui="addStudent">Agregar alumno</h2>
+      <button type="button" class="modal-close" id="add-student-close" aria-label="Close">✕</button>
+    </div>
+    <form class="recommend-form" id="add-student-form">
+      <label class="recommend-field">
+        <span class="recommend-label" data-ui="email">Email</span>
+        <input type="email" id="add-student-email" name="email" required autocomplete="off" />
+      </label>
+      <p class="recommend-hint" data-ui="addStudentHint">
+        Escribe el email completo del atleta. No buscamos coincidencias parciales.
+      </p>
+      <p class="recommend-status" id="add-student-status" hidden></p>
+      <button type="submit" class="recommend-submit" id="add-student-submit">
+        <span data-ui="addStudentSubmit">Vincular</span>
       </button>
     </form>
   </div>
