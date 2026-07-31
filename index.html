@@ -13,6 +13,7 @@
     · #my-plan-btn + #auth-overlay                 → js/features/auth-ui.js (+ click en main.js)
     · #theme-toggle-btn                            → js/features/theme-ui.js
     · theme early (head, sin defer)                → js/theme-boot.js
+    · #nav-drawer-toggle / #app-sidebar (móvil)    → js/features/nav-drawer.js
     · #sidebar-auth / vistas catalog|training|recommend → js/features/session-ui.js
     · #recommend-overlay                               → js/features/recommend-ui.js
     · #training-grid                               → js/features/training-ui.js
@@ -26,20 +27,33 @@
 <!-- ═══ SHELL: sidebar + catálogo — js/main.js ═══ -->
 <div class="app-shell">
 
+  <!-- Solo móvil: barra superior + hamburguesa -->
+  <header class="mobile-topbar" id="mobile-topbar">
+    <button type="button" class="nav-drawer-toggle" id="nav-drawer-toggle" aria-expanded="false" aria-controls="app-sidebar" aria-label="Abrir menú">
+      <span class="nav-drawer-toggle-bars" aria-hidden="true"></span>
+    </button>
+    <div class="mobile-topbar-logo">Exercise<span>DB</span></div>
+  </header>
+
+  <div class="nav-drawer-backdrop" id="nav-drawer-backdrop" hidden></div>
+
   <!-- Sidebar (logo, Mi plan, chips) — js/main.js -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="app-sidebar">
     <div class="sidebar-header">
       <div class="sidebar-header-row">
         <div class="sidebar-logo">Exercise<span>DB</span></div>
-        <!-- Sin sesión — js/features/auth-ui.js vía main.js -->
-        <div id="sidebar-guest">
-          <button type="button" class="my-plan-btn" id="my-plan-btn" title="Mi plan">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="3" y="1.5" width="10" height="13" rx="1.5"/>
-              <path d="M5.5 5h5M5.5 8h5M5.5 11h3"/>
-            </svg>
-            <span data-ui="myPlan">Mi plan</span>
-          </button>
+        <div class="sidebar-header-actions">
+          <!-- Sin sesión — js/features/auth-ui.js vía main.js -->
+          <div id="sidebar-guest">
+            <button type="button" class="my-plan-btn" id="my-plan-btn" title="Mi plan">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="1.5" width="10" height="13" rx="1.5"/>
+                <path d="M5.5 5h5M5.5 8h5M5.5 11h3"/>
+              </svg>
+              <span data-ui="myPlan">Mi plan</span>
+            </button>
+          </div>
+          <button type="button" class="nav-drawer-close" id="nav-drawer-close" aria-label="Cerrar menú">✕</button>
         </div>
       </div>
 

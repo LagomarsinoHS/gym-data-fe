@@ -69,6 +69,14 @@ export function closeRecommendModal() {
   setStatus('');
 }
 
+/** Clears in-memory recommend results (e.g. on logout). */
+export function clearRecommendPlan() {
+  lastPlan = null;
+  closeRecommendModal();
+  const grid = document.getElementById('recommend-grid');
+  if (grid) grid.innerHTML = '';
+}
+
 export function syncRecommendLabels() {
   document.querySelectorAll('#recommend-view [data-ui], #recommend-overlay [data-ui]')
     .forEach(el => {

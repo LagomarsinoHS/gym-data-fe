@@ -6,6 +6,7 @@
 import { getMe } from '../api/users.js';
 import { clearToken, isLoggedIn } from '../api/token.js';
 import { ui } from '../utils/labels.js';
+import { clearRecommendPlan } from './recommend-ui.js';
 
 const VIEWS = new Set(['catalog', 'training', 'recommend']);
 
@@ -103,6 +104,7 @@ export function logout() {
   clearToken();
   user = null;
   view = 'catalog';
+  clearRecommendPlan();
   renderSessionChrome();
   onViewChange(view);
 }
