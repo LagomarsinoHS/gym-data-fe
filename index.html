@@ -13,7 +13,8 @@
     · #my-plan-btn + #auth-overlay                 → js/features/auth-ui.js (+ click en main.js)
     · #theme-toggle-btn                            → js/features/theme-ui.js
     · theme early (head, sin defer)                → js/theme-boot.js
-    · #sidebar-auth / vistas catalog|training      → js/features/session-ui.js
+    · #sidebar-auth / vistas catalog|training|recommend → js/features/session-ui.js
+    · #recommend-overlay                               → js/features/recommend-ui.js
     · #training-grid                               → js/features/training-ui.js
     · Footer                                       → js/features/footer.js
     · Easter eggs (search codes)                   → js/features/easter-egg.js
@@ -68,6 +69,14 @@
               <button type="button" class="sidebar-nav-btn" id="nav-training" data-view="training">
                 <span class="sidebar-nav-marker" aria-hidden="true"></span>
                 <span data-ui="myTraining">Entrenamiento</span>
+              </button>
+              <button type="button" class="sidebar-nav-btn" id="nav-recommend" data-view="recommend">
+                <span class="sidebar-nav-marker" aria-hidden="true"></span>
+                <span data-ui="recommendPlan">Recomendar Entrenamiento</span>
+                <span class="sidebar-nav-pro" title="Pro" aria-label="Pro">
+                  <span class="sidebar-nav-pro-emoji" aria-hidden="true">✨</span>
+                  <span class="sidebar-nav-pro-label">Pro</span>
+                </span>
               </button>
             </div>
           </div>
@@ -175,6 +184,19 @@
     <div id="training-view" class="training-view" hidden>
       <div class="training-grid" id="training-grid"></div>
     </div>
+
+    <div id="recommend-view" class="recommend-view" hidden>
+      <div class="recommend-panel">
+        <h2 class="recommend-title" data-ui="recommendPlan">Recomendar Entrenamiento</h2>
+        <p class="recommend-lead" data-ui="recommendPlanLead">
+          Elige la zona muscular y te armamos un plan de entrenamiento a medida.
+        </p>
+        <button type="button" class="recommend-cta" id="recommend-open-btn">
+          <span data-ui="recommendGetPlan">Conseguir entrenamiento</span>
+        </button>
+      </div>
+      <div class="recommend-grid" id="recommend-grid"></div>
+    </div>
   </main>
 </div>
 
@@ -218,6 +240,35 @@
     </div>
     <div class="modal-muscles" id="modal-muscles"></div>
     <div class="modal-instructions" id="modal-instructions"></div>
+  </div>
+</div>
+
+<!-- ═══ MODAL recomendar entrenamiento — js/features/recommend-ui.js ═══ -->
+<div class="recommend-overlay" id="recommend-overlay" role="dialog" aria-modal="true" aria-labelledby="recommend-modal-title">
+  <div class="recommend-modal">
+    <div class="recommend-modal-header">
+      <h2 class="recommend-modal-title" id="recommend-modal-title" data-ui="recommendGetPlan">Conseguir entrenamiento</h2>
+      <button type="button" class="modal-close" id="recommend-modal-close" aria-label="Close">✕</button>
+    </div>
+    <form class="recommend-form" id="recommend-form">
+      <label class="recommend-field">
+        <span class="recommend-label" data-ui="recommendZone">Zona</span>
+        <select id="recommend-zone" name="zone" required>
+          <option value="" data-ui="recommendZonePlaceholder">Elige una zona…</option>
+        </select>
+      </label>
+
+      <div class="recommend-field">
+        <span class="recommend-label" data-ui="recommendEquipment">Equipamiento</span>
+        <p class="recommend-hint" data-ui="recommendEquipmentHint">Elige 1 o 2</p>
+        <div class="recommend-equip-chips" id="recommend-equip-chips" role="group" aria-label="Equipamiento"></div>
+      </div>
+
+      <p class="recommend-status" id="recommend-status" hidden></p>
+      <button type="submit" class="recommend-submit" id="recommend-submit" disabled>
+        <span data-ui="recommendSubmit">Generar plan</span>
+      </button>
+    </form>
   </div>
 </div>
 

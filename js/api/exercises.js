@@ -35,3 +35,19 @@ export function getRandomExercise() {
 export function getLabels() {
   return get(`${EXERCISES}/labels`);
 }
+
+/**
+ * GET /exercises/recommend?zone=&equipment=barbell,cable
+ * Requires auth (Pro). equipment: 1–2 values (comma-separated).
+ */
+export function getRecommendedExercises({ zone, equipment } = {}) {
+  const equipmentParam = Array.isArray(equipment)
+    ? equipment.filter(Boolean).join(',')
+    : equipment;
+
+  return get(
+    `${EXERCISES}/recommend`,
+    { zone, equipment: equipmentParam },
+    { auth: true },
+  );
+}

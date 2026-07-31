@@ -8,6 +8,7 @@ import { getEasterEgg, isEasterEggQuery, renderEasterEgg } from './features/east
 import { initFooter } from './features/footer.js';
 import { initAuthUi, openAuth, syncAuthLabels } from './features/auth-ui.js';
 import { initThemeUi } from './features/theme-ui.js';
+import { initRecommendUi, syncRecommendLabels, renderRecommendPlan } from './features/recommend-ui.js';
 import {
   initSessionUi,
   restoreSession,
@@ -19,7 +20,7 @@ import {
   getProgramExerciseIds,
 } from './features/session-ui.js';
 import { renderTrainingProgram } from './features/training-ui.js';
-import { getExercises, getExercise, getLabels, getRandomExercise } from './api/exercises.js';
+import { getExercises, getExercise, getLabels, getRandomExercise, getRecommendedExercises } from './api/exercises.js';
 import { putTrainingProgram, removeTrainingProgramExercise } from './api/users.js';
 import { EQUIP_INITIAL } from './constants.js';
 import { debounce } from './utils/helpers.js';
@@ -103,6 +104,17 @@ async function init() {
     },
   });
   initThemeUi();
+  initRecommendUi({
+    getFilterLabels: () => state.labels,
+    onSubmit: async ({ zone, equipment }) => {
+      const plan = await getRecommendedExercises({ zone, equipment });
+      for (const item of plan?.exercises || []) {
+        const ex = item.exercise || item;
+        if (ex?.id) upsertExercise(ex);
+      }
+      renderRecommendPlan(plan);
+    },
+  });
 
   applyLanguage();
   initFilterAccordions();
@@ -247,6 +259,7 @@ function syncChromeLabels() {
   searchEl.placeholder = onTraining ? ui('searchTraining') : ui('search');
   syncAuthLabels();
   syncSessionLabels();
+  syncRecommendLabels();
 }
 
 function revealFilters() {
@@ -1145,6 +1158,10 @@ function wireEvents() {
   wireCardGrid(gridEl, { cardSelector: '.exercise-card', onOpen: openModal });
   wireCardGrid(document.getElementById('training-grid'), {
     cardSelector: '.training-card',
+    onOpen: openModal,
+  });
+  wireCardGrid(document.getElementById('recommend-grid'), {
+    cardSelector: '.recommend-card',
     onOpen: openModal,
   });
 
