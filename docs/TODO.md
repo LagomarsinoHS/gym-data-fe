@@ -30,9 +30,13 @@
 - Preferir email **exacto**. Evitar autocomplete parcial (seguridad / PII).
 
 ### Mis alumnos
-- [x] Shell: toolbar (título + Agregar alumno) + empty state
+- [x] Shell: toolbar + empty state
 - [x] Modal Agregar alumno → `POST /users/coach/invites` (“Invitación enviada” / errores 404·409)
-- [ ] Banner atleta: accept / reject invite
-- [ ] Lista en filas / acordeón (no cards) desde `GET /users/coach/athletes`
-- [ ] Al expandir: info + CTA agregar/editar entrenamiento
+- [x] Banner atleta: accept / reject invite (`POST .../invites/respond`)
+- [x] Lista en filas / acordeón desde `GET /users/coach/athletes` (paginado de a 5 + Cargar más)
+- [ ] Al expandir: CTA agregar/editar entrenamiento del alumno
 - [ ] Entrenamiento por bloques (Lun/Mié/Vie) o por sesiones (Sesión 1, 2…)
+- [ ] Export Excel: botón para descargar pautas de **todos** los alumnos o de **uno** solo
+
+### Atleta — Plan del coach
+- [ ] Export Excel de la pauta asignada por el coach (misma feature que en Mis alumnos)

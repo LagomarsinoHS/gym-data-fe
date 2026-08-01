@@ -74,8 +74,13 @@ export function respondCoachInvite(action) {
 /**
  * GET /users/coach/athletes
  * Athletes linked to the authenticated coach (coachId === me).
- * Returns CoachAthleteDto[]
+ * Returns PaginatedResponse<CoachAthleteDto>: { data, page, limit, pages, total }
+ * Optional search matches firstName, lastName, or email.
  */
-export function getCoachAthletes() {
-  return get(`${USERS}/coach/athletes`, {}, { auth: true });
+export function getCoachAthletes({ page = 1, limit = 50, search } = {}) {
+  return get(
+    `${USERS}/coach/athletes`,
+    { page, limit, search: search || undefined },
+    { auth: true },
+  );
 }

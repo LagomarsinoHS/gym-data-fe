@@ -301,11 +301,38 @@
 
     <div id="students-view" class="students-view" hidden>
       <div class="recommend-results students-shell">
-        <div class="recommend-toolbar">
-          <h2 class="recommend-toolbar-title" data-ui="myStudents">Mis alumnos</h2>
-          <button type="button" class="recommend-again-btn" id="students-add-btn">
-            <span data-ui="addStudent">Invitar alumno</span>
-          </button>
+        <div class="recommend-toolbar students-toolbar">
+          <div class="search-wrapper students-search">
+            <svg class="search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <circle cx="6.5" cy="6.5" r="4.5"/>
+              <path d="M10.5 10.5L14 14" stroke-linecap="round"/>
+            </svg>
+            <input type="text" class="search-box" id="students-search" placeholder="Buscar alumnos…" autocomplete="off" />
+            <button type="button" class="search-clear" id="students-search-clear" aria-label="Limpiar búsqueda">×</button>
+          </div>
+          <div class="students-toolbar-actions">
+            <div class="students-download" id="students-download">
+              <button
+                type="button"
+                class="recommend-again-btn students-download-trigger"
+                id="students-download-btn"
+                aria-expanded="false"
+                aria-haspopup="menu"
+                aria-controls="students-download-menu"
+              >
+                <span data-ui="studentsDownload">Descargar</span>
+                <span class="students-download-caret" aria-hidden="true"></span>
+              </button>
+              <div class="students-download-menu" id="students-download-menu" role="menu" hidden>
+                <button type="button" class="students-download-item" role="menuitem" id="students-download-all">
+                  <span data-ui="studentsDownloadAll">Descargar todos</span>
+                </button>
+              </div>
+            </div>
+            <button type="button" class="recommend-again-btn" id="students-add-btn">
+              <span data-ui="addStudent">Invitar alumno</span>
+            </button>
+          </div>
         </div>
         <div class="students-empty" id="students-empty">
           <p class="students-empty-title" data-ui="studentsEmptyTitle">Aún no tienes alumnos</p>
@@ -317,6 +344,9 @@
           </button>
         </div>
         <div class="students-list" id="students-list" hidden></div>
+        <button type="button" class="students-load-more" id="students-load-more" hidden>
+          <span data-ui="studentsLoadMore">Cargar más</span>
+        </button>
       </div>
     </div>
   </main>
