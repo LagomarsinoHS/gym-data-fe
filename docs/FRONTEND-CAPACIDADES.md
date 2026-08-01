@@ -46,17 +46,19 @@ Si el boot falla → mensaje de error en el contador de resultados.
 | Rol | Nav |
 |-----|-----|
 | **Athlete** | Mi plan → Entrenamiento, Recomendar (Pro), Plan del coach · Catálogo |
-| **Coach / Admin** | Mis alumnos · Catálogo |
+| **Coach / Admin** | Panel · Plantillas · Mis alumnos · Catálogo |
 
 | Vista | Contenido |
 |-------|-----------|
 | `catalog` | Grid + filtros + search + WOD |
 | `training` | Plan personal (`trainingProgram`) |
 | `recommend` | Recomendar (solo si `isPremium`) |
-| `coach-plan` | Placeholder (plan del coach; sin datos aún) |
-| `students` | Shell Mis alumnos (lista aún vacía) |
+| `coach-plan` | Plan del coach (copy según `coachId`; sesiones reales pendientes de BE) |
+| `coach-panel` / `coach-templates` | Shells placeholder |
+| `students` | Mis alumnos (lista API + sesiones shell local) |
+| `session-editor` | Editor de una sesión del atleta (coach) |
 
-- Post-login: coach/admin → `students`; athlete → `training`.
+- Post-login: coach/admin → `coach-panel`; athlete → `training`.
 - Recomendar: nav locked + tooltip si no es Pro.
 - Badge de rol en sidebar (Atleta / Entrenador / Admin).
 
@@ -160,10 +162,18 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 ## 8. Mis alumnos (coach)
 
-- Toolbar + empty state + “Invitar alumno”.
-- Modal email exacto → `POST /users/coach/invites` (Bearer).
-- Success: “Invitación enviada”; 404/409 mapeados a copy local.
-- Lista de alumnos: markup listo, **aún no se pinta** (falta `GET .../athletes`).
+- Toolbar: buscar (debounce 500ms), Descargar (shell), Invitar alumno.
+- Loading spinner al primer fetch; empty / sin resultados sin flash raro.
+- Modal email exacto → `POST /users/coach/invites` (Bearer); “Invitación enviada”.
+- Lista → `GET /users/coach/athletes` (paginado 5 + Cargar más); cache en memoria.
+- Acordeón alumno → info + plan; **Agregar sesión** (modal nombre, local).
+- Sub-acordeón sesión → mini-cards (thumb, nombre, pauta) + Editar sesión.
+- Vista `session-editor`: cards, Editar / ✕, Agregar ejercicios.
+- Catálogo en modo asignar: banner + “Agregar a la sesión” + lápiz pauta (local); guardar vuelve al editor.
+- Sesiones en `athlete.coachTrainingProgram`; **Guardar plan** → `PUT /users/coach/athletes/:id/training-program` (replace; respuesta enriquecida).
+
+### Invite atleta
+- Banner `pendingCoachInvite` → accept / reject `POST /users/coach/invites/respond`.
 
 ---
 
@@ -195,8 +205,9 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 | PUT | `/users/training-program/remove` | Sí | Confirmar quitar |
 | PUT | `/users/training-program/:exerciseId` | Sí | Guardar pauta |
 | POST | `/users/coach/invites` | Sí | Coach invita atleta por email |
-
-No hay accept/reject ni listado de alumnos todavía.
+| POST | `/users/coach/invites/respond` | Sí | Atleta accept / reject |
+| GET | `/users/coach/athletes` | Sí | Lista paginada Mis alumnos |
+| PUT | `/users/coach/athletes/:athleteId/training-program` | Sí | Guardar plan (replace sesiones) |
 
 ---
 
@@ -290,8 +301,9 @@ No hay accept/reject ni listado de alumnos todavía.
 
 ## 16. Stubs / aún no cableado
 
-- Plan del coach: copy según `coachId`; grid sin datos.
-- Mis alumnos: lista vacía; agregar alumno sin endpoint.
+- Plan del coach (atleta): sin sesiones reales desde API.
+- Sesiones coach: UI completa en memoria; falta BE.
+- Export Excel (botones shell).
 - Admin no se elige en register (solo DB); en nav se comporta como coach.
 - Sin refresh token; si `/me` falla, sesión guest.
 - Recommend exige `isPremium` del back.
@@ -300,5 +312,4 @@ No hay accept/reject ni listado de alumnos todavía.
 
 ## Ver también
 
-- [TODO.md](./TODO.md) — pendientes
-- [PLAN-PERFIL-ENTRENAMIENTO.md](./PLAN-PERFIL-ENTRENAMIENTO.md) — diseño del plan / API
+- [TODO.md](./TODO.md) — pendientes (FE + BE)

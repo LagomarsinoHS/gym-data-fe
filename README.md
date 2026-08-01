@@ -47,7 +47,8 @@ gym-data-fe/
 │   ├── images/
 │   └── videos/
 └── docs/
-    └── PLAN-PERFIL-ENTRENAMIENTO.md
+    ├── FRONTEND-CAPACIDADES.md   # qué hace el FE hoy
+    └── TODO.md                   # pendientes
 ```
 
 ---
@@ -114,7 +115,8 @@ Los campos `image` y `gif_url` vienen como paths relativos (`images/...`, `video
 
 - Sin build step: editás y refrescás.
 - Render puede “dormir” el servicio gratis; el primer request tras inactividad puede tardar unos segundos.
-- Plan de producto (perfil / coach / pauta): ver [`docs/PLAN-PERFIL-ENTRENAMIENTO.md`](docs/PLAN-PERFIL-ENTRENAMIENTO.md).
+- Capacidades actuales: [`docs/FRONTEND-CAPACIDADES.md`](docs/FRONTEND-CAPACIDADES.md).
+- Pendientes: [`docs/TODO.md`](docs/TODO.md).
 - Maintained by **Mister L** 💪
 
 ---

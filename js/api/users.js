@@ -84,3 +84,17 @@ export function getCoachAthletes({ page = 1, limit = 50, search } = {}) {
     { auth: true },
   );
 }
+
+/**
+ * PUT /users/coach/athletes/:athleteId/training-program
+ * Replaces the athlete's coachTrainingProgram (full sessions array).
+ * Body: { coachTrainingProgram } — items with exerciseId only (no populated exercise).
+ * Returns enriched athlete (MeResponseDto) with catalog exercises populated.
+ */
+export function putCoachAthleteTrainingProgram(athleteId, coachTrainingProgram) {
+  return put(
+    `${USERS}/coach/athletes/${encodeURIComponent(athleteId)}/training-program`,
+    { coachTrainingProgram },
+    { auth: true },
+  );
+}

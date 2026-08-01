@@ -321,7 +321,15 @@
         <header class="session-editor-header">
           <div class="session-editor-heading">
             <p class="session-editor-kicker" data-ui="sessionEditorKicker">Sesión</p>
-            <h2 class="session-editor-title" id="session-editor-title">Sesión</h2>
+            <input
+              type="text"
+              class="session-editor-title"
+              id="session-editor-name"
+              name="sessionName"
+              maxlength="40"
+              autocomplete="off"
+              aria-label="Nombre"
+            />
             <p class="session-editor-subtitle" id="session-editor-subtitle"></p>
           </div>
           <button type="button" class="recommend-cta session-editor-add" id="session-editor-add">
@@ -367,7 +375,11 @@
             </button>
           </div>
         </div>
-        <div class="students-empty" id="students-empty">
+        <div class="students-loading" id="students-loading" hidden>
+          <div class="load-spinner visible" aria-hidden="true"></div>
+          <span data-ui="studentsLoading">Cargando alumnos…</span>
+        </div>
+        <div class="students-empty" id="students-empty" hidden>
           <p class="students-empty-title" data-ui="studentsEmptyTitle">Aún no tienes alumnos</p>
           <p class="students-empty-lead" data-ui="studentsEmptyLead">
             Invita a un atleta por su email exacto. Cuando acepte, aparecerá acá.

@@ -2775,6 +2775,19 @@ html[data-theme="dark"] .chip.active {
   color: var(--accent);
 }
 
+.students-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 40px;
+  padding: 28px 16px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 650;
+}
+
 .students-empty {
   display: flex;
   flex-direction: column;
@@ -2788,6 +2801,7 @@ html[data-theme="dark"] .chip.active {
   background: color-mix(in srgb, var(--bg-surface) 70%, transparent);
 }
 
+.students-loading[hidden],
 .students-empty[hidden],
 .students-list[hidden] {
   display: none !important;
@@ -3074,25 +3088,116 @@ html[data-theme="dark"] .chip.active {
   color: var(--text-tertiary);
 }
 
+.student-plan-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.student-plan-dirty {
+  font-size: 11px;
+  font-weight: 750;
+  color: #c23b3b;
+  text-shadow: 0 0 0 transparent;
+  animation: plan-dirty-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes plan-dirty-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    text-shadow: 0 0 0 transparent;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 1;
+    text-shadow:
+      0 0 8px color-mix(in srgb, #c23b3b 55%, transparent),
+      0 0 16px color-mix(in srgb, #c23b3b 30%, transparent);
+    filter: brightness(1.15);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-plan-dirty {
+    animation: none;
+    opacity: 1;
+    text-shadow: none;
+  }
+}
+
+.student-plan-save-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 12px;
+  padding-top: 4px;
+}
+
+.student-plan-save-error {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #c23b3b;
+  text-align: right;
+}
+
+.student-plan-save {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 750;
+  font-family: inherit;
+  cursor: pointer;
+  transition: filter 0.15s, opacity 0.15s;
+}
+
+.student-plan-save:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.student-plan-save:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
 .student-plan-add {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 10px;
+  gap: 5px;
+  padding: 7px 12px;
   border-radius: var(--radius-md);
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
-  background: color-mix(in srgb, var(--accent) 10%, var(--bg-surface));
-  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
+  background: var(--accent);
+  color: #fff;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 750;
   font-family: inherit;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: filter 0.15s, border-color 0.15s;
+}
+
+.student-plan-add::before {
+  content: '+';
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .student-plan-add:hover {
-  background: color-mix(in srgb, var(--accent) 18%, var(--bg-surface));
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  filter: brightness(1.06);
 }
 
 .student-plan-empty,
@@ -3114,12 +3219,24 @@ html[data-theme="dark"] .chip.active {
   overflow: hidden;
 }
 
+.student-session-top {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding-right: 6px;
+}
+
+.student-session-top:hover {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
 .student-session-header {
   display: flex;
   align-items: center;
   gap: 10px;
-  width: 100%;
-  padding: 10px 12px;
+  flex: 1;
+  min-width: 0;
+  padding: 10px 6px 10px 12px;
   border: 0;
   background: transparent;
   color: inherit;
@@ -3128,8 +3245,26 @@ html[data-theme="dark"] .chip.active {
   cursor: pointer;
 }
 
-.student-session-header:hover {
-  background: color-mix(in srgb, var(--accent) 6%, transparent);
+.student-session-remove {
+  flex: 0 0 auto;
+  align-self: center;
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, #c44 35%, var(--border));
+  background: color-mix(in srgb, #c44 8%, var(--bg-surface));
+  color: #c44;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.student-session-remove:hover {
+  border-color: color-mix(in srgb, #c44 55%, var(--border));
+  background: color-mix(in srgb, #c44 16%, var(--bg-surface));
+  color: #b33;
 }
 
 .student-session-name {
@@ -3141,10 +3276,50 @@ html[data-theme="dark"] .chip.active {
 }
 
 .student-session-meta {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-tertiary);
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  max-width: min(100%, 14rem);
+}
+
+.student-session-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-surface));
+  color: var(--text-primary);
   white-space: nowrap;
+  line-height: 1.2;
+}
+
+.student-session-stat--sets {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg-surface));
+}
+
+.student-session-stat-value {
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+}
+
+.student-session-stat--sets .student-session-stat-value {
+  font-size: 14px;
+}
+
+.student-session-stat-unit {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  color: var(--text-secondary);
 }
 
 .student-session-chevron {
@@ -3287,18 +3462,20 @@ html[data-theme="dark"] .chip.active {
   justify-content: center;
   padding: 6px 10px;
   border-radius: var(--radius-md);
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
-  background: color-mix(in srgb, var(--accent) 10%, var(--bg-surface));
-  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--border) 90%, var(--text-secondary));
+  background: transparent;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
 .student-session-edit:hover {
-  background: color-mix(in srgb, var(--accent) 18%, var(--bg-surface));
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-surface));
+  color: var(--accent);
 }
 
 .session-assign-banner {
@@ -3430,12 +3607,33 @@ html[data-theme="dark"] .chip.active {
 }
 
 .session-editor-title {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
   margin: 0;
+  padding: 2px 8px;
+  margin-left: -8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  font: inherit;
   font-size: clamp(1.65rem, 3vw, 2rem);
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.1;
   color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.session-editor-title:hover {
+  border-color: color-mix(in srgb, var(--border) 70%, transparent);
+  background: color-mix(in srgb, var(--bg-page) 40%, transparent);
+}
+
+.session-editor-title:focus {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: var(--bg-surface);
 }
 
 .session-editor-subtitle {
