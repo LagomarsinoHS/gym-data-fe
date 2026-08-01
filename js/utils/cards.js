@@ -32,7 +32,7 @@ function revealThumbWhenReady(thumb, media) {
  */
 export function fillCardMedia(card, exercise, { nameSelector = '.card-name' } = {}) {
   const name = exerciseName(exercise);
-  const media = card.querySelector('.card-media, .training-card-media');
+  const media = card.querySelector('.card-media, .training-card-media, .session-editor-item-media');
 
   const thumb = card.querySelector('.card-thumb');
   if (thumb) {

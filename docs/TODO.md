@@ -34,8 +34,12 @@
 - [x] Modal Agregar alumno → `POST /users/coach/invites` (“Invitación enviada” / errores 404·409)
 - [x] Banner atleta: accept / reject invite (`POST .../invites/respond`)
 - [x] Lista en filas / acordeón desde `GET /users/coach/athletes` (paginado de a 5 + Cargar más)
-- [ ] Al expandir: CTA agregar/editar entrenamiento del alumno
-- [ ] Entrenamiento por bloques (Lun/Mié/Vie) o por sesiones (Sesión 1, 2…)
+- [x] Al expandir: CTA Agregar sesión + modal nombre (shell local)
+- [x] Sub-acordeón sesión: resumen + CTA editar / agregar ejercicios
+- [x] Vista editor de sesión + catálogo en modo asignar (shell local)
+- [ ] Persistir sesiones en BE (`coachTrainingProgram`: `{ id, name, order, items[] }`)
+- [x] Editar pauta (sets/reps/rest/notes) de items de sesión (shell local en modal)
+- [ ] Entrenamiento por sesiones cableado a API
 - [ ] Export Excel: botón para descargar pautas de **todos** los alumnos o de **uno** solo
 
 ### Atleta — Plan del coach

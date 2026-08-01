@@ -1,14 +1,18 @@
 /**
  * Session shell: guest vs logged-in sidebar; role-based nav (athlete | coach).
  * Markup: #sidebar-guest, #sidebar-auth, #nav-athlete, #nav-coach,
- * views: catalog | training | recommend | coach-plan | coach-panel | coach-templates | students
+ * views: catalog | training | recommend | coach-plan | coach-panel | coach-templates | students | session-editor
  * Training grid rendering is driven by main.js (filters live there).
  */
 import { getMe } from '../api/users.js';
 import { clearToken, isLoggedIn } from '../api/token.js';
 import { ui } from '../utils/labels.js';
 import { clearRecommendPlan } from './recommend-ui.js';
-import { clearCoachAthletesCache } from './students-ui.js';
+import {
+  clearCoachAthletesCache,
+  clearSessionAssignTarget,
+  syncSessionEditorView,
+} from './students-ui.js';
 
 const VIEWS = new Set([
   'catalog',
@@ -18,9 +22,10 @@ const VIEWS = new Set([
   'coach-panel',
   'coach-templates',
   'students',
+  'session-editor',
 ]);
 const ATHLETE_VIEWS = new Set(['training', 'recommend', 'coach-plan']);
-const COACH_VIEWS = new Set(['coach-panel', 'coach-templates', 'students']);
+const COACH_VIEWS = new Set(['coach-panel', 'coach-templates', 'students', 'session-editor']);
 
 let view = 'catalog';
 let user = null;
@@ -77,9 +82,13 @@ export function initSessionUi({ onViewChange: cb } = {}) {
   });
   document.getElementById('nav-students')?.addEventListener('click', () => {
     if (!isCoach()) return;
+    clearSessionAssignTarget();
     setView('students');
   });
-  document.getElementById('nav-catalog')?.addEventListener('click', () => setView('catalog'));
+  document.getElementById('nav-catalog')?.addEventListener('click', () => {
+    if (isCoach()) clearSessionAssignTarget();
+    setView('catalog');
+  });
   document.getElementById('coach-plan-catalog-btn')?.addEventListener('click', () => setView('catalog'));
   document.getElementById('logout-btn')?.addEventListener('click', logout);
 
@@ -150,6 +159,7 @@ export function setView(next) {
   if (next === 'coach-plan' && !isAthlete()) return;
   if (ATHLETE_VIEWS.has(next) && !isAthlete()) return;
   if (COACH_VIEWS.has(next) && !isCoach()) return;
+  if (next !== 'catalog') clearSessionAssignTarget();
   view = next;
   renderSessionChrome();
   onViewChange(view);
@@ -167,7 +177,7 @@ export function logout() {
 
 export function syncSessionLabels() {
   document.querySelectorAll(
-    '#sidebar-guest [data-ui], #sidebar-auth [data-ui], #recommend-view [data-ui], #coach-plan-view [data-ui], #coach-panel-view [data-ui], #coach-templates-view [data-ui], #students-view [data-ui]',
+    '#sidebar-guest [data-ui], #sidebar-auth [data-ui], #recommend-view [data-ui], #coach-plan-view [data-ui], #coach-panel-view [data-ui], #coach-templates-view [data-ui], #students-view [data-ui], #session-editor-view [data-ui], #session-assign-banner [data-ui]',
   ).forEach(el => {
     el.textContent = ui(el.dataset.ui);
   });
@@ -270,7 +280,7 @@ function syncNavActive() {
     [coachPlan, view === 'coach-plan'],
     [coachPanel, view === 'coach-panel'],
     [coachTemplates, view === 'coach-templates'],
-    [students, view === 'students'],
+    [students, view === 'students' || view === 'session-editor'],
     [catalog, view === 'catalog'],
   ];
 
@@ -317,6 +327,7 @@ function renderSessionChrome() {
   const coachPanelView = document.getElementById('coach-panel-view');
   const coachTemplatesView = document.getElementById('coach-templates-view');
   const studentsView = document.getElementById('students-view');
+  const sessionEditorView = document.getElementById('session-editor-view');
   const catalogBar = document.getElementById('catalog-bar-extras');
   const catalogFilters = document.getElementById('sidebar-catalog-filters');
   const wodBtn = document.getElementById('wod-btn');
@@ -335,17 +346,20 @@ function renderSessionChrome() {
   const showCoachPanel = loggedIn && view === 'coach-panel';
   const showCoachTemplates = loggedIn && view === 'coach-templates';
   const showStudents = loggedIn && view === 'students';
+  const showSessionEditor = loggedIn && view === 'session-editor';
   const hideCatalogChrome = showTraining
     || showRecommend
     || showCoachPlan
     || showCoachPanel
     || showCoachTemplates
-    || showStudents;
+    || showStudents
+    || showSessionEditor;
   const hideSearch = showRecommend
     || showCoachPlan
     || showCoachPanel
     || showCoachTemplates
-    || showStudents;
+    || showStudents
+    || showSessionEditor;
 
   if (catalogView) catalogView.hidden = hideCatalogChrome;
   if (trainingView) trainingView.hidden = !showTraining;
@@ -354,6 +368,7 @@ function renderSessionChrome() {
   if (coachPanelView) coachPanelView.hidden = !showCoachPanel;
   if (coachTemplatesView) coachTemplatesView.hidden = !showCoachTemplates;
   if (studentsView) studentsView.hidden = !showStudents;
+  if (sessionEditorView) sessionEditorView.hidden = !showSessionEditor;
   if (catalogBar) catalogBar.hidden = hideCatalogChrome;
   if (wodBtn) wodBtn.hidden = hideCatalogChrome;
   if (catalogFilters) catalogFilters.hidden = hideCatalogChrome;
@@ -368,6 +383,7 @@ function renderSessionChrome() {
   syncRecommendAccess();
   syncCoachPlanPanel();
   syncRoleNav();
+  syncSessionEditorView();
 
   for (const fn of chromeListeners) fn();
 }

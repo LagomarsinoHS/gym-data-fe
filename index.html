@@ -15,9 +15,9 @@
     · #theme-toggle-btn                            → js/features/theme-ui.js
     · theme early (head, sin defer)                → js/theme-boot.js
     · #nav-drawer-toggle / #app-sidebar (móvil)    → js/features/nav-drawer.js
-    · #sidebar-auth / vistas catalog|training|recommend|coach-plan|coach-panel|coach-templates|students → js/features/session-ui.js
+    · #sidebar-auth / vistas catalog|training|recommend|coach-plan|coach-panel|coach-templates|students|session-editor → js/features/session-ui.js
     · #recommend-overlay                               → js/features/recommend-ui.js
-    · #students-view / #add-student-overlay             → js/features/students-ui.js
+    · #students-view / #session-editor-view / overlays → js/features/students-ui.js
     · #coach-invite-banner                             → js/features/coach-invite-ui.js
     · #training-grid                               → js/features/training-ui.js
     · Footer                                       → js/features/footer.js
@@ -225,6 +225,15 @@
     </div>
 
     <div id="catalog-view">
+      <div class="session-assign-banner" id="session-assign-banner" hidden>
+        <div class="session-assign-banner-copy">
+          <p class="session-assign-banner-label" data-ui="sessionAssignLabel">Asignando a sesión</p>
+          <p class="session-assign-banner-text" id="session-assign-banner-text"></p>
+        </div>
+        <button type="button" class="recommend-again-btn" id="session-assign-done">
+          <span data-ui="sessionAssignDone">Volver al editor</span>
+        </button>
+      </div>
       <div class="grid-wrapper">
         <div class="exercise-grid" id="exercise-grid">
           <div class="catalog-boot-loading" id="catalog-boot-loading">
@@ -296,6 +305,30 @@
         <p class="recommend-lead" data-ui="coachTemplatesLead">
           Acá vas a armar rutinas reutilizables para asignar a tus alumnos.
         </p>
+      </div>
+    </div>
+
+    <div id="session-editor-view" class="session-editor-view" hidden>
+      <div class="session-editor">
+        <button type="button" class="session-editor-back" id="session-editor-back">
+          <span class="session-editor-back-ico" aria-hidden="true">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 3L5 8l5 5"/>
+            </svg>
+          </span>
+          <span data-ui="sessionEditorBack">Mis alumnos</span>
+        </button>
+        <header class="session-editor-header">
+          <div class="session-editor-heading">
+            <p class="session-editor-kicker" data-ui="sessionEditorKicker">Sesión</p>
+            <h2 class="session-editor-title" id="session-editor-title">Sesión</h2>
+            <p class="session-editor-subtitle" id="session-editor-subtitle"></p>
+          </div>
+          <button type="button" class="recommend-cta session-editor-add" id="session-editor-add">
+            <span data-ui="sessionAddExercises">Agregar ejercicios</span>
+          </button>
+        </header>
+        <div class="session-editor-list" id="session-editor-list"></div>
       </div>
     </div>
 
@@ -477,6 +510,29 @@
       <button type="submit" class="recommend-submit" id="add-student-submit">
         <span class="recommend-submit-fill" id="add-student-submit-fill" hidden></span>
         <span class="recommend-submit-label" data-ui="addStudentSubmit">Enviar invitación</span>
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- ═══ MODAL agregar sesión (coach → atleta) — js/features/students-ui.js ═══ -->
+<div class="recommend-overlay" id="add-session-overlay" role="dialog" aria-modal="true" aria-labelledby="add-session-title">
+  <div class="recommend-modal">
+    <div class="recommend-modal-header">
+      <h2 class="recommend-modal-title" id="add-session-title" data-ui="addSessionTitle">Nueva sesión</h2>
+      <button type="button" class="modal-close" id="add-session-close" aria-label="Close">✕</button>
+    </div>
+    <form class="recommend-form" id="add-session-form">
+      <label class="recommend-field">
+        <span class="recommend-label" data-ui="addSessionName">Nombre</span>
+        <input type="text" id="add-session-name" name="name" required maxlength="40" autocomplete="off" />
+      </label>
+      <p class="recommend-hint" data-ui="addSessionHint">
+        Nombre visible para el atleta (ej. Lunes, Sesión 1).
+      </p>
+      <p class="recommend-status" id="add-session-status" hidden></p>
+      <button type="submit" class="recommend-submit" id="add-session-submit">
+        <span class="recommend-submit-label" data-ui="addSessionSubmit">Crear sesión</span>
       </button>
     </form>
   </div>

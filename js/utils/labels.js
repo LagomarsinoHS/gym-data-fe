@@ -30,9 +30,10 @@ export function titleCase(value) {
     .replace(/\b\w/g, ch => ch.toUpperCase());
 }
 
-/** Resolve bilingual fields like { en, es }. */
+/** Resolve bilingual fields like { en, es }, or a plain string. */
 export function localized(value, lang = currentLang) {
   if (!value) return '';
+  if (typeof value === 'string') return value;
   return value[lang] || value.en || value.es || '';
 }
 
