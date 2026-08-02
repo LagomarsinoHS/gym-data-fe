@@ -4153,29 +4153,33 @@ html[data-theme="dark"] .chip.active {
 .coach-plan-sessions {
   display: grid;
   gap: 12px;
+  max-width: 820px;
 }
 
 .coach-plan-session {
   border-radius: var(--radius-lg);
-  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border));
   background:
     linear-gradient(
-      160deg,
-      color-mix(in srgb, var(--accent) 8%, var(--bg-surface)) 0%,
-      var(--bg-surface) 42%
+      155deg,
+      color-mix(in srgb, var(--accent) 9%, var(--bg-surface)) 0%,
+      var(--bg-surface) 46%
     );
   overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* Allow card hover lift (translateY) without clipping the top border */
 .coach-plan-session.is-open {
   overflow: visible;
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 .coach-plan-session-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 12px;
+  gap: 12px 14px;
   width: 100%;
   padding: 14px 16px;
   border: 0;
@@ -4191,23 +4195,77 @@ html[data-theme="dark"] .chip.active {
   background: color-mix(in srgb, var(--accent) 6%, transparent);
 }
 
+.coach-plan-session-index {
+  display: inline-grid;
+  place-items: center;
+  min-width: 2.4rem;
+  height: 2.4rem;
+  padding: 0 6px;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-surface));
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
 .coach-plan-session-title {
-  flex: 1;
   min-width: 0;
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.12rem;
   font-weight: 800;
   letter-spacing: -0.02em;
+  line-height: 1.2;
   color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .coach-plan-session-meta {
-  flex: 0 0 auto;
-  margin: 0;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--accent);
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  max-width: 14rem;
+}
+
+.coach-plan-meta-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-surface));
+  color: var(--text-primary);
   white-space: nowrap;
+  line-height: 1.2;
+}
+
+.coach-plan-meta-chip strong {
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.coach-plan-meta-chip span {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: lowercase;
+}
+
+.coach-plan-meta-chip--sets {
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--border));
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-surface));
+}
+
+.coach-plan-meta-chip--sets strong {
+  font-size: 14px;
 }
 
 .coach-plan-session-chevron {
@@ -4238,7 +4296,7 @@ html[data-theme="dark"] .chip.active {
   max-height: 4000px;
   opacity: 1;
   overflow: visible;
-  padding: 4px 16px 16px;
+  padding: 0 16px 14px;
 }
 
 .coach-plan-session-empty {
@@ -4248,9 +4306,143 @@ html[data-theme="dark"] .chip.active {
   color: var(--text-tertiary);
 }
 
-.coach-plan-session-grid {
+.coach-plan-workout-list {
+  display: grid;
+  gap: 8px;
+}
+
+.coach-plan-workout-item {
+  --item-i: 0;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  background: color-mix(in srgb, var(--bg-page, var(--bg-base)) 35%, var(--bg-surface));
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.coach-plan-session.is-open .coach-plan-workout-item {
+  animation: coach-plan-workout-in 0.3s ease both;
+  animation-delay: calc(var(--item-i) * 40ms);
+}
+
+@keyframes coach-plan-workout-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.coach-plan-workout-item:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: var(--bg-surface);
+  transform: translateX(2px);
+}
+
+.coach-plan-workout-media {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-elevated));
+  display: grid;
+  place-items: center;
+}
+
+.coach-plan-workout-media.is-fallback {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.coach-plan-workout-thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.coach-plan-workout-main {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.coach-plan-workout-name {
   margin: 0;
-  padding-top: 2px;
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.25;
+  color: var(--text-primary);
+  text-transform: capitalize;
+}
+
+.coach-plan-workout-rx {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.coach-plan-workout-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-page, var(--bg-base)));
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.coach-plan-workout-bare {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.coach-plan-workout-note {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .coach-plan-session-header {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .coach-plan-session-meta {
+    grid-column: 2 / 3;
+    justify-content: flex-start;
+    max-width: none;
+  }
+
+  .coach-plan-session-chevron {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coach-plan-session.is-open .coach-plan-workout-item {
+    animation: none;
+  }
+
+  .coach-plan-workout-item:hover {
+    transform: none;
+  }
 }
 
 /* Training program cards — distinct from catalog exercise-card */

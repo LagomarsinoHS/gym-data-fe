@@ -4,6 +4,7 @@
  * Filters/search run in memory (no catalog API).
  * Cards are training-specific (not catalog exercise-card).
  */
+import { assetUrl } from '../utils/assets.js';
 import { fillCardMedia } from '../utils/cards.js';
 import { normalizeSearch } from '../utils/helpers.js';
 import { exerciseName, label, ui } from '../utils/labels.js';
@@ -52,18 +53,20 @@ export function renderCoachTrainingProgram(user) {
 
   const sessions = [...prog].sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0));
   const frag = document.createDocumentFragment();
-  for (const session of sessions) {
-    frag.appendChild(createCoachPlanSession(session));
-  }
+  sessions.forEach((session, index) => {
+    frag.appendChild(createCoachPlanSession(session, { index }));
+  });
   root.appendChild(frag);
 }
 
-function createCoachPlanSession(session) {
+function createCoachPlanSession(session, { index = 0 } = {}) {
   const id = String(session?.id || '');
   const name = String(session?.name || '').trim() || '—';
   const items = [...(session?.items || [])]
     .filter(item => item?.exercise)
     .sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0));
+  const sets = totalCoachSessionSets(items);
+  const sessionNumber = (session?.order ?? index) + 1;
 
   const section = document.createElement('section');
   section.className = 'coach-plan-session';
@@ -74,19 +77,31 @@ function createCoachPlanSession(session) {
   header.className = 'coach-plan-session-header';
   header.setAttribute('aria-expanded', 'false');
 
+  const indexEl = document.createElement('span');
+  indexEl.className = 'coach-plan-session-index';
+  indexEl.textContent = String(sessionNumber).padStart(2, '0');
+  indexEl.setAttribute('aria-label', ui('sessionIndex', sessionNumber));
+
   const title = document.createElement('span');
   title.className = 'coach-plan-session-title';
   title.textContent = name;
 
   const meta = document.createElement('span');
   meta.className = 'coach-plan-session-meta';
-  meta.textContent = coachSessionMeta(items);
+  meta.append(
+    createCoachPlanMetaChip(items.length, ui('sessionExercisesUnit', items.length)),
+  );
+  if (items.length) {
+    meta.append(
+      createCoachPlanMetaChip(sets, ui('sessionSetsUnit', sets), true),
+    );
+  }
 
   const chevron = document.createElement('span');
   chevron.className = 'coach-plan-session-chevron';
   chevron.setAttribute('aria-hidden', 'true');
 
-  header.append(title, meta, chevron);
+  header.append(indexEl, title, meta, chevron);
 
   const body = document.createElement('div');
   body.className = 'coach-plan-session-body';
@@ -97,12 +112,12 @@ function createCoachPlanSession(session) {
     empty.textContent = ui('sessionEmptyItems');
     body.append(empty);
   } else {
-    const grid = document.createElement('div');
-    grid.className = 'training-grid coach-plan-session-grid';
-    for (const item of items) {
-      grid.appendChild(createProgramCard(item));
-    }
-    body.append(grid);
+    const list = document.createElement('div');
+    list.className = 'coach-plan-workout-list';
+    items.forEach((item, itemIndex) => {
+      list.appendChild(createCoachPlanWorkoutItem(item, itemIndex));
+    });
+    body.append(list);
   }
 
   header.addEventListener('click', () => toggleCoachPlanSession(section));
@@ -113,6 +128,88 @@ function createCoachPlanSession(session) {
   }
 
   return section;
+}
+
+function createCoachPlanMetaChip(value, unit, emphasize = false) {
+  const chip = document.createElement('span');
+  chip.className = emphasize
+    ? 'coach-plan-meta-chip coach-plan-meta-chip--sets'
+    : 'coach-plan-meta-chip';
+
+  const num = document.createElement('strong');
+  num.textContent = String(value);
+  const labelEl = document.createElement('span');
+  labelEl.textContent = unit;
+  chip.append(num, labelEl);
+  return chip;
+}
+
+function createCoachPlanWorkoutItem(item, index = 0) {
+  const ex = item.exercise;
+  const id = String(ex?.id || item.exerciseId || '');
+  const name = exerciseName(ex) || id || '—';
+  const lines = prescriptionLines(item);
+  const note = prescriptionNote(item);
+
+  const row = document.createElement('article');
+  row.className = 'coach-plan-workout-item';
+  row.style.setProperty('--item-i', String(index));
+  if (id) row.dataset.id = id;
+
+  const media = document.createElement('div');
+  media.className = 'coach-plan-workout-media';
+  const imageSrc = assetUrl(ex?.image || ex?.gif_url);
+  if (imageSrc) {
+    const thumb = document.createElement('img');
+    thumb.className = 'coach-plan-workout-thumb';
+    thumb.alt = name;
+    thumb.loading = 'lazy';
+    thumb.src = imageSrc;
+    thumb.addEventListener('error', () => {
+      thumb.remove();
+      media.classList.add('is-fallback');
+      media.textContent = name.slice(0, 1).toUpperCase() || '?';
+    }, { once: true });
+    media.append(thumb);
+  } else {
+    media.classList.add('is-fallback');
+    media.textContent = name.slice(0, 1).toUpperCase() || '?';
+  }
+
+  const main = document.createElement('div');
+  main.className = 'coach-plan-workout-main';
+
+  const nameEl = document.createElement('h4');
+  nameEl.className = 'coach-plan-workout-name';
+  nameEl.textContent = name;
+
+  const rx = document.createElement('div');
+  rx.className = 'coach-plan-workout-rx';
+  if (lines.length) {
+    for (const line of lines) {
+      const chip = document.createElement('span');
+      chip.className = 'coach-plan-workout-chip';
+      chip.textContent = `${line.ico} ${line.text}`;
+      rx.append(chip);
+    }
+  } else {
+    const bare = document.createElement('span');
+    bare.className = 'coach-plan-workout-bare';
+    bare.textContent = ui('programBare');
+    rx.append(bare);
+  }
+
+  main.append(nameEl, rx);
+  if (note) {
+    const noteEl = document.createElement('p');
+    noteEl.className = 'coach-plan-workout-note';
+    noteEl.textContent = note;
+    noteEl.title = note;
+    main.append(noteEl);
+  }
+
+  row.append(media, main);
+  return row;
 }
 
 function toggleCoachPlanSession(section) {
@@ -139,13 +236,6 @@ function closeCoachPlanSession(section) {
   if (openCoachPlanSessionId && section.dataset.sessionId === openCoachPlanSessionId) {
     openCoachPlanSessionId = null;
   }
-}
-
-function coachSessionMeta(items) {
-  const list = Array.isArray(items) ? items : [];
-  const parts = [ui('sessionExercisesCount', list.length)];
-  if (list.length) parts.push(ui('sessionSetsCount', totalCoachSessionSets(list)));
-  return parts.join(' · ');
 }
 
 function totalCoachSessionSets(items) {

@@ -1530,7 +1530,7 @@ function wireEvents() {
     onOpen: openModal,
   });
   wireCardGrid(document.getElementById('coach-plan-grid'), {
-    cardSelector: '.training-card',
+    cardSelector: '.training-card, .coach-plan-workout-item',
     onOpen: openModal,
   });
   wireCardGrid(document.getElementById('recommend-grid'), {
