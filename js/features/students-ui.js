@@ -83,6 +83,10 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
   form.addEventListener('submit', onSubmit);
 
   document.addEventListener('click', e => {
+    const openAthleteMenu = document.querySelector('.student-row-download.is-open');
+    if (openAthleteMenu && !openAthleteMenu.contains(e.target)) {
+      closeAthleteDownloadMenus();
+    }
     if (!downloadWrap?.classList.contains('is-open')) return;
     if (downloadWrap.contains(e.target)) return;
     closeDownloadMenu();
@@ -90,6 +94,11 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
 
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
+    if (document.querySelector('.student-row-download.is-open')) {
+      e.stopImmediatePropagation();
+      closeAthleteDownloadMenus();
+      return;
+    }
     if (downloadWrap?.classList.contains('is-open')) {
       e.stopImmediatePropagation();
       closeDownloadMenu();
@@ -445,6 +454,7 @@ function toggleDownloadMenu() {
 
 function openDownloadMenu() {
   if (!downloadWrap || !downloadMenu || !downloadBtn) return;
+  closeAthleteDownloadMenus();
   downloadWrap.classList.add('is-open');
   downloadMenu.hidden = false;
   downloadBtn.setAttribute('aria-expanded', 'true');
@@ -457,13 +467,94 @@ function closeDownloadMenu() {
   downloadBtn.setAttribute('aria-expanded', 'false');
 }
 
+function closeAthleteDownloadMenus(except = null) {
+  document.querySelectorAll('.student-row-download.is-open').forEach(wrap => {
+    if (except && wrap === except) return;
+    wrap.classList.remove('is-open');
+    const menu = wrap.querySelector('.student-row-download-menu');
+    const trigger = wrap.querySelector('.student-row-download-trigger');
+    if (menu) menu.hidden = true;
+    trigger?.setAttribute('aria-expanded', 'false');
+  });
+}
+
+function toggleAthleteDownloadMenu(wrap) {
+  if (!wrap) return;
+  if (wrap.classList.contains('is-open')) {
+    closeAthleteDownloadMenus();
+    return;
+  }
+  closeDownloadMenu();
+  closeAthleteDownloadMenus();
+  const menu = wrap.querySelector('.student-row-download-menu');
+  const trigger = wrap.querySelector('.student-row-download-trigger');
+  wrap.classList.add('is-open');
+  if (menu) menu.hidden = false;
+  trigger?.setAttribute('aria-expanded', 'true');
+}
+
 function onDownloadAll() {
   closeDownloadMenu();
   // Shell: Excel export TBD (docs/TODO.md)
 }
 
-function onDownloadAthlete(_athleteId) {
+function onDownloadAthleteExcel(_athleteId) {
+  closeAthleteDownloadMenus();
   // Shell: Excel export TBD (docs/TODO.md)
+}
+
+function createAthleteDownloadMenu(athleteId) {
+  const wrap = document.createElement('div');
+  wrap.className = 'student-row-download';
+
+  const trigger = document.createElement('button');
+  trigger.type = 'button';
+  trigger.className = 'student-row-download-trigger';
+  trigger.textContent = '⏬';
+  trigger.setAttribute('aria-label', ui('studentsDownloadPlan'));
+  trigger.title = ui('studentsDownloadPlan');
+  trigger.setAttribute('aria-expanded', 'false');
+  trigger.setAttribute('aria-haspopup', 'menu');
+  trigger.addEventListener('click', e => {
+    e.stopPropagation();
+    toggleAthleteDownloadMenu(wrap);
+  });
+
+  const menu = document.createElement('div');
+  menu.className = 'student-row-download-menu';
+  menu.setAttribute('role', 'menu');
+  menu.hidden = true;
+
+  const excelBtn = document.createElement('button');
+  excelBtn.type = 'button';
+  excelBtn.className = 'student-row-download-item';
+  excelBtn.setAttribute('role', 'menuitem');
+  excelBtn.textContent = ui('studentsDownloadExcel');
+  excelBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    onDownloadAthleteExcel(athleteId);
+  });
+
+  const pdfBtn = document.createElement('button');
+  pdfBtn.type = 'button';
+  pdfBtn.className = 'student-row-download-item is-disabled';
+  pdfBtn.setAttribute('role', 'menuitem');
+  pdfBtn.disabled = true;
+  pdfBtn.setAttribute('aria-disabled', 'true');
+  pdfBtn.title = ui('studentsDownloadPdfSoon');
+
+  const pdfLabel = document.createElement('span');
+  pdfLabel.className = 'student-row-download-item-label';
+  pdfLabel.textContent = ui('studentsDownloadPdf');
+
+  const pdfHint = document.createElement('span');
+  pdfHint.className = 'student-row-download-item-hint';
+  pdfHint.textContent = ui('studentsDownloadPdfSoon');
+
+  pdfBtn.append(pdfLabel, pdfHint);
+  menu.append(excelBtn, pdfBtn);
+  wrap.append(trigger, menu);
+  return wrap;
 }
 
 function createDetail(label, value) {
@@ -545,18 +636,7 @@ function createStudentRow(athlete) {
   const emailLine = document.createElement('div');
   emailLine.className = 'student-row-detail-line';
 
-  const downloadOne = document.createElement('button');
-  downloadOne.type = 'button';
-  downloadOne.className = 'student-row-download';
-  downloadOne.textContent = '⏬';
-  downloadOne.setAttribute('aria-label', ui('studentsDownloadPlan'));
-  downloadOne.title = ui('studentsDownloadPlan');
-  downloadOne.addEventListener('click', e => {
-    e.stopPropagation();
-    onDownloadAthlete(id);
-  });
-
-  emailLine.append(createDetail(ui('email'), email || '—'), downloadOne);
+  emailLine.append(createDetail(ui('email'), email || '—'), createAthleteDownloadMenu(id));
 
   body.append(
     createDetail(ui('firstName'), first || '—'),
