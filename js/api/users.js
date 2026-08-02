@@ -1,4 +1,4 @@
-import { get, post, put } from './client.js';
+import { get, post, postBinary, put } from './client.js';
 
 const USERS = '/users';
 
@@ -93,8 +93,22 @@ export function getCoachAthletes({ page = 1, limit = 50, search } = {}) {
  */
 export function putCoachAthleteTrainingProgram(athleteId, coachTrainingProgram) {
   return put(
-    `${USERS}/coach/athletes/${encodeURIComponent(athleteId)}/training-program`,
+    `${USERS}/coach/athletes/${athleteId}/training-program`,
     { coachTrainingProgram },
+    { auth: true },
+  );
+}
+
+/**
+ * POST /coach/training-program/export
+ * Exports coach training programs as PDF for the given athletes.
+ * Body: { athleteIds: string[] }
+ * Returns a Blob (PDF). Wire UI when backend is ready.
+ */
+export function exportCoachTrainingProgram(athleteIds) {
+  return postBinary(
+    `${USERS}/coach/training-program/export`,
+    { athleteIds },
     { auth: true },
   );
 }

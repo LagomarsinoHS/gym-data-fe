@@ -9,6 +9,7 @@ import { ui } from '../utils/labels.js';
 import {
   store,
   athleteDisplayName,
+  getAthleteSessions,
   resetCoachAthletesStore,
 } from './coach-athletes-store.js';
 import {
@@ -111,6 +112,7 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
   });
 
   syncStudentsLabels();
+  syncDownloadAllState();
 }
 
 export function syncStudentsLabels() {
@@ -400,6 +402,7 @@ function renderStudentsList() {
 
   if (store.loadingAthletes && !store.athletesLoaded) {
     setStudentsLoading(true);
+    syncDownloadAllState();
     return;
   }
 
@@ -423,6 +426,7 @@ function renderStudentsList() {
     }
     if (emptyAdd) emptyAdd.hidden = searching;
     syncLoadMoreBtn();
+    syncDownloadAllState();
     return;
   }
 
@@ -434,6 +438,7 @@ function renderStudentsList() {
   }
   list.appendChild(frag);
   syncLoadMoreBtn();
+  syncDownloadAllState();
 }
 
 function syncLoadMoreBtn() {
@@ -445,6 +450,27 @@ function syncLoadMoreBtn() {
   loadMoreBtn.disabled = store.loadingAthletes;
   const label = loadMoreBtn.querySelector('[data-ui="studentsLoadMore"]');
   if (label) label.textContent = ui('studentsLoadMore');
+}
+
+function hasDownloadablePlans() {
+  return store.athletes.some(athlete =>
+    getAthleteSessions(athlete).some(
+      session => Array.isArray(session?.items) && session.items.length > 0,
+    ),
+  );
+}
+
+function syncDownloadAllState() {
+  const enabled = store.athletesLoaded && hasDownloadablePlans();
+  if (downloadBtn) {
+    downloadBtn.disabled = false;
+    downloadBtn.removeAttribute('title');
+  }
+  if (!downloadAllBtn) return;
+  downloadAllBtn.disabled = !enabled;
+  downloadAllBtn.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+  downloadAllBtn.title = enabled ? '' : ui('studentsDownloadAllDisabled');
+  downloadAllBtn.classList.toggle('is-disabled', !enabled);
 }
 
 function toggleDownloadMenu() {
@@ -494,6 +520,7 @@ function toggleAthleteDownloadMenu(wrap) {
 }
 
 function onDownloadAll() {
+  if (downloadAllBtn?.disabled || !hasDownloadablePlans()) return;
   closeDownloadMenu();
   // Shell: Excel export TBD (docs/TODO.md)
 }

@@ -2725,6 +2725,19 @@ html[data-theme="dark"] .chip.active {
   gap: 8px;
 }
 
+.students-download-item:disabled,
+.students-download-item.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  color: var(--text-secondary);
+}
+
+.students-download-item:hover:disabled,
+.students-download-item.is-disabled:hover {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
 .students-download-caret {
   width: 0;
   height: 0;
@@ -2772,7 +2785,7 @@ html[data-theme="dark"] .chip.active {
   transition: background 0.15s, color 0.15s;
 }
 
-.students-download-item:hover {
+.students-download-item:hover:not(:disabled) {
   background: color-mix(in srgb, var(--accent) 10%, var(--bg-surface));
   color: var(--accent);
 }

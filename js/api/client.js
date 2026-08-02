@@ -40,6 +40,28 @@ export async function put(path, body, { auth = false } = {}) {
   });
 }
 
+/** POST JSON and return response body as Blob (e.g. PDF/Excel download). */
+export async function postBinary(path, body, { auth = false } = {}) {
+  const url = new URL(path, API_BASE);
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders(auth),
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    const err = new Error(data.message || `API ${res.status}: ${url.pathname}`);
+    err.status = res.status;
+    throw err;
+  }
+
+  return res.blob();
+}
+
 function authHeaders(auth) {
   if (!auth) return {};
   const token = getToken();
