@@ -189,15 +189,26 @@ async function loadCoachInvites({ replace = false, append = false } = {}) {
     resetInvitesUi();
     return;
   }
-  if (invitesLoading) return;
+  // Append must wait; replace/filter can interrupt an in-flight load (seq discards stale).
+  if (append && invitesLoading) return;
   if (append && (invitesPage >= invitesPages || invitesPages === 0)) return;
 
   const seq = ++invitesSeq;
   const page = append ? invitesPage + 1 : 1;
   invitesLoading = true;
   setInvitesStatus('');
+
+  if (replace || !append) {
+    invitesCache = [];
+    if (invitesListEl) {
+      invitesListEl.replaceChildren();
+      invitesListEl.hidden = true;
+    }
+    if (invitesEmptyEl) invitesEmptyEl.hidden = true;
+    if (invitesMoreBtn) invitesMoreBtn.hidden = true;
+  }
+
   setInvitesLoading(true);
-  if (replace && invitesMoreBtn) invitesMoreBtn.hidden = true;
 
   try {
     const payload = await getCoachInvites({
