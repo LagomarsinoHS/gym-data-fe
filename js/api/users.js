@@ -68,12 +68,12 @@ export function inviteCoachAthlete(email) {
 }
 
 /**
- * POST /users/coach/invites/respond
+ * POST /users/me/pending-coach-invite/respond
  * Athlete accepts or rejects pending invite. Body: { action: 'accept' | 'reject' }
  */
 export function respondCoachInvite(action) {
   return post(
-    `${USERS}/coach/invites/respond`,
+    `${USERS}/me/pending-coach-invite/respond`,
     { action },
     { auth: true },
   );

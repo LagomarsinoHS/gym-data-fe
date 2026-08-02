@@ -2,7 +2,7 @@
  * Athlete — pending coach invite banner (accept / reject).
  * Markup: #coach-invite-banner, #nav-coach-plan-dot
  * API: GET /users/me/pending-coach-invite
- *      POST /users/coach/invites/respond { action: 'accept' | 'reject' }
+ *      POST /users/me/pending-coach-invite/respond { action: 'accept' | 'reject' }
  *
  * Fetch: once on session start (login / restore), and again when the tab
  * becomes visible. Not on every navigation / chrome re-render.

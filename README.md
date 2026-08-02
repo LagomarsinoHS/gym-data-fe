@@ -99,7 +99,7 @@ Para desarrollar contra tu API local, levantá el backend en el puerto **3000** 
 | `PUT` | `/users/training-program/remove` | Quitar un ejercicio |
 | `PUT` | `/users/training-program/:exerciseId` | Editar pauta |
 | `POST` | `/users/coach/invites` | Coach invita por email |
-| `POST` | `/users/coach/invites/respond` | Atleta accept / reject |
+| `POST` | `/users/me/pending-coach-invite/respond` | Atleta accept / reject |
 | `GET` | `/users/coach/athletes` | Mis alumnos / stats Panel |
 | `PUT` | `/users/coach/athletes/:id/training-program` | Guardar plan coach |
 | `POST` | `/users/coach/training-program/export` | Export Excel / zip (binary) |

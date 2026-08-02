@@ -193,7 +193,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 - Colección `invites` en BE; **no** vive en el documento User ni en `GET /users/me`.
 - `GET /users/me/pending-coach-invite` → siempre `{ invite: null | { coachId, invitedAt, coach } }` (máx. 1 pendiente).
 - FE (`coach-invite-ui.js`): carga en login / `restoreSession`, y de nuevo al volver a la pestaña (`visibilitychange`). No re-fetch al navegar.
-- Banner + dot en Plan del coach → accept / reject `POST /users/coach/invites/respond`.
+- Banner + dot en Plan del coach → accept / reject `POST /users/me/pending-coach-invite/respond`.
 
 ---
 
@@ -226,7 +226,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 | PUT | `/users/training-program/remove` | Sí | Confirmar quitar |
 | PUT | `/users/training-program/:exerciseId` | Sí | Guardar pauta |
 | POST | `/users/coach/invites` | Sí | Coach invita atleta por email |
-| POST | `/users/coach/invites/respond` | Sí | Atleta accept / reject |
+| POST | `/users/me/pending-coach-invite/respond` | Sí | Atleta accept / reject |
 | GET | `/users/coach/athletes` | Sí | Lista paginada Mis alumnos / stats Panel |
 | PUT | `/users/coach/athletes/:athleteId/training-program` | Sí | Guardar plan (replace sesiones) |
 | POST | `/users/coach/training-program/export` | Sí | Export Excel/zip (binary) |
