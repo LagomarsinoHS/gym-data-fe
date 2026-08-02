@@ -307,32 +307,34 @@
 
     <div id="session-editor-view" class="session-editor-view" hidden>
       <div class="session-editor">
-        <button type="button" class="session-editor-back" id="session-editor-back">
-          <span class="session-editor-back-ico" aria-hidden="true">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M10 3L5 8l5 5"/>
-            </svg>
-          </span>
-          <span data-ui="sessionEditorBack">Mis alumnos</span>
-        </button>
-        <header class="session-editor-header">
-          <div class="session-editor-heading">
-            <p class="session-editor-kicker" data-ui="sessionEditorKicker">Sesión</p>
-            <input
-              type="text"
-              class="session-editor-title"
-              id="session-editor-name"
-              name="sessionName"
-              maxlength="40"
-              autocomplete="off"
-              aria-label="Nombre"
-            />
-            <p class="session-editor-subtitle" id="session-editor-subtitle"></p>
-          </div>
-          <button type="button" class="recommend-cta session-editor-add" id="session-editor-add">
-            <span data-ui="sessionAddExercises">Agregar ejercicios</span>
+        <div class="session-editor-chrome">
+          <button type="button" class="session-editor-back" id="session-editor-back">
+            <span class="session-editor-back-ico" aria-hidden="true">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 3L5 8l5 5"/>
+              </svg>
+            </span>
+            <span data-ui="sessionEditorBack">Mis alumnos</span>
           </button>
-        </header>
+          <header class="session-editor-header">
+            <div class="session-editor-heading">
+              <p class="session-editor-kicker" data-ui="sessionEditorKicker">Sesión</p>
+              <input
+                type="text"
+                class="session-editor-title"
+                id="session-editor-name"
+                name="sessionName"
+                maxlength="40"
+                autocomplete="off"
+                aria-label="Nombre"
+              />
+              <p class="session-editor-subtitle" id="session-editor-subtitle"></p>
+            </div>
+            <button type="button" class="recommend-cta session-editor-add" id="session-editor-add">
+              <span data-ui="sessionAddExercises">Agregar ejercicios</span>
+            </button>
+          </header>
+        </div>
         <div class="session-editor-list" id="session-editor-list"></div>
       </div>
     </div>
@@ -524,7 +526,7 @@
   </div>
 </div>
 
-<!-- ═══ MODAL agregar sesión (coach → atleta) — js/features/students-ui.js ═══ -->
+<!-- ═══ MODAL agregar sesión (coach → atleta) — js/features/coach-sessions-ui.js ═══ -->
 <div class="recommend-overlay" id="add-session-overlay" role="dialog" aria-modal="true" aria-labelledby="add-session-title">
   <div class="recommend-modal">
     <div class="recommend-modal-header">
@@ -544,6 +546,23 @@
         <span class="recommend-submit-label" data-ui="addSessionSubmit">Crear sesión</span>
       </button>
     </form>
+  </div>
+</div>
+
+<!-- ═══ MODAL confirmar eliminar sesión — js/features/coach-sessions-ui.js ═══ -->
+<div class="recommend-overlay" id="remove-session-overlay" role="dialog" aria-modal="true" aria-labelledby="remove-session-title">
+  <div class="recommend-modal confirm-modal">
+    <div class="recommend-modal-header">
+      <h2 class="recommend-modal-title" id="remove-session-title">¿Eliminar sesión?</h2>
+      <button type="button" class="modal-close" id="remove-session-close" aria-label="Close">✕</button>
+    </div>
+    <p class="confirm-modal-lead" id="remove-session-lead" data-ui="sessionRemoveConfirm">
+      Los cambios quedan sin guardar hasta que guardes el plan.
+    </p>
+    <div class="confirm-modal-actions">
+      <button type="button" class="confirm-modal-cancel" id="remove-session-cancel" data-ui="sessionRemoveCancel">Cancelar</button>
+      <button type="button" class="confirm-modal-danger" id="remove-session-confirm" data-ui="sessionRemoveConfirmBtn">Eliminar</button>
+    </div>
   </div>
 </div>
 

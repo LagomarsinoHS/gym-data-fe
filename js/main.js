@@ -1152,6 +1152,7 @@ async function onPlanActionClick() {
       if (!exercise) return;
       addExerciseToSession(assign.athleteId, assign.sessionId, exercise);
       syncPlanAction(exerciseId);
+      openPrescriptionForm();
       return;
     }
     return;

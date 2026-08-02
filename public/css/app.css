@@ -2649,7 +2649,8 @@ html[data-theme="dark"] .chip.active {
 #coach-plan-view[hidden],
 #coach-panel-view[hidden],
 #coach-templates-view[hidden],
-#students-view[hidden] {
+#students-view[hidden],
+#session-editor-view[hidden] {
   display: none !important;
 }
 
@@ -2657,7 +2658,8 @@ html[data-theme="dark"] .chip.active {
 .training-view,
 .recommend-view,
 .placeholder-view,
-.students-view {
+.students-view,
+.session-editor-view {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -3518,12 +3520,27 @@ html[data-theme="dark"] .chip.active {
 .session-editor-view {
   width: min(720px, 100%);
   margin: 0 auto;
-  padding: 4px 0 40px;
+  padding: 16px 20px 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .session-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+}
+
+.session-editor-chrome {
+  flex-shrink: 0;
   display: grid;
-  gap: 20px;
+  gap: 16px;
+  padding-bottom: 4px;
+  background: var(--bg-base);
 }
 
 .session-editor-back {
@@ -3646,7 +3663,12 @@ html[data-theme="dark"] .chip.active {
 .session-editor-list {
   display: grid;
   gap: 10px;
-  min-height: 8px;
+  align-content: start;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: 40px;
 }
 
 .session-editor-item {
@@ -3982,6 +4004,68 @@ html[data-theme="dark"] .chip.active {
 .recommend-overlay.open .recommend-modal {
   transform: translateY(0) scale(1);
   opacity: 1;
+}
+
+.confirm-modal {
+  width: min(400px, 100%);
+}
+
+.confirm-modal-name {
+  color: var(--accent);
+  font-weight: 800;
+  font-style: italic;
+}
+
+.confirm-modal-lead {
+  margin: 0 0 20px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.confirm-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.confirm-modal-cancel,
+.confirm-modal-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 750;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, filter 0.15s;
+}
+
+.confirm-modal-cancel {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.confirm-modal-cancel:hover {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--accent) 6%, var(--bg-surface));
+}
+
+.confirm-modal-danger {
+  border: 1px solid color-mix(in srgb, #c44 45%, var(--border));
+  background: #c44;
+  color: #fff;
+}
+
+.confirm-modal-danger:hover {
+  filter: brightness(1.05);
 }
 
 .recommend-modal-header {

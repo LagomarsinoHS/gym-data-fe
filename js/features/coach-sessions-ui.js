@@ -31,6 +31,10 @@ let sessionNameInput;
 let sessionStatusEl;
 let sessionSubmitBtn;
 let sessionAthleteId = null;
+let removeSessionOverlay;
+let removeSessionTitle;
+let removeSessionLead;
+let pendingRemoveSession = null;
 
 // ── Init / labels ─────────────────────────────────────────────────────
 export function initCoachSessionsUi() {
@@ -39,8 +43,14 @@ export function initCoachSessionsUi() {
   sessionNameInput = document.getElementById('add-session-name');
   sessionStatusEl = document.getElementById('add-session-status');
   sessionSubmitBtn = document.getElementById('add-session-submit');
+  removeSessionOverlay = document.getElementById('remove-session-overlay');
+  removeSessionTitle = document.getElementById('remove-session-title');
+  removeSessionLead = document.getElementById('remove-session-lead');
 
   document.getElementById('add-session-close')?.addEventListener('click', closeAddSessionModal);
+  document.getElementById('remove-session-close')?.addEventListener('click', closeRemoveSessionModal);
+  document.getElementById('remove-session-cancel')?.addEventListener('click', closeRemoveSessionModal);
+  document.getElementById('remove-session-confirm')?.addEventListener('click', confirmRemoveSession);
   document.getElementById('session-editor-back')?.addEventListener('click', () => {
     store.editorAthleteId = null;
     store.editorSessionId = null;
@@ -72,10 +82,18 @@ export function initCoachSessionsUi() {
   sessionOverlay?.addEventListener('click', e => {
     if (e.target === sessionOverlay) closeAddSessionModal();
   });
+  removeSessionOverlay?.addEventListener('click', e => {
+    if (e.target === removeSessionOverlay) closeRemoveSessionModal();
+  });
   sessionForm?.addEventListener('submit', onAddSessionSubmit);
 
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
+    if (removeSessionOverlay?.classList.contains('open')) {
+      e.stopImmediatePropagation();
+      closeRemoveSessionModal();
+      return;
+    }
     if (sessionOverlay?.classList.contains('open')) {
       e.stopImmediatePropagation();
       closeAddSessionModal();
@@ -85,7 +103,7 @@ export function initCoachSessionsUi() {
 
 export function syncCoachSessionsLabels() {
   document.querySelectorAll(
-    '#session-editor-view [data-ui], #session-assign-banner [data-ui], #add-session-overlay [data-ui]',
+    '#session-editor-view [data-ui], #session-assign-banner [data-ui], #add-session-overlay [data-ui], #remove-session-overlay [data-ui]',
   ).forEach(el => {
     el.textContent = ui(el.dataset.ui);
   });
@@ -98,6 +116,9 @@ export function syncCoachSessionsLabels() {
     sessionNameEditor.setAttribute('aria-label', ui('addSessionName'));
     sessionNameEditor.placeholder = ui('addSessionNamePlaceholder');
   }
+  if (removeSessionOverlay?.classList.contains('open') && pendingRemoveSession) {
+    syncRemoveSessionCopy(pendingRemoveSession.name);
+  }
 
   syncSessionEditorView();
   syncSessionAssignBanner();
@@ -106,6 +127,7 @@ export function syncCoachSessionsLabels() {
 export function resetCoachSessionsUi() {
   sessionAthleteId = null;
   closeAddSessionModal();
+  closeRemoveSessionModal();
   clearSessionAssignTarget();
 }
 
@@ -242,6 +264,47 @@ function setSessionStatus(message, kind = '') {
   sessionStatusEl.classList.toggle('is-ok', kind === 'ok');
 }
 
+function openRemoveSessionModal(athleteId, sessionId, sessionName) {
+  if (!removeSessionOverlay) return;
+  pendingRemoveSession = {
+    athleteId: String(athleteId),
+    sessionId: String(sessionId),
+    name: String(sessionName || '').trim() || '—',
+  };
+  syncRemoveSessionCopy(pendingRemoveSession.name);
+  removeSessionOverlay.classList.add('open');
+  document.getElementById('remove-session-confirm')?.focus();
+}
+
+function closeRemoveSessionModal() {
+  pendingRemoveSession = null;
+  removeSessionOverlay?.classList.remove('open');
+}
+
+function syncRemoveSessionCopy(sessionName) {
+  if (removeSessionTitle) {
+    const nameEl = document.createElement('span');
+    nameEl.className = 'confirm-modal-name';
+    nameEl.textContent = sessionName;
+    removeSessionTitle.replaceChildren(
+      document.createTextNode(ui('sessionRemoveTitleBefore')),
+      nameEl,
+      document.createTextNode(ui('sessionRemoveTitleAfter')),
+    );
+  }
+  if (removeSessionLead) {
+    removeSessionLead.textContent = ui('sessionRemoveConfirm');
+  }
+}
+
+function confirmRemoveSession() {
+  const pending = pendingRemoveSession;
+  if (!pending) return;
+  const { athleteId, sessionId } = pending;
+  closeRemoveSessionModal();
+  removeSessionFromAthlete(athleteId, sessionId);
+}
+
 // ── Session accordion ─────────────────────────────────────────────────
 // ── Session accordion ─────────────────────────────────────────────────
 function createSessionRow(session, athleteId) {
@@ -281,8 +344,7 @@ function createSessionRow(session, athleteId) {
   removeBtn.innerHTML = ICON_CLOSE_SVG;
   removeBtn.addEventListener('click', e => {
     e.stopPropagation();
-    if (!window.confirm(ui('sessionRemoveConfirm', name))) return;
-    removeSessionFromAthlete(athleteId, id);
+    openRemoveSessionModal(athleteId, id, name);
   });
 
   top.append(header, removeBtn);
