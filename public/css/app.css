@@ -2889,6 +2889,59 @@ html[data-theme="dark"] .chip.active {
   overflow: hidden;
 }
 
+.student-row.is-new {
+  border-color: color-mix(in srgb, #c0392b 35%, var(--border));
+  box-shadow: inset 3px 0 0 #c0392b;
+}
+
+.student-row-new-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px 5px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-surface));
+  color: var(--accent);
+}
+
+.student-row-new-dot {
+  position: relative;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent);
+  animation: student-new-pulse 1.6s ease-out infinite;
+}
+
+.student-row-new-label {
+  line-height: 1;
+}
+
+@keyframes student-new-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-row-new-dot {
+    animation: none;
+  }
+}
+
 .student-row-header {
   display: flex;
   align-items: center;
@@ -2931,11 +2984,18 @@ html[data-theme="dark"] .chip.active {
   gap: 1px;
 }
 
+.student-row-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .student-row-name {
+  margin: 0;
   font-size: 15px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 1.25;
+  font-weight: 750;
+  letter-spacing: -0.01em;
   color: var(--accent);
   overflow: hidden;
   text-overflow: ellipsis;

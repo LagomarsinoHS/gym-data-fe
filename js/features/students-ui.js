@@ -5,7 +5,7 @@
  * Sessions / editor / save → coach-sessions-ui.js
  * Shared state → coach-athletes-store.js
  */
-import { getCoachAthletes, inviteCoachAthlete } from '../api/users.js';
+import { getCoachAthletes, getCoachInvites, inviteCoachAthlete } from '../api/users.js';
 import { ui } from '../utils/labels.js';
 import {
   store,
@@ -28,6 +28,9 @@ import {
 const SUCCESS_CLOSE_MS = 1200;
 const ATHLETE_PAGE_SIZE = 5;
 const SEARCH_DEBOUNCE_MS = 500;
+/** Highlight athletes who accepted an invite within this window. */
+const NEW_ACCEPT_MS = 48 * 60 * 60 * 1000;
+const SEEN_NEW_ATHLETES_KEY = 'FLEX_SEEN_NEW_ATHLETES';
 
 let overlay;
 let form;
@@ -46,6 +49,8 @@ let closeTimer = 0;
 let searchTimer = 0;
 /** @type {'default' | 'without-plan' | 'with-plan'} */
 let studentsSort = 'default';
+/** Athlete ids with a recent accepted invite (not yet dismissed this session). */
+let recentAcceptedIds = new Set();
 
 // ── Init / labels ─────────────────────────────────────────────────────
 export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
@@ -141,6 +146,7 @@ export function clearCoachAthletesCache() {
   resetCoachSessionsUi();
   resetStudentsSearch({ keepInput: false });
   studentsSort = 'default';
+  recentAcceptedIds = new Set();
   closeStudentsSortMenu();
   syncStudentsSortMenuState();
 }
@@ -179,11 +185,16 @@ async function fetchAthletesPage(nextPage, { replace }) {
   syncLoadMoreBtn();
 
   try {
-    const payload = await getCoachAthletes({
+    const athletesPromise = getCoachAthletes({
       page: nextPage,
       limit: ATHLETE_PAGE_SIZE,
       search: store.searchQuery || undefined,
     });
+    const recentPromise = replace
+      ? refreshRecentAcceptedAthleteIds()
+      : Promise.resolve();
+
+    const [payload] = await Promise.all([athletesPromise, recentPromise]);
     if (seq !== store.loadSeq) return store.athletes;
 
     const items = normalizeAthletes(payload);
@@ -548,6 +559,8 @@ function openStudentRow(row) {
   row.classList.add('is-open');
   if (header) header.setAttribute('aria-expanded', 'true');
   store.openAthleteId = nextId;
+
+  if (nextId) markNewAthleteSeen(nextId, row);
 }
 
 function createStudentRow(athlete) {
@@ -556,9 +569,11 @@ function createStudentRow(athlete) {
   const last = String(athlete?.lastName || '').trim();
   const email = String(athlete?.email || '').trim();
   const full = athleteDisplayName(athlete);
+  const isNew = Boolean(id && recentAcceptedIds.has(id));
 
   const row = document.createElement('div');
   row.className = 'student-row';
+  if (isNew) row.classList.add('is-new');
   if (id) row.dataset.id = id;
 
   const header = document.createElement('button');
@@ -576,10 +591,31 @@ function createStudentRow(athlete) {
   const meta = document.createElement('span');
   meta.className = 'student-row-meta';
 
+  const nameRow = document.createElement('span');
+  nameRow.className = 'student-row-name-row';
+
   const nameEl = document.createElement('span');
   nameEl.className = 'student-row-name';
   nameEl.textContent = full;
-  meta.append(nameEl);
+  nameRow.append(nameEl);
+
+  if (isNew) {
+    const badge = document.createElement('span');
+    badge.className = 'student-row-new-badge';
+
+    const dot = document.createElement('span');
+    dot.className = 'student-row-new-dot';
+    dot.setAttribute('aria-hidden', 'true');
+
+    const label = document.createElement('span');
+    label.className = 'student-row-new-label';
+    label.textContent = ui('studentsNewBadge');
+
+    badge.append(dot, label);
+    nameRow.append(badge);
+  }
+
+  meta.append(nameRow);
 
   const chevron = document.createElement('span');
   chevron.className = 'student-row-chevron';
@@ -608,6 +644,66 @@ function createStudentRow(athlete) {
   if (store.openAthleteId && store.openAthleteId === id) openStudentRow(row);
 
   return row;
+}
+
+// ── Recent accepted invites → “Nuevo” badge ───────────────────────────
+
+async function refreshRecentAcceptedAthleteIds() {
+  try {
+    const payload = await getCoachInvites({
+      status: 'accepted',
+      page: 1,
+      limit: 50,
+    });
+    const items = Array.isArray(payload?.data) ? payload.data : [];
+    const cutoff = Date.now() - NEW_ACCEPT_MS;
+    const seen = readSeenNewAthletes();
+
+    recentAcceptedIds = new Set(
+      items
+        .filter((invite) => {
+          const raw = invite?.respondedAt || invite?.invitedAt;
+          const t = raw ? new Date(raw).getTime() : NaN;
+          return Number.isFinite(t) && t >= cutoff;
+        })
+        .map((invite) => String(invite?.athleteId || ''))
+        .filter((athleteId) => athleteId && !seen.has(athleteId)),
+    );
+  } catch (err) {
+    console.error(err);
+    recentAcceptedIds = new Set();
+  }
+}
+
+function markNewAthleteSeen(athleteId, row) {
+  const id = String(athleteId || '');
+  if (!id) return;
+
+  recentAcceptedIds.delete(id);
+  const seen = readSeenNewAthletes();
+  seen.add(id);
+  writeSeenNewAthletes(seen);
+
+  row?.classList.remove('is-new');
+  row?.querySelector('.student-row-new-badge')?.remove();
+}
+
+function readSeenNewAthletes() {
+  try {
+    const raw = localStorage.getItem(SEEN_NEW_ATHLETES_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(parsed) ? parsed.map(String) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function writeSeenNewAthletes(ids) {
+  try {
+    localStorage.setItem(SEEN_NEW_ATHLETES_KEY, JSON.stringify([...ids]));
+  } catch {
+    /* ignore quota / private mode */
+  }
 }
 
 function closeStudentRow(row) {
