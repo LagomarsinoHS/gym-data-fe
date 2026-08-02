@@ -16,6 +16,11 @@ import {
   loadCoachAthletes,
 } from './features/students-ui.js';
 import {
+  initCoachPanelUi,
+  refreshCoachPanel,
+  syncCoachPanelLabels,
+} from './features/coach-panel-ui.js';
+import {
   getSessionAssignTarget,
   clearSessionAssignTarget,
   isExerciseInSession,
@@ -24,7 +29,7 @@ import {
   updateSessionExercise,
   removeExerciseFromSession,
 } from './features/coach-sessions-ui.js';
-import { initCoachInviteUi, syncCoachInviteBanner } from './features/coach-invite-ui.js';
+import { initCoachInviteUi, loadPendingCoachInvite, syncCoachInviteBanner } from './features/coach-invite-ui.js';
 import {
   initSessionUi,
   restoreSession,
@@ -125,6 +130,7 @@ async function init() {
     onViewChange(view) {
       if (view === 'training') refreshTrainingGrid();
       else if (view === 'coach-plan') refreshCoachPlanGrid();
+      else if (view === 'coach-panel') void refreshCoachPanel();
       else if (view === 'students') void loadCoachAthletes();
       else if (view === 'catalog') reloadExercises();
     },
@@ -132,6 +138,7 @@ async function init() {
   initAuthUi({
     onAuthSuccess: async () => {
       await restoreSession();
+      await loadPendingCoachInvite();
       setView(isCoach() ? 'coach-panel' : 'training');
       if (modalOverlay.classList.contains('open') && modalOverlay.dataset.openId) {
         syncPlanAction(modalOverlay.dataset.openId);
@@ -144,6 +151,7 @@ async function init() {
     navigateTo: setView,
     openExercise: id => openModal(id),
   });
+  initCoachPanelUi();
   initCoachInviteUi();
   initRecommendUi({
     getFilterLabels: () => state.labels,
@@ -163,6 +171,7 @@ async function init() {
   collapseFiltersOnMobile();
   initResultsBarPlacement();
   await restoreSession();
+  await loadPendingCoachInvite();
   await reloadExercises();
   wireEvents();
   initFooter();
@@ -306,6 +315,7 @@ function syncChromeLabels() {
   syncSessionLabels();
   syncRecommendLabels();
   syncStudentsLabels();
+  syncCoachPanelLabels();
   syncCoachInviteBanner();
 }
 

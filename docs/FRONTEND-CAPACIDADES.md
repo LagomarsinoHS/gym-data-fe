@@ -14,10 +14,11 @@ API: `localhost:3000` en local · `https://gym-data-8d3l.onrender.com` en prod.
 3. **`init()` en `main.js`:**
    - Sincroniza labels `[data-ui]` según idioma guardado
    - `GET /exercises/labels` → chips de filtros
-   - Inicia sesión, auth, tema, drawer mobile, students, recommend
+   - Inicia sesión, auth, tema, drawer mobile, students, coach panel, coach invite, recommend
    - Revela filtros (animación cascade)
    - En mobile: colapsa filtros + mueve results bar arriba
    - `restoreSession()` → si hay token, `GET /users/me`
+   - Si atleta: `loadPendingCoachInvite()` → `GET /users/me/pending-coach-invite`
    - Primera página del catálogo
    - Wire de eventos (search, chips, cards, modal, WOD, infinite scroll…)
    - Footer (taglines + contador de flexes)
@@ -31,9 +32,9 @@ Si el boot falla → mensaje de error en el contador de resultados.
 
 | Acción | Qué pasa |
 |--------|----------|
-| Login | `POST /auth/login` → guarda `FLEX_TOKEN` → `GET /users/me` → vista según rol |
+| Login | `POST /auth/login` → guarda `FLEX_TOKEN` → `GET /users/me` → (atleta) pending invite → vista según rol |
 | Register | Form extra: nombre, apellido, rol Atleta/Entrenador → `POST /auth/register` (mismo flujo de token) |
-| Logout | Borra token, user=null, vista catálogo, limpia recommend |
+| Logout | Borra token, user=null, vista catálogo, limpia recommend / cache alumnos / pending invite |
 | Restaurar sesión | Al boot / post-login: Bearer + `/users/me`; si falla → guest |
 
 - Overlay auth: backdrop / Escape cierran; errores mapeados (401, 409, etc.).
@@ -54,8 +55,9 @@ Si el boot falla → mensaje de error en el contador de resultados.
 | `training` | Plan personal (`trainingProgram`) |
 | `recommend` | Recomendar (solo si `isPremium`) |
 | `coach-plan` | Plan del coach (`coachTrainingProgram` por sesiones; empty sin coach / sin plan) |
-| `coach-panel` / `coach-templates` | Shells placeholder |
-| `students` | Mis alumnos (`students-ui` + `coach-sessions-ui` + `coach-athletes-store`) |
+| `coach-panel` | Resumen informativo (`coach-panel-ui`): total alumnos + sin pauta |
+| `coach-templates` | Shell placeholder |
+| `students` | Mis alumnos (`students-ui` + `coach-sessions-ui` + `students-download-ui` + store) |
 | `session-editor` | Editor de una sesión del atleta (coach) |
 
 - Post-login: coach/admin → `coach-panel`; athlete → `training`.
@@ -160,24 +162,42 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 ---
 
-## 8. Mis alumnos (coach)
+## 8. Coach — Panel
 
-- Toolbar: buscar (debounce 500ms), Descargar (shell), Invitar alumno.
+- Vista informativa (`coach-panel-ui.js`): **Total de alumnos** y **Alumnos sin pauta**.
+- Data: pagina `GET /users/coach/athletes` hasta completar; “sin pauta” = sin sesiones con `items`.
+- Loading (opción B): spinner + stats ocultas hasta tener números (sin placeholders `—`).
+- Sin click-through: actuar en Mis alumnos.
+
+---
+
+## 9. Mis alumnos (coach)
+
+- Toolbar: buscar (debounce 500ms), **Ordenar** (menú: sin/con pauta primero), **Descargar**, Invitar alumno.
+- Orden: client-side sobre alumnos **ya cargados** (incluye “Cargar más”); re-click de la opción activa quita el orden.
+- Descargar: menú toolbar “Descargar todos”; por alumno ⏬ → Excel (activo) / PDF (pronto).
+  - `POST /users/coach/training-program/export` binary (`athleteIds: []` = todos; `[id]` = uno) + `locale`.
 - Loading spinner al primer fetch; empty / sin resultados sin flash raro.
 - Modal email exacto → `POST /users/coach/invites` (Bearer); “Invitación enviada”.
 - Lista → `GET /users/coach/athletes` (paginado 5 + Cargar más); cache en memoria.
 - Acordeón alumno → info + plan; **Agregar sesión** (modal nombre, local).
 - Sub-acordeón sesión → mini-cards (thumb, nombre, pauta) + Editar sesión.
-- Vista `session-editor`: cards, Editar / ✕, Agregar ejercicios.
+- Vista `session-editor`: cards, Editar / ✕, Agregar ejercicios; modal confirmar quitar sesión.
 - Catálogo en modo asignar: banner + “Agregar a la sesión” + lápiz pauta (local); guardar vuelve al editor.
 - Sesiones en `athlete.coachTrainingProgram`; **Guardar plan** → `PUT /users/coach/athletes/:id/training-program` (replace; respuesta enriquecida).
 
-### Invite atleta
-- Banner `pendingCoachInvite` → accept / reject `POST /users/coach/invites/respond`.
+---
+
+## 10. Invite atleta (pending)
+
+- Colección `invites` en BE; **no** vive en el documento User ni en `GET /users/me`.
+- `GET /users/me/pending-coach-invite` → siempre `{ invite: null | { coachId, invitedAt, coach } }` (máx. 1 pendiente).
+- FE (`coach-invite-ui.js`): carga en login / `restoreSession`, y de nuevo al volver a la pestaña (`visibilitychange`). No re-fetch al navegar.
+- Banner + dot en Plan del coach → accept / reject `POST /users/coach/invites/respond`.
 
 ---
 
-## 9. Tema e idioma
+## 11. Tema e idioma
 
 | Preferencia | Key | Valores |
 |-------------|-----|---------|
@@ -189,7 +209,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 ---
 
-## 10. API — mapa completo
+## 12. API — mapa completo
 
 | Método | Path | Auth | Cuándo |
 |--------|------|------|--------|
@@ -200,18 +220,20 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 | GET | `/exercises/recommend?zone&equipment` | Sí | Submit recommend |
 | POST | `/auth/login` | No | Login |
 | POST | `/auth/register` | No | Register |
-| GET | `/users/me` | Sí | Sesión |
+| GET | `/users/me` | Sí | Sesión (user + programs enriquecidos; **sin** invite) |
+| GET | `/users/me/pending-coach-invite` | Sí | Atleta: `{ invite }` (null o pendiente) |
 | POST | `/users/training-program` | Sí | Agregar al plan |
 | PUT | `/users/training-program/remove` | Sí | Confirmar quitar |
 | PUT | `/users/training-program/:exerciseId` | Sí | Guardar pauta |
 | POST | `/users/coach/invites` | Sí | Coach invita atleta por email |
 | POST | `/users/coach/invites/respond` | Sí | Atleta accept / reject |
-| GET | `/users/coach/athletes` | Sí | Lista paginada Mis alumnos |
+| GET | `/users/coach/athletes` | Sí | Lista paginada Mis alumnos / stats Panel |
 | PUT | `/users/coach/athletes/:athleteId/training-program` | Sí | Guardar plan (replace sesiones) |
+| POST | `/users/coach/training-program/export` | Sí | Export Excel/zip (binary) |
 
 ---
 
-## 11. Animaciones y microinteracciones
+## 13. Animaciones y microinteracciones
 
 | Qué | Cuándo |
 |-----|--------|
@@ -243,7 +265,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 ---
 
-## 12. Utils
+## 14. Utils
 
 | Archivo | Rol |
 |---------|-----|
@@ -258,7 +280,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 ---
 
-## 13. Storage
+## 15. Storage
 
 | Key | Dónde | Contenido |
 |-----|-------|-----------|
@@ -269,7 +291,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 ---
 
-## 14. Mobile (≤768px)
+## 16. Mobile (≤768px)
 
 - Topbar + hamburger; sidebar drawer off-canvas.
 - Cierre: ✕, backdrop, item de nav, Escape, resize a desktop.
@@ -280,7 +302,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 ---
 
-## 15. Mapa de archivos
+## 17. Mapa de archivos
 
 | Área | Archivos |
 |------|----------|
@@ -289,20 +311,26 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 | Auth UI | `js/features/auth-ui.js` |
 | Entrenamiento | `js/features/training-ui.js` |
 | Recommend | `js/features/recommend-ui.js` |
+| Coach Panel | `js/features/coach-panel-ui.js` |
+| Coach invite banner | `js/features/coach-invite-ui.js` |
 | Students | `js/features/students-ui.js` |
+| Students download | `js/features/students-download-ui.js` |
+| Coach sessions / editor | `js/features/coach-sessions-ui.js` |
+| Athletes store | `js/features/coach-athletes-store.js` |
 | Drawer | `js/features/nav-drawer.js` |
 | Tema | `theme-boot.js`, `theme-ui.js` |
 | Footer / eggs | `footer.js`, `easter-egg.js` |
-| API | `js/api/*` |
+| API | `js/api/request.js`, `auth.js`, `users.js`, `exercises.js`, `token.js` |
 | Copy | `js/constants.js` |
 | Estilos | `public/css/base.css`, `app.css` |
 
 ---
 
-## 16. Stubs / aún no cableado
+## 18. Stubs / aún no cableado
 
-- Sesiones coach: UI + PUT replace; export Excel y extras opcionales pendientes.
-- Export Excel (botones shell).
+- Coach Panel: bloque invites pendientes del coach (lista) pendiente.
+- Plantillas (`coach-templates`) placeholder.
+- Export PDF (UI disabled “Pronto”).
 - Admin no se elige en register (solo DB); en nav se comporta como coach.
 - Sin refresh token; si `/me` falla, sesión guest.
 - Recommend exige `isPremium` del back.

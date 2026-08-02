@@ -17,7 +17,10 @@ Consume la API desplegada en Render (o tu backend local).
 - Búsqueda por texto y por **ID** (`GET /exercises/:id`)
 - Modal de detalle: meta, músculos, instrucciones ES/EN, compartir enlace
 - Botón **WOD** → ejercicio random (`GET /exercises/random`)
-- Auth (login / registro) + **Mi entrenamiento** (agregar / quitar del plan)
+- Auth (login / registro) + roles atleta / coach
+- **Mi entrenamiento** (agregar / quitar / pauta) y **Plan del coach** (sesiones)
+- Coach: **Panel** (métricas), **Mis alumnos** (invitar, ordenar, editar plan, export Excel)
+- Banner de invite pendiente (atleta) vía `GET /users/me/pending-coach-invite`
 - UI bilingüe (Español / English)
 - Media local (`public/images`, `public/videos`)
 
@@ -39,8 +42,8 @@ gym-data-fe/
 ├── js/
 │   ├── main.js             # Catálogo, modal, plan
 │   ├── constants.js
-│   ├── api/                # client, auth, users, exercises, token
-│   ├── features/           # auth-ui, session-ui, training-ui, …
+│   ├── api/                # request, auth, users, exercises, token
+│   ├── features/           # auth, session, training, students, panel, invite…
 │   └── utils/              # assets, cards, helpers, labels
 ├── public/
 │   ├── css/                # base.css, app.css
@@ -67,7 +70,7 @@ npx serve .
 
 ### API local vs producción
 
-En `js/api/client.js` (base URL):
+En `js/api/request.js` (base URL):
 
 | Dónde abrís el front        | API usada                                      |
 |----------------------------|-------------------------------------------------|
@@ -88,10 +91,18 @@ Para desarrollar contra tu API local, levantá el backend en el puerto **3000** 
 | `GET` | `/exercises/:id` | Detalle / búsqueda por id |
 | `GET` | `/exercises/random` | Botón WOD |
 | `GET` | `/exercises/labels` | Chips de filtros |
+| `GET` | `/exercises/recommend?zone=&equipment=` | Recomendar (Pro) |
 | `POST` | `/auth/login` · `/auth/register` | Sesión |
-| `GET` | `/users/me` | Perfil + `trainingProgram` |
-| `PUT` | `/users/:id/training-program` | Reemplazar ids del plan |
-| `PUT` | `/users/:id/training-program/remove` | Quitar un ejercicio |
+| `GET` | `/users/me` | Perfil + `trainingProgram` + `coachTrainingProgram` |
+| `GET` | `/users/me/pending-coach-invite` | Invite pendiente atleta `{ invite }` |
+| `POST` | `/users/training-program` | Agregar ejercicios al plan |
+| `PUT` | `/users/training-program/remove` | Quitar un ejercicio |
+| `PUT` | `/users/training-program/:exerciseId` | Editar pauta |
+| `POST` | `/users/coach/invites` | Coach invita por email |
+| `POST` | `/users/coach/invites/respond` | Atleta accept / reject |
+| `GET` | `/users/coach/athletes` | Mis alumnos / stats Panel |
+| `PUT` | `/users/coach/athletes/:id/training-program` | Guardar plan coach |
+| `POST` | `/users/coach/training-program/export` | Export Excel / zip (binary) |
 
 Respuesta típica de listado:
 

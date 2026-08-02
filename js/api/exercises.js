@@ -1,4 +1,4 @@
-import { get } from './client.js';
+import { get } from './request.js';
 
 const EXERCISES = '/exercises';
 

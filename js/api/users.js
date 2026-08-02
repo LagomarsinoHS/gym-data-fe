@@ -1,10 +1,18 @@
-import { get, post, postBinary, put } from './client.js';
+import { get, post, postBinary, put } from './request.js';
 
 const USERS = '/users';
 
 /** GET /users/me — requires Bearer token */
 export function getMe() {
   return get(`${USERS}/me`, {}, { auth: true });
+}
+
+/**
+ * GET /users/me/pending-coach-invite
+ * Returns { invite: null | PendingCoachInvite }.
+ */
+export function getPendingCoachInvite() {
+  return get(`${USERS}/me/pending-coach-invite`, {}, { auth: true });
 }
 
 /**

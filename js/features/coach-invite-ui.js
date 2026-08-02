@@ -1,9 +1,13 @@
 /**
  * Athlete — pending coach invite banner (accept / reject).
  * Markup: #coach-invite-banner, #nav-coach-plan-dot
- * API: POST /users/coach/invites/respond { action: 'accept' | 'reject' }
+ * API: GET /users/me/pending-coach-invite
+ *      POST /users/coach/invites/respond { action: 'accept' | 'reject' }
+ *
+ * Fetch: once on session start (login / restore), and again when the tab
+ * becomes visible. Not on every navigation / chrome re-render.
  */
-import { respondCoachInvite } from '../api/users.js';
+import { getPendingCoachInvite, respondCoachInvite } from '../api/users.js';
 import { ui } from '../utils/labels.js';
 import {
   getUser,
@@ -19,6 +23,10 @@ let statusEl;
 let acceptBtn;
 let rejectBtn;
 let busy = false;
+/** @type {object | null} */
+let pendingInvite = null;
+/** @type {Promise<void> | null} */
+let inFlight = null;
 
 export function initCoachInviteUi() {
   banner = document.getElementById('coach-invite-banner');
@@ -30,14 +38,60 @@ export function initCoachInviteUi() {
 
   acceptBtn?.addEventListener('click', () => onRespond('accept'));
   rejectBtn?.addEventListener('click', () => onRespond('reject'));
-  onSessionChrome(syncCoachInviteBanner);
-  syncCoachInviteBanner();
+
+  // Logout / role change: clear and paint only (no network).
+  onSessionChrome(() => {
+    const user = getUser();
+    if (!user || !isAthlete(user)) pendingInvite = null;
+    paintBanner();
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      void loadPendingCoachInvite({ force: true });
+    }
+  });
 }
 
-export function syncCoachInviteBanner() {
+/**
+ * Load pending invite from API (session start or tab focus).
+ * Concurrent calls share one in-flight request.
+ */
+export function loadPendingCoachInvite({ force = false } = {}) {
   const user = getUser();
-  const invite = user?.pendingCoachInvite;
-  const show = Boolean(user && isAthlete(user) && invite);
+
+  if (!user || !isAthlete(user)) {
+    pendingInvite = null;
+    paintBanner();
+    return Promise.resolve();
+  }
+
+  if (inFlight && !force) return inFlight;
+
+  const run = (async () => {
+    try {
+      const data = await getPendingCoachInvite();
+      pendingInvite = data.invite;
+    } catch (err) {
+      console.error(err);
+      pendingInvite = null;
+    }
+    paintBanner();
+  })();
+
+  inFlight = run.finally(() => {
+    if (inFlight === run) inFlight = null;
+  });
+  return inFlight;
+}
+
+/** Re-paint banner labels (e.g. language change). No network. */
+export function syncCoachInviteBanner() {
+  paintBanner();
+}
+
+function paintBanner() {
+  const show = Boolean(pendingInvite);
 
   if (banner) {
     const wasHidden = banner.hidden;
@@ -59,7 +113,7 @@ export function syncCoachInviteBanner() {
   }
 
   if (messageEl) {
-    const coach = invite.coach || {};
+    const coach = pendingInvite.coach || {};
     const name = [coach.firstName, coach.lastName].filter(Boolean).join(' ').trim()
       || 'Coach';
     const nameEl = document.createElement('strong');
@@ -95,6 +149,8 @@ async function onRespond(action) {
 
   try {
     await respondCoachInvite(action);
+    pendingInvite = null;
+    paintBanner();
     await refreshUser();
     if (action === 'accept') setView('coach-plan');
   } catch (err) {

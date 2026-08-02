@@ -18,6 +18,7 @@
     · #sidebar-auth / vistas catalog|training|recommend|coach-plan|coach-panel|coach-templates|students|session-editor → js/features/session-ui.js
     · #recommend-overlay                               → js/features/recommend-ui.js
     · #students-view / overlays → js/features/students-ui.js · download → students-download-ui.js
+    · #coach-panel-view → js/features/coach-panel-ui.js
     · #session-editor-view / session overlays → js/features/coach-sessions-ui.js
     · #coach-invite-banner                             → js/features/coach-invite-ui.js
     · #training-grid                               → js/features/training-ui.js
@@ -289,11 +290,31 @@
     </div>
 
     <div id="coach-panel-view" class="recommend-view" hidden>
-      <div class="recommend-panel">
-        <h2 class="recommend-title" data-ui="coachPanel">Panel</h2>
-        <p class="recommend-lead" data-ui="coachPanelLead">
-          Resumen de tu actividad como coach. Pronto verás alumnos, invitaciones y accesos rápidos.
-        </p>
+      <div class="coach-panel">
+        <header class="coach-panel-header">
+          <h2 class="coach-panel-title" data-ui="coachPanel">Panel</h2>
+          <p class="coach-panel-lead" data-ui="coachPanelLead">
+            Resumen rápido de tus alumnos y sus pautas.
+          </p>
+        </header>
+
+        <div class="coach-panel-loading" id="coach-panel-loading" hidden>
+          <div class="load-spinner visible" aria-hidden="true"></div>
+          <span data-ui="coachPanelLoading">Cargando resumen…</span>
+        </div>
+
+        <div class="coach-panel-stats" id="coach-panel-stats" hidden aria-live="polite">
+          <div class="coach-panel-stat">
+            <p class="coach-panel-stat-value" id="coach-panel-total"></p>
+            <p class="coach-panel-stat-label" data-ui="coachPanelTotalAthletes">Total de alumnos</p>
+          </div>
+          <div class="coach-panel-stat">
+            <p class="coach-panel-stat-value" id="coach-panel-without-plan"></p>
+            <p class="coach-panel-stat-label" data-ui="coachPanelWithoutPlan">Alumnos sin pauta</p>
+          </div>
+        </div>
+
+        <p class="coach-panel-status" id="coach-panel-status" hidden></p>
       </div>
     </div>
 
@@ -352,6 +373,41 @@
             <button type="button" class="search-clear" id="students-search-clear" aria-label="Limpiar búsqueda">×</button>
           </div>
           <div class="students-toolbar-actions">
+            <div class="students-download students-sort" id="students-sort">
+              <button
+                type="button"
+                class="recommend-again-btn students-download-trigger"
+                id="students-sort-btn"
+                aria-expanded="false"
+                aria-haspopup="menu"
+                aria-controls="students-sort-menu"
+              >
+                <span data-ui="studentsSort">Ordenar</span>
+                <span class="students-download-caret" aria-hidden="true"></span>
+              </button>
+              <div class="students-download-menu" id="students-sort-menu" role="menu" hidden>
+                <button
+                  type="button"
+                  class="students-download-item"
+                  role="menuitemradio"
+                  id="students-sort-without-plan"
+                  data-sort="without-plan"
+                  aria-checked="false"
+                >
+                  <span data-ui="studentsSortWithoutPlan">Sin pauta primero</span>
+                </button>
+                <button
+                  type="button"
+                  class="students-download-item"
+                  role="menuitemradio"
+                  id="students-sort-with-plan"
+                  data-sort="with-plan"
+                  aria-checked="false"
+                >
+                  <span data-ui="studentsSortWithPlan">Con pauta primero</span>
+                </button>
+              </div>
+            </div>
             <div class="students-download" id="students-download">
               <button
                 type="button"

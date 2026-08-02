@@ -71,27 +71,10 @@ export async function postBinary(path, body, { auth = false } = {}) {
   };
 }
 
+/** Nest sends: attachment; filename="Name.xlsx" */
 function filenameFromContentDisposition(header) {
-  if (!header) return null;
-
-  // RFC 5987: filename*=UTF-8''encoded-name
-  const utf8 = /filename\*\s*=\s*UTF-8''([^;]+)/i.exec(header);
-  if (utf8?.[1]) {
-    try {
-      return decodeURIComponent(utf8[1].trim().replace(/^"|"$/g, ''));
-    } catch {
-      /* ignore malformed encoding */
-    }
-  }
-
-  // filename="name with spaces.xlsx" or filename=name.xlsx
-  const quoted = /filename\s*=\s*"((?:\\.|[^"\\])*)"/i.exec(header);
-  if (quoted?.[1]) {
-    return quoted[1].replace(/\\"/g, '"').trim();
-  }
-
-  const plain = /filename\s*=\s*([^;]+)/i.exec(header);
-  return plain?.[1]?.trim().replace(/^"|"$/g, '') || null;
+  const match = /filename="([^"]+)"/i.exec(header || '');
+  return match?.[1]?.trim() || null;
 }
 
 function authHeaders(auth) {
@@ -102,9 +85,19 @@ function authHeaders(auth) {
 
 async function send(url, options) {
   const res = await fetch(url, options);
-  const data = await res.json().catch(() => ({}));
+  const text = await res.text();
+  let data = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = {};
+    }
+  }
   if (!res.ok) {
-    const err = new Error(data.message || `API ${res.status}: ${url.pathname}`);
+    const err = new Error(
+      (data && data.message) || `API ${res.status}: ${url.pathname}`,
+    );
     err.status = res.status;
     throw err;
   }

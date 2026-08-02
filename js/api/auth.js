@@ -1,4 +1,4 @@
-import { post } from './client.js';
+import { post } from './request.js';
 
 const AUTH = '/auth';
 

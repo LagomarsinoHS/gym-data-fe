@@ -39,8 +39,13 @@ let submitFill;
 let loadMoreBtn;
 let searchInput;
 let searchClearBtn;
+let sortWrap;
+let sortBtn;
+let sortMenu;
 let closeTimer = 0;
 let searchTimer = 0;
+/** @type {'default' | 'without-plan' | 'with-plan'} */
+let studentsSort = 'default';
 
 // ── Init / labels ─────────────────────────────────────────────────────
 export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
@@ -60,6 +65,9 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
   loadMoreBtn = document.getElementById('students-load-more');
   searchInput = document.getElementById('students-search');
   searchClearBtn = document.getElementById('students-search-clear');
+  sortWrap = document.getElementById('students-sort');
+  sortBtn = document.getElementById('students-sort-btn');
+  sortMenu = document.getElementById('students-sort-menu');
   if (!overlay || !form) return;
 
   initCoachSessionsUi();
@@ -71,16 +79,37 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
   loadMoreBtn?.addEventListener('click', () => void loadMoreAthletes());
   searchInput?.addEventListener('input', onSearchInput);
   searchClearBtn?.addEventListener('click', clearStudentsSearch);
+  sortBtn?.addEventListener('click', e => {
+    e.stopPropagation();
+    toggleStudentsSortMenu();
+  });
+  sortMenu?.querySelectorAll('[data-sort]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      onStudentsSortPick(btn.dataset.sort);
+    });
+  });
   overlay.addEventListener('click', e => {
     if (e.target === overlay) closeAddStudentModal();
   });
   form.addEventListener('submit', onSubmit);
+
+  document.addEventListener('click', e => {
+    if (!sortWrap?.classList.contains('is-open')) return;
+    if (sortWrap.contains(e.target)) return;
+    closeStudentsSortMenu();
+  });
 
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     if (overlay.classList.contains('open')) {
       e.stopImmediatePropagation();
       closeAddStudentModal();
+      return;
+    }
+    if (sortWrap?.classList.contains('is-open')) {
+      e.stopImmediatePropagation();
+      closeStudentsSortMenu();
     }
   });
 
@@ -101,6 +130,7 @@ export function syncStudentsLabels() {
   }
 
   syncSearchClear();
+  syncStudentsSortMenuState();
   if (store.athletesLoaded) renderStudentsList();
   syncCoachSessionsLabels();
   syncDownloadAllState();
@@ -110,6 +140,9 @@ export function clearCoachAthletesCache() {
   resetCoachAthletesStore();
   resetCoachSessionsUi();
   resetStudentsSearch({ keepInput: false });
+  studentsSort = 'default';
+  closeStudentsSortMenu();
+  syncStudentsSortMenuState();
 }
 
 // ── Athletes fetch / search / cache ───────────────────────────────────
@@ -406,12 +439,68 @@ function renderStudentsList() {
   if (emptyAdd) emptyAdd.hidden = false;
 
   const frag = document.createDocumentFragment();
-  for (const athlete of store.athletes) {
+  for (const athlete of sortedAthletes(store.athletes)) {
     frag.appendChild(createStudentRow(athlete));
   }
   list.appendChild(frag);
   syncLoadMoreBtn();
   syncDownloadAllState();
+}
+
+function onStudentsSortPick(next) {
+  const value = next === 'without-plan' || next === 'with-plan' ? next : 'default';
+  // Re-clicking the active option clears the sort.
+  studentsSort = studentsSort === value ? 'default' : value;
+  closeStudentsSortMenu();
+  syncStudentsSortMenuState();
+  if (store.athletesLoaded) renderStudentsList();
+}
+
+function toggleStudentsSortMenu() {
+  if (sortWrap?.classList.contains('is-open')) closeStudentsSortMenu();
+  else openStudentsSortMenu();
+}
+
+function openStudentsSortMenu() {
+  if (!sortWrap || !sortBtn || !sortMenu) return;
+  sortWrap.classList.add('is-open');
+  sortMenu.hidden = false;
+  sortBtn.setAttribute('aria-expanded', 'true');
+}
+
+function closeStudentsSortMenu() {
+  if (!sortWrap || !sortBtn || !sortMenu) return;
+  sortWrap.classList.remove('is-open');
+  sortMenu.hidden = true;
+  sortBtn.setAttribute('aria-expanded', 'false');
+}
+
+function syncStudentsSortMenuState() {
+  sortMenu?.querySelectorAll('[data-sort]').forEach(btn => {
+    const active = btn.dataset.sort === studentsSort;
+    btn.classList.toggle('is-active', active);
+    btn.setAttribute('aria-checked', active ? 'true' : 'false');
+  });
+  sortWrap?.classList.toggle('has-active-sort', studentsSort !== 'default');
+}
+
+function athleteHasPlan(athlete) {
+  const prog = athlete?.coachTrainingProgram;
+  if (!Array.isArray(prog) || prog.length === 0) return false;
+  return prog.some(session => Array.isArray(session?.items) && session.items.length > 0);
+}
+
+/** Client-side sort over the currently loaded athletes page(s). */
+function sortedAthletes(athletes) {
+  if (studentsSort === 'default') return athletes;
+  const preferWithout = studentsSort === 'without-plan';
+  return [...athletes].sort((a, b) => {
+    const aHas = athleteHasPlan(a);
+    const bHas = athleteHasPlan(b);
+    if (aHas === bHas) return 0;
+    if (preferWithout) return aHas ? 1 : -1;
+    return aHas ? -1 : 1;
+  });
 }
 
 function syncLoadMoreBtn() {

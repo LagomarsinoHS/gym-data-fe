@@ -26,8 +26,8 @@ coachTrainingProgram: {
 ```
 
 ### Backend
-- [ ] Schema: `coachTrainingProgram` = sesiones (default `[]`); migrar lista plana vieja si existe
-- [ ] Exponer en `GET /users/me` (atleta) y en athletes del coach si hace falta
+- [x] Schema: `coachTrainingProgram` = sesiones (default `[]`)
+- [x] Exponer en `GET /users/me` (atleta) y en athletes del coach
 - [x] `PUT /users/coach/athletes/:athleteId/training-program`  
   Body = `{ coachTrainingProgram }` (sesiones + items **sin** `exercise` populado)  
   Auth: coach dueño del vínculo. Persist + respond con athlete **enriquecido**.
@@ -36,15 +36,20 @@ coachTrainingProgram: {
 ### Frontend
 - [x] Dirty state + botón **Guardar plan**
 - [x] Cablear `PUT .../athletes/:id/training-program` (replace completo, sin `exercise`)
-- [ ] Confirmar carga de `coachTrainingProgram` al listar atleta (API ya enriquece; revisar merge local)
 - [x] Busy / errores al guardar
 - [x] Vista atleta **Plan del coach**: sesiones reales + empty “sin plan” vs “sin coach”
 
 ---
 
-## Coach — resto
-- [ ] Export Excel: todos / uno / pauta vista atleta (UI shell ya existe)
-- [ ] Badge / sección invites **pendientes** en Mis alumnos (opc.)
+## Coach — Panel / invites / export
+
+- [x] Panel V1 informativo (total + sin pauta) con loading sin placeholders
+- [x] Colección `invites` + create / respond (BE)
+- [x] `GET /users/me/pending-coach-invite` → `{ invite }` (banner atleta)
+- [x] Export Excel binary (`POST .../training-program/export`)
+- [x] Mis alumnos: ordenar sin/con pauta (client-side)
+- [ ] Panel: listar invites **pendientes del coach** (`GET /users/coach/invites?status=pending`)
+- [ ] Export PDF
 - [ ] Reordenar ejercicios / sesiones
 - [ ] Duplicar sesión o copiar a otro atleta
 - [ ] Plantillas reutilizables (`coach-templates`)
