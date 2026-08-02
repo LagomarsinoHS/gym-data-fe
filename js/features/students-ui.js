@@ -1,19 +1,15 @@
 /**
  * Coach — Mis alumnos: list, search, invite.
  * Markup: #students-view, #add-student-overlay
+ * Download / export → students-download-ui.js
  * Sessions / editor / save → coach-sessions-ui.js
  * Shared state → coach-athletes-store.js
  */
-import {
-  exportCoachTrainingProgram,
-  getCoachAthletes,
-  inviteCoachAthlete,
-} from '../api/users.js';
-import { getLang, ui } from '../utils/labels.js';
+import { getCoachAthletes, inviteCoachAthlete } from '../api/users.js';
+import { ui } from '../utils/labels.js';
 import {
   store,
   athleteDisplayName,
-  getAthleteSessions,
   resetCoachAthletesStore,
 } from './coach-athletes-store.js';
 import {
@@ -23,6 +19,11 @@ import {
   createAthletePlan,
   collapseOpenSessionsIn,
 } from './coach-sessions-ui.js';
+import {
+  initStudentsDownloadUi,
+  syncDownloadAllState,
+  createAthleteDownloadMenu,
+} from './students-download-ui.js';
 
 const SUCCESS_CLOSE_MS = 1200;
 const ATHLETE_PAGE_SIZE = 5;
@@ -38,10 +39,6 @@ let submitFill;
 let loadMoreBtn;
 let searchInput;
 let searchClearBtn;
-let downloadWrap;
-let downloadBtn;
-let downloadMenu;
-let downloadAllBtn;
 let closeTimer = 0;
 let searchTimer = 0;
 
@@ -63,13 +60,10 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
   loadMoreBtn = document.getElementById('students-load-more');
   searchInput = document.getElementById('students-search');
   searchClearBtn = document.getElementById('students-search-clear');
-  downloadWrap = document.getElementById('students-download');
-  downloadBtn = document.getElementById('students-download-btn');
-  downloadMenu = document.getElementById('students-download-menu');
-  downloadAllBtn = document.getElementById('students-download-all');
   if (!overlay || !form) return;
 
   initCoachSessionsUi();
+  initStudentsDownloadUi();
 
   document.getElementById('students-add-btn')?.addEventListener('click', openAddStudentModal);
   document.getElementById('students-empty-add-btn')?.addEventListener('click', openAddStudentModal);
@@ -77,38 +71,13 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
   loadMoreBtn?.addEventListener('click', () => void loadMoreAthletes());
   searchInput?.addEventListener('input', onSearchInput);
   searchClearBtn?.addEventListener('click', clearStudentsSearch);
-  downloadBtn?.addEventListener('click', e => {
-    e.stopPropagation();
-    toggleDownloadMenu();
-  });
-  downloadAllBtn?.addEventListener('click', onDownloadAll);
   overlay.addEventListener('click', e => {
     if (e.target === overlay) closeAddStudentModal();
   });
   form.addEventListener('submit', onSubmit);
 
-  document.addEventListener('click', e => {
-    const openAthleteMenu = document.querySelector('.student-row-download.is-open');
-    if (openAthleteMenu && !openAthleteMenu.contains(e.target)) {
-      closeAthleteDownloadMenus();
-    }
-    if (!downloadWrap?.classList.contains('is-open')) return;
-    if (downloadWrap.contains(e.target)) return;
-    closeDownloadMenu();
-  });
-
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
-    if (document.querySelector('.student-row-download.is-open')) {
-      e.stopImmediatePropagation();
-      closeAthleteDownloadMenus();
-      return;
-    }
-    if (downloadWrap?.classList.contains('is-open')) {
-      e.stopImmediatePropagation();
-      closeDownloadMenu();
-      return;
-    }
     if (overlay.classList.contains('open')) {
       e.stopImmediatePropagation();
       closeAddStudentModal();
@@ -116,7 +85,6 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
   });
 
   syncStudentsLabels();
-  syncDownloadAllState();
 }
 
 export function syncStudentsLabels() {
@@ -135,6 +103,7 @@ export function syncStudentsLabels() {
   syncSearchClear();
   if (store.athletesLoaded) renderStudentsList();
   syncCoachSessionsLabels();
+  syncDownloadAllState();
 }
 
 export function clearCoachAthletesCache() {
@@ -454,201 +423,6 @@ function syncLoadMoreBtn() {
   loadMoreBtn.disabled = store.loadingAthletes;
   const label = loadMoreBtn.querySelector('[data-ui="studentsLoadMore"]');
   if (label) label.textContent = ui('studentsLoadMore');
-}
-
-function hasDownloadablePlans() {
-  return store.athletes.some(athlete =>
-    getAthleteSessions(athlete).some(
-      session => Array.isArray(session?.items) && session.items.length > 0,
-    ),
-  );
-}
-
-function syncDownloadAllState() {
-  const enabled = store.athletesLoaded && hasDownloadablePlans();
-  if (downloadBtn) {
-    downloadBtn.disabled = false;
-    downloadBtn.removeAttribute('title');
-  }
-  if (!downloadAllBtn) return;
-  downloadAllBtn.disabled = !enabled;
-  downloadAllBtn.setAttribute('aria-disabled', enabled ? 'false' : 'true');
-  downloadAllBtn.title = enabled ? '' : ui('studentsDownloadAllDisabled');
-  downloadAllBtn.classList.toggle('is-disabled', !enabled);
-}
-
-function toggleDownloadMenu() {
-  if (downloadWrap?.classList.contains('is-open')) closeDownloadMenu();
-  else openDownloadMenu();
-}
-
-function openDownloadMenu() {
-  if (!downloadWrap || !downloadMenu || !downloadBtn) return;
-  closeAthleteDownloadMenus();
-  downloadWrap.classList.add('is-open');
-  downloadMenu.hidden = false;
-  downloadBtn.setAttribute('aria-expanded', 'true');
-}
-
-function closeDownloadMenu() {
-  if (!downloadWrap || !downloadMenu || !downloadBtn) return;
-  downloadWrap.classList.remove('is-open');
-  downloadMenu.hidden = true;
-  downloadBtn.setAttribute('aria-expanded', 'false');
-}
-
-function closeAthleteDownloadMenus(except = null) {
-  document.querySelectorAll('.student-row-download.is-open').forEach(wrap => {
-    if (except && wrap === except) return;
-    wrap.classList.remove('is-open');
-    const menu = wrap.querySelector('.student-row-download-menu');
-    const trigger = wrap.querySelector('.student-row-download-trigger');
-    if (menu) menu.hidden = true;
-    trigger?.setAttribute('aria-expanded', 'false');
-  });
-}
-
-function toggleAthleteDownloadMenu(wrap) {
-  if (!wrap) return;
-  if (wrap.classList.contains('is-open')) {
-    closeAthleteDownloadMenus();
-    return;
-  }
-  closeDownloadMenu();
-  closeAthleteDownloadMenus();
-  const menu = wrap.querySelector('.student-row-download-menu');
-  const trigger = wrap.querySelector('.student-row-download-trigger');
-  wrap.classList.add('is-open');
-  if (menu) menu.hidden = false;
-  trigger?.setAttribute('aria-expanded', 'true');
-}
-
-function athleteHasDownloadablePlan(athleteId) {
-  const athlete = store.athletes.find(a => String(a?.id) === String(athleteId));
-  if (!athlete) return false;
-  return getAthleteSessions(athlete).some(
-    session => Array.isArray(session?.items) && session.items.length > 0,
-  );
-}
-
-function fallbackExportFilename(contentType, athleteIds) {
-  const isZip = String(contentType || '').includes('zip');
-  if (isZip) return 'Pautas de entrenamientos.zip';
-  return athleteIds.length === 1 ? 'training-program.xlsx' : 'training-programs.xlsx';
-}
-
-function triggerBlobDownload(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename || 'training-program.xlsx';
-  a.rel = 'noopener';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-async function runTrainingProgramExport(athleteIds, triggerBtn) {
-  if (triggerBtn?.disabled || triggerBtn?.dataset.busy === '1') return;
-  if (triggerBtn) {
-    triggerBtn.dataset.busy = '1';
-    triggerBtn.disabled = true;
-  }
-  try {
-    const { blob, filename, contentType } = await exportCoachTrainingProgram(
-      athleteIds,
-      getLang(),
-    );
-    triggerBlobDownload(blob, filename || fallbackExportFilename(contentType, athleteIds));
-  } catch (err) {
-    console.error(err);
-    window.alert(ui('studentsDownloadFail'));
-  } finally {
-    if (triggerBtn) {
-      delete triggerBtn.dataset.busy;
-      if (triggerBtn === downloadAllBtn) syncDownloadAllState();
-      else triggerBtn.disabled = false;
-    }
-  }
-}
-
-function onDownloadAll() {
-  if (downloadAllBtn?.disabled || !hasDownloadablePlans()) return;
-  closeDownloadMenu();
-  void runTrainingProgramExport([], downloadAllBtn);
-}
-
-function onDownloadAthleteExcel(athleteId, excelBtn) {
-  if (!athleteHasDownloadablePlan(athleteId)) return;
-  closeAthleteDownloadMenus();
-  void runTrainingProgramExport([String(athleteId)], excelBtn);
-}
-
-function createAthleteDownloadMenu(athleteId) {
-  const wrap = document.createElement('div');
-  wrap.className = 'student-row-download';
-  const canExcel = athleteHasDownloadablePlan(athleteId);
-
-  const trigger = document.createElement('button');
-  trigger.type = 'button';
-  trigger.className = 'student-row-download-trigger';
-  trigger.textContent = '⏬';
-  trigger.setAttribute('aria-label', ui('studentsDownloadPlan'));
-  trigger.title = ui('studentsDownloadPlan');
-  trigger.setAttribute('aria-expanded', 'false');
-  trigger.setAttribute('aria-haspopup', 'menu');
-  trigger.addEventListener('click', e => {
-    e.stopPropagation();
-    toggleAthleteDownloadMenu(wrap);
-  });
-
-  const menu = document.createElement('div');
-  menu.className = 'student-row-download-menu';
-  menu.setAttribute('role', 'menu');
-  menu.hidden = true;
-
-  const excelBtn = document.createElement('button');
-  excelBtn.type = 'button';
-  excelBtn.className = 'student-row-download-item';
-  excelBtn.setAttribute('role', 'menuitem');
-  excelBtn.disabled = !canExcel;
-  excelBtn.setAttribute('aria-disabled', canExcel ? 'false' : 'true');
-  excelBtn.classList.toggle('is-disabled', !canExcel);
-  excelBtn.title = canExcel ? ui('studentsDownloadExcel') : ui('studentsDownloadAllDisabled');
-
-  const excelLabel = document.createElement('span');
-  excelLabel.className = 'student-row-download-item-label';
-  excelLabel.textContent = ui('studentsDownloadExcel');
-  excelBtn.append(excelLabel);
-
-  if (canExcel) {
-    excelBtn.addEventListener('click', e => {
-      e.stopPropagation();
-      onDownloadAthleteExcel(athleteId, excelBtn);
-    });
-  }
-
-  const pdfBtn = document.createElement('button');
-  pdfBtn.type = 'button';
-  pdfBtn.className = 'student-row-download-item is-disabled';
-  pdfBtn.setAttribute('role', 'menuitem');
-  pdfBtn.disabled = true;
-  pdfBtn.setAttribute('aria-disabled', 'true');
-  pdfBtn.title = ui('studentsDownloadPdfSoon');
-
-  const pdfLabel = document.createElement('span');
-  pdfLabel.className = 'student-row-download-item-label';
-  pdfLabel.textContent = ui('studentsDownloadPdf');
-
-  const pdfHint = document.createElement('span');
-  pdfHint.className = 'student-row-download-item-hint';
-  pdfHint.textContent = ui('studentsDownloadPdfSoon');
-  pdfBtn.append(pdfLabel, pdfHint);
-
-  menu.append(excelBtn, pdfBtn);
-  wrap.append(trigger, menu);
-  return wrap;
 }
 
 function createDetail(label, value) {
