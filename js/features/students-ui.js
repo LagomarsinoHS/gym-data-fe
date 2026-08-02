@@ -4,8 +4,12 @@
  * Sessions / editor / save → coach-sessions-ui.js
  * Shared state → coach-athletes-store.js
  */
-import { getCoachAthletes, inviteCoachAthlete } from '../api/users.js';
-import { ui } from '../utils/labels.js';
+import {
+  exportCoachTrainingProgram,
+  getCoachAthletes,
+  inviteCoachAthlete,
+} from '../api/users.js';
+import { getLang, ui } from '../utils/labels.js';
 import {
   store,
   athleteDisplayName,
@@ -519,20 +523,72 @@ function toggleAthleteDownloadMenu(wrap) {
   trigger?.setAttribute('aria-expanded', 'true');
 }
 
+function athleteHasDownloadablePlan(athleteId) {
+  const athlete = store.athletes.find(a => String(a?.id) === String(athleteId));
+  if (!athlete) return false;
+  return getAthleteSessions(athlete).some(
+    session => Array.isArray(session?.items) && session.items.length > 0,
+  );
+}
+
+function fallbackExportFilename(contentType, athleteIds) {
+  const isZip = String(contentType || '').includes('zip');
+  if (isZip) return 'Pautas de entrenamientos.zip';
+  return athleteIds.length === 1 ? 'training-program.xlsx' : 'training-programs.xlsx';
+}
+
+function triggerBlobDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename || 'training-program.xlsx';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function runTrainingProgramExport(athleteIds, triggerBtn) {
+  if (triggerBtn?.disabled || triggerBtn?.dataset.busy === '1') return;
+  if (triggerBtn) {
+    triggerBtn.dataset.busy = '1';
+    triggerBtn.disabled = true;
+  }
+  try {
+    const { blob, filename, contentType } = await exportCoachTrainingProgram(
+      athleteIds,
+      getLang(),
+    );
+    triggerBlobDownload(blob, filename || fallbackExportFilename(contentType, athleteIds));
+  } catch (err) {
+    console.error(err);
+    window.alert(ui('studentsDownloadFail'));
+  } finally {
+    if (triggerBtn) {
+      delete triggerBtn.dataset.busy;
+      if (triggerBtn === downloadAllBtn) syncDownloadAllState();
+      else triggerBtn.disabled = false;
+    }
+  }
+}
+
 function onDownloadAll() {
   if (downloadAllBtn?.disabled || !hasDownloadablePlans()) return;
   closeDownloadMenu();
-  // Shell: Excel export TBD (docs/TODO.md)
+  void runTrainingProgramExport([], downloadAllBtn);
 }
 
-function onDownloadAthleteExcel(_athleteId) {
+function onDownloadAthleteExcel(athleteId, excelBtn) {
+  if (!athleteHasDownloadablePlan(athleteId)) return;
   closeAthleteDownloadMenus();
-  // Shell: Excel export TBD (docs/TODO.md)
+  void runTrainingProgramExport([String(athleteId)], excelBtn);
 }
 
 function createAthleteDownloadMenu(athleteId) {
   const wrap = document.createElement('div');
   wrap.className = 'student-row-download';
+  const canExcel = athleteHasDownloadablePlan(athleteId);
 
   const trigger = document.createElement('button');
   trigger.type = 'button';
@@ -556,11 +612,22 @@ function createAthleteDownloadMenu(athleteId) {
   excelBtn.type = 'button';
   excelBtn.className = 'student-row-download-item';
   excelBtn.setAttribute('role', 'menuitem');
-  excelBtn.textContent = ui('studentsDownloadExcel');
-  excelBtn.addEventListener('click', e => {
-    e.stopPropagation();
-    onDownloadAthleteExcel(athleteId);
-  });
+  excelBtn.disabled = !canExcel;
+  excelBtn.setAttribute('aria-disabled', canExcel ? 'false' : 'true');
+  excelBtn.classList.toggle('is-disabled', !canExcel);
+  excelBtn.title = canExcel ? ui('studentsDownloadExcel') : ui('studentsDownloadAllDisabled');
+
+  const excelLabel = document.createElement('span');
+  excelLabel.className = 'student-row-download-item-label';
+  excelLabel.textContent = ui('studentsDownloadExcel');
+  excelBtn.append(excelLabel);
+
+  if (canExcel) {
+    excelBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      onDownloadAthleteExcel(athleteId, excelBtn);
+    });
+  }
 
   const pdfBtn = document.createElement('button');
   pdfBtn.type = 'button';
@@ -577,8 +644,8 @@ function createAthleteDownloadMenu(athleteId) {
   const pdfHint = document.createElement('span');
   pdfHint.className = 'student-row-download-item-hint';
   pdfHint.textContent = ui('studentsDownloadPdfSoon');
-
   pdfBtn.append(pdfLabel, pdfHint);
+
   menu.append(excelBtn, pdfBtn);
   wrap.append(trigger, menu);
   return wrap;

@@ -100,15 +100,17 @@ export function putCoachAthleteTrainingProgram(athleteId, coachTrainingProgram) 
 }
 
 /**
- * POST /coach/training-program/export
- * Exports coach training programs as PDF for the given athletes.
- * Body: { athleteIds: string[] }
- * Returns a Blob (PDF). Wire UI when backend is ready.
+ * POST /users/coach/training-program/export
+ * Exports coach training programs (xlsx or zip) as a binary file.
+ * Body: { athleteIds: string[], locale: 'es' | 'en' }
+ * athleteIds: [] = all athletes; [id] = one athlete.
+ * Expects binary body + Content-Disposition filename (and Content-Type).
+ * Returns { blob, filename, contentType }.
  */
-export function exportCoachTrainingProgram(athleteIds) {
+export function exportCoachTrainingProgram(athleteIds, locale) {
   return postBinary(
     `${USERS}/coach/training-program/export`,
-    { athleteIds },
+    { athleteIds, locale },
     { auth: true },
   );
 }

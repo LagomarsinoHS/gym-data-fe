@@ -40,7 +40,10 @@ export async function put(path, body, { auth = false } = {}) {
   });
 }
 
-/** POST JSON and return response body as Blob (e.g. PDF/Excel download). */
+/**
+ * POST JSON and return { blob, filename?, contentType } for file downloads.
+ * filename comes from Content-Disposition when the API sends it.
+ */
 export async function postBinary(path, body, { auth = false } = {}) {
   const url = new URL(path, API_BASE);
   const res = await fetch(url, {
@@ -59,7 +62,36 @@ export async function postBinary(path, body, { auth = false } = {}) {
     throw err;
   }
 
-  return res.blob();
+  const blob = await res.blob();
+  const contentType = res.headers.get('Content-Type') || blob.type || '';
+  return {
+    blob,
+    filename: filenameFromContentDisposition(res.headers.get('Content-Disposition')),
+    contentType,
+  };
+}
+
+function filenameFromContentDisposition(header) {
+  if (!header) return null;
+
+  // RFC 5987: filename*=UTF-8''encoded-name
+  const utf8 = /filename\*\s*=\s*UTF-8''([^;]+)/i.exec(header);
+  if (utf8?.[1]) {
+    try {
+      return decodeURIComponent(utf8[1].trim().replace(/^"|"$/g, ''));
+    } catch {
+      /* ignore malformed encoding */
+    }
+  }
+
+  // filename="name with spaces.xlsx" or filename=name.xlsx
+  const quoted = /filename\s*=\s*"((?:\\.|[^"\\])*)"/i.exec(header);
+  if (quoted?.[1]) {
+    return quoted[1].replace(/\\"/g, '"').trim();
+  }
+
+  const plain = /filename\s*=\s*([^;]+)/i.exec(header);
+  return plain?.[1]?.trim().replace(/^"|"$/g, '') || null;
 }
 
 function authHeaders(auth) {
