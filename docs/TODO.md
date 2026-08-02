@@ -38,7 +38,7 @@ coachTrainingProgram: {
 - [x] Cablear `PUT .../athletes/:id/training-program` (replace completo, sin `exercise`)
 - [ ] Confirmar carga de `coachTrainingProgram` al listar atleta (API ya enriquece; revisar merge local)
 - [x] Busy / errores al guardar
-- [ ] Vista atleta **Plan del coach**: pintar sesiones reales (empty “sin plan” vs “sin coach”)
+- [x] Vista atleta **Plan del coach**: sesiones reales + empty “sin plan” vs “sin coach”
 
 ---
 

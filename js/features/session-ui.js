@@ -8,11 +8,11 @@ import { getMe } from '../api/users.js';
 import { clearToken, isLoggedIn } from '../api/token.js';
 import { ui } from '../utils/labels.js';
 import { clearRecommendPlan } from './recommend-ui.js';
+import { clearCoachAthletesCache } from './students-ui.js';
 import {
-  clearCoachAthletesCache,
   clearSessionAssignTarget,
   syncSessionEditorView,
-} from './students-ui.js';
+} from './coach-sessions-ui.js';
 
 const VIEWS = new Set([
   'catalog',
@@ -244,16 +244,30 @@ function syncCoachPlanPanel() {
   if (!titleEl || !leadEl) return;
 
   const linked = hasCoach();
-  const hasProgram = (user?.coachTrainingProgram || []).some(item => item?.exercise);
+  const hasProgram = hasCoachTrainingProgram();
 
-  if (emptyPanel) emptyPanel.hidden = hasProgram;
-  if (results) results.hidden = !hasProgram;
+  // Empty panel: no coach, or coach but still no sessions/plan
+  if (emptyPanel) emptyPanel.hidden = linked && hasProgram;
+  if (results) results.hidden = !(linked && hasProgram);
 
-  titleEl.dataset.ui = linked ? 'coachPlan' : 'coachPlanEmpty';
-  leadEl.dataset.ui = linked ? 'coachPlanLead' : 'coachPlanEmptyLead';
+  if (!linked) {
+    titleEl.dataset.ui = 'coachPlanEmpty';
+    leadEl.dataset.ui = 'coachPlanEmptyLead';
+  } else if (!hasProgram) {
+    titleEl.dataset.ui = 'coachPlan';
+    leadEl.dataset.ui = 'coachPlanProgramEmpty';
+  } else {
+    titleEl.dataset.ui = 'coachPlan';
+    leadEl.dataset.ui = 'coachPlanLead';
+  }
+
   titleEl.textContent = ui(titleEl.dataset.ui);
   leadEl.textContent = ui(leadEl.dataset.ui);
   if (ctaBtn) ctaBtn.hidden = linked;
+}
+
+function hasCoachTrainingProgram(u = user) {
+  return Array.isArray(u?.coachTrainingProgram) && u.coachTrainingProgram.length > 0;
 }
 
 function syncRoleNav() {

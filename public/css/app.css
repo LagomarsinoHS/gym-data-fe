@@ -4150,6 +4150,109 @@ html[data-theme="dark"] .chip.active {
   align-items: stretch;
 }
 
+.coach-plan-sessions {
+  display: grid;
+  gap: 12px;
+}
+
+.coach-plan-session {
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--accent) 8%, var(--bg-surface)) 0%,
+      var(--bg-surface) 42%
+    );
+  overflow: hidden;
+}
+
+/* Allow card hover lift (translateY) without clipping the top border */
+.coach-plan-session.is-open {
+  overflow: visible;
+}
+
+.coach-plan-session-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.coach-plan-session-header:hover {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.coach-plan-session-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.coach-plan-session-meta {
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.coach-plan-session-chevron {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  margin-right: 2px;
+  border-right: 2px solid var(--text-tertiary);
+  border-bottom: 2px solid var(--text-tertiary);
+  transform: rotate(45deg);
+  transition: transform 0.22s ease, border-color 0.22s ease;
+}
+
+.coach-plan-session.is-open .coach-plan-session-chevron {
+  transform: rotate(-135deg);
+  border-color: var(--accent);
+}
+
+.coach-plan-session-body {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  padding: 0 16px;
+  transition: max-height 0.28s ease, opacity 0.2s ease, padding 0.28s ease;
+}
+
+.coach-plan-session.is-open .coach-plan-session-body {
+  max-height: 4000px;
+  opacity: 1;
+  overflow: visible;
+  padding: 4px 16px 16px;
+}
+
+.coach-plan-session-empty {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.coach-plan-session-grid {
+  margin: 0;
+  padding-top: 2px;
+}
+
 /* Training program cards — distinct from catalog exercise-card */
 .training-card {
   display: flex;

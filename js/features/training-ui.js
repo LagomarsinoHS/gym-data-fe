@@ -7,7 +7,13 @@
 import { fillCardMedia } from '../utils/cards.js';
 import { normalizeSearch } from '../utils/helpers.js';
 import { exerciseName, label, ui } from '../utils/labels.js';
+import { prescriptionLines, prescriptionNote } from '../utils/prescription.js';
 import { setView } from './session-ui.js';
+
+export { prescriptionLines, prescriptionNote };
+
+/** Which coach-plan session accordion is open (athlete view). */
+let openCoachPlanSessionId = null;
 
 /**
  * @param {object|null} user
@@ -24,17 +30,129 @@ export function renderTrainingProgram(user, filters = {}) {
 }
 
 /**
- * Plan del coach — paints user.coachTrainingProgram (same item shape as trainingProgram for now).
+ * Plan del coach — paints user.coachTrainingProgram as sessions.
  * Markup: #coach-plan-grid
  */
-export function renderCoachTrainingProgram(user, filters = {}) {
-  renderProgramIntoGrid({
-    gridId: 'coach-plan-grid',
-    items: user?.coachTrainingProgram,
-    filters,
-    emptyKey: 'coachPlanProgramEmpty',
-    showCatalogCta: false,
+export function renderCoachTrainingProgram(user) {
+  const root = document.getElementById('coach-plan-grid');
+  if (!root) return;
+
+  root.replaceChildren();
+  root.classList.remove('training-grid');
+  root.classList.add('coach-plan-sessions');
+
+  const prog = Array.isArray(user?.coachTrainingProgram) ? user.coachTrainingProgram : [];
+  if (!prog.length) {
+    root.appendChild(createTrainingEmptyState(true, {
+      emptyKey: 'coachPlanProgramEmpty',
+      showCatalogCta: false,
+    }));
+    return;
+  }
+
+  const sessions = [...prog].sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0));
+  const frag = document.createDocumentFragment();
+  for (const session of sessions) {
+    frag.appendChild(createCoachPlanSession(session));
+  }
+  root.appendChild(frag);
+}
+
+function createCoachPlanSession(session) {
+  const id = String(session?.id || '');
+  const name = String(session?.name || '').trim() || '—';
+  const items = [...(session?.items || [])]
+    .filter(item => item?.exercise)
+    .sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0));
+
+  const section = document.createElement('section');
+  section.className = 'coach-plan-session';
+  if (id) section.dataset.sessionId = id;
+
+  const header = document.createElement('button');
+  header.type = 'button';
+  header.className = 'coach-plan-session-header';
+  header.setAttribute('aria-expanded', 'false');
+
+  const title = document.createElement('span');
+  title.className = 'coach-plan-session-title';
+  title.textContent = name;
+
+  const meta = document.createElement('span');
+  meta.className = 'coach-plan-session-meta';
+  meta.textContent = coachSessionMeta(items);
+
+  const chevron = document.createElement('span');
+  chevron.className = 'coach-plan-session-chevron';
+  chevron.setAttribute('aria-hidden', 'true');
+
+  header.append(title, meta, chevron);
+
+  const body = document.createElement('div');
+  body.className = 'coach-plan-session-body';
+
+  if (!items.length) {
+    const empty = document.createElement('p');
+    empty.className = 'coach-plan-session-empty';
+    empty.textContent = ui('sessionEmptyItems');
+    body.append(empty);
+  } else {
+    const grid = document.createElement('div');
+    grid.className = 'training-grid coach-plan-session-grid';
+    for (const item of items) {
+      grid.appendChild(createProgramCard(item));
+    }
+    body.append(grid);
+  }
+
+  header.addEventListener('click', () => toggleCoachPlanSession(section));
+  section.append(header, body);
+
+  if (openCoachPlanSessionId && openCoachPlanSessionId === id) {
+    openCoachPlanSession(section);
+  }
+
+  return section;
+}
+
+function toggleCoachPlanSession(section) {
+  const opening = !section.classList.contains('is-open');
+  const root = section.closest('.coach-plan-sessions');
+  root?.querySelectorAll('.coach-plan-session.is-open').forEach(other => {
+    if (other !== section) closeCoachPlanSession(other);
   });
+  if (opening) openCoachPlanSession(section);
+  else closeCoachPlanSession(section);
+}
+
+function openCoachPlanSession(section) {
+  const header = section.querySelector('.coach-plan-session-header');
+  section.classList.add('is-open');
+  if (header) header.setAttribute('aria-expanded', 'true');
+  openCoachPlanSessionId = section.dataset.sessionId || null;
+}
+
+function closeCoachPlanSession(section) {
+  const header = section.querySelector('.coach-plan-session-header');
+  section.classList.remove('is-open');
+  if (header) header.setAttribute('aria-expanded', 'false');
+  if (openCoachPlanSessionId && section.dataset.sessionId === openCoachPlanSessionId) {
+    openCoachPlanSessionId = null;
+  }
+}
+
+function coachSessionMeta(items) {
+  const list = Array.isArray(items) ? items : [];
+  const parts = [ui('sessionExercisesCount', list.length)];
+  if (list.length) parts.push(ui('sessionSetsCount', totalCoachSessionSets(list)));
+  return parts.join(' · ');
+}
+
+function totalCoachSessionSets(items) {
+  return (items || []).reduce((sum, item) => {
+    const n = Number(item?.sets);
+    return sum + (Number.isFinite(n) && n > 0 ? Math.floor(n) : 0);
+  }, 0);
 }
 
 function renderProgramIntoGrid({
@@ -183,22 +301,4 @@ function createProgramCard(item) {
   }
 
   return article;
-}
-
-export function prescriptionLines(item) {
-  const lines = [];
-  if (item?.sets != null) {
-    lines.push({ ico: '🏋️', text: `${item.sets} ${ui('prescriptionSets')}` });
-  }
-  if (item?.reps) {
-    lines.push({ ico: '🔁', text: `${item.reps} ${ui('prescriptionReps')}` });
-  }
-  if (item?.rest != null) {
-    lines.push({ ico: '⏱️', text: `${item.rest}s` });
-  }
-  return lines;
-}
-
-export function prescriptionNote(item) {
-  return String(item?.notes || '').trim();
 }

@@ -14,6 +14,8 @@ import {
   initStudentsUi,
   syncStudentsLabels,
   loadCoachAthletes,
+} from './features/students-ui.js';
+import {
   getSessionAssignTarget,
   clearSessionAssignTarget,
   isExerciseInSession,
@@ -21,7 +23,7 @@ import {
   addExerciseToSession,
   updateSessionExercise,
   removeExerciseFromSession,
-} from './features/students-ui.js';
+} from './features/coach-sessions-ui.js';
 import { initCoachInviteUi, syncCoachInviteBanner } from './features/coach-invite-ui.js';
 import {
   initSessionUi,
@@ -1524,6 +1526,10 @@ function wireEvents() {
 
   wireCardGrid(gridEl, { cardSelector: '.exercise-card', onOpen: openModal });
   wireCardGrid(document.getElementById('training-grid'), {
+    cardSelector: '.training-card',
+    onOpen: openModal,
+  });
+  wireCardGrid(document.getElementById('coach-plan-grid'), {
     cardSelector: '.training-card',
     onOpen: openModal,
   });

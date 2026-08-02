@@ -53,9 +53,9 @@ Si el boot falla → mensaje de error en el contador de resultados.
 | `catalog` | Grid + filtros + search + WOD |
 | `training` | Plan personal (`trainingProgram`) |
 | `recommend` | Recomendar (solo si `isPremium`) |
-| `coach-plan` | Plan del coach (copy según `coachId`; sesiones reales pendientes de BE) |
+| `coach-plan` | Plan del coach (`coachTrainingProgram` por sesiones; empty sin coach / sin plan) |
 | `coach-panel` / `coach-templates` | Shells placeholder |
-| `students` | Mis alumnos (lista API + sesiones shell local) |
+| `students` | Mis alumnos (`students-ui` + `coach-sessions-ui` + `coach-athletes-store`) |
 | `session-editor` | Editor de una sesión del atleta (coach) |
 
 - Post-login: coach/admin → `coach-panel`; athlete → `training`.
@@ -301,8 +301,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 ## 16. Stubs / aún no cableado
 
-- Plan del coach (atleta): sin sesiones reales desde API.
-- Sesiones coach: UI completa en memoria; falta BE.
+- Sesiones coach: UI + PUT replace; export Excel y extras opcionales pendientes.
 - Export Excel (botones shell).
 - Admin no se elige en register (solo DB); en nav se comporta como coach.
 - Sin refresh token; si `/me` falla, sesión guest.

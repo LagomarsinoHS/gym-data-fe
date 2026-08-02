@@ -1,17 +1,23 @@
 /**
- * Coach — Mis alumnos: list + invite + sessions shell + session editor.
- * Markup: #students-view, #session-editor-view, #add-student-overlay, #add-session-overlay
- * API: POST /users/coach/invites · GET /users/coach/athletes
- * · PUT /users/coach/athletes/:id/training-program
+ * Coach — Mis alumnos: list, search, invite.
+ * Markup: #students-view, #add-student-overlay
+ * Sessions / editor / save → coach-sessions-ui.js
+ * Shared state → coach-athletes-store.js
  */
+import { getCoachAthletes, inviteCoachAthlete } from '../api/users.js';
+import { ui } from '../utils/labels.js';
 import {
-  getCoachAthletes,
-  inviteCoachAthlete,
-  putCoachAthleteTrainingProgram,
-} from '../api/users.js';
-import { assetUrl } from '../utils/assets.js';
-import { exerciseName, ui } from '../utils/labels.js';
-import { prescriptionLines, prescriptionNote } from './training-ui.js';
+  store,
+  athleteDisplayName,
+  resetCoachAthletesStore,
+} from './coach-athletes-store.js';
+import {
+  initCoachSessionsUi,
+  syncCoachSessionsLabels,
+  resetCoachSessionsUi,
+  createAthletePlan,
+  collapseOpenSessionsIn,
+} from './coach-sessions-ui.js';
 
 const SUCCESS_CLOSE_MS = 1200;
 const ATHLETE_PAGE_SIZE = 5;
@@ -24,12 +30,6 @@ let statusEl;
 let submitBtn;
 let submitLabel;
 let submitFill;
-let sessionOverlay;
-let sessionForm;
-let sessionNameInput;
-let sessionStatusEl;
-let sessionSubmitBtn;
-let sessionAthleteId = null;
 let loadMoreBtn;
 let searchInput;
 let searchClearBtn;
@@ -39,31 +39,14 @@ let downloadMenu;
 let downloadAllBtn;
 let closeTimer = 0;
 let searchTimer = 0;
-let athletes = [];
-let athletesLoaded = false;
-let loadingAthletes = false;
-let page = 0;
-let pages = 0;
-let total = 0;
-let loadSeq = 0;
-let openAthleteId = null;
-let openSessionId = null;
-let searchQuery = '';
-let editorAthleteId = null;
-let editorSessionId = null;
-let sessionAssignTarget = null;
-let navigateTo = () => {};
-let openExercise = () => {};
-/** Athlete ids with unsaved coachTrainingProgram edits */
-const dirtyAthleteIds = new Set();
-/** @type {Set<string>} athletes currently saving */
-const savingAthleteIds = new Set();
-/** @type {Map<string, string>} last save error message by athlete id */
-const saveErrorByAthleteId = new Map();
 
+// ── Init / labels ─────────────────────────────────────────────────────
 export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
-  if (typeof nav === 'function') navigateTo = nav;
-  if (typeof openEx === 'function') openExercise = openEx;
+  if (typeof nav === 'function') store.navigateTo = nav;
+  if (typeof openEx === 'function') store.openExercise = openEx;
+  store.refreshList = () => {
+    if (store.athletesLoaded) renderStudentsList();
+  };
 
   overlay = document.getElementById('add-student-overlay');
   form = document.getElementById('add-student-form');
@@ -72,11 +55,6 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
   submitBtn = document.getElementById('add-student-submit');
   submitLabel = submitBtn?.querySelector('.recommend-submit-label');
   submitFill = document.getElementById('add-student-submit-fill');
-  sessionOverlay = document.getElementById('add-session-overlay');
-  sessionForm = document.getElementById('add-session-form');
-  sessionNameInput = document.getElementById('add-session-name');
-  sessionStatusEl = document.getElementById('add-session-status');
-  sessionSubmitBtn = document.getElementById('add-session-submit');
   loadMoreBtn = document.getElementById('students-load-more');
   searchInput = document.getElementById('students-search');
   searchClearBtn = document.getElementById('students-search-clear');
@@ -86,36 +64,11 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
   downloadAllBtn = document.getElementById('students-download-all');
   if (!overlay || !form) return;
 
+  initCoachSessionsUi();
+
   document.getElementById('students-add-btn')?.addEventListener('click', openAddStudentModal);
   document.getElementById('students-empty-add-btn')?.addEventListener('click', openAddStudentModal);
   document.getElementById('add-student-close')?.addEventListener('click', closeAddStudentModal);
-  document.getElementById('add-session-close')?.addEventListener('click', closeAddSessionModal);
-  document.getElementById('session-editor-back')?.addEventListener('click', () => {
-    editorAthleteId = null;
-    editorSessionId = null;
-    navigateTo('students');
-  });
-  document.getElementById('session-editor-add')?.addEventListener('click', () => {
-    if (editorAthleteId && editorSessionId) beginSessionAssign(editorAthleteId, editorSessionId);
-  });
-  const sessionNameEditor = document.getElementById('session-editor-name');
-  sessionNameEditor?.addEventListener('change', commitSessionEditorName);
-  sessionNameEditor?.addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      e.currentTarget.blur();
-    }
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      revertSessionEditorName(e.currentTarget);
-      e.currentTarget.blur();
-    }
-  });
-  document.getElementById('session-assign-done')?.addEventListener('click', () => {
-    clearSessionAssignTarget();
-    if (editorAthleteId && editorSessionId) navigateTo('session-editor');
-    else navigateTo('students');
-  });
   loadMoreBtn?.addEventListener('click', () => void loadMoreAthletes());
   searchInput?.addEventListener('input', onSearchInput);
   searchClearBtn?.addEventListener('click', clearStudentsSearch);
@@ -127,11 +80,7 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
   overlay.addEventListener('click', e => {
     if (e.target === overlay) closeAddStudentModal();
   });
-  sessionOverlay?.addEventListener('click', e => {
-    if (e.target === sessionOverlay) closeAddSessionModal();
-  });
   form.addEventListener('submit', onSubmit);
-  sessionForm?.addEventListener('submit', onAddSessionSubmit);
 
   document.addEventListener('click', e => {
     if (!downloadWrap?.classList.contains('is-open')) return;
@@ -146,11 +95,6 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
       closeDownloadMenu();
       return;
     }
-    if (sessionOverlay?.classList.contains('open')) {
-      e.stopImmediatePropagation();
-      closeAddSessionModal();
-      return;
-    }
     if (overlay.classList.contains('open')) {
       e.stopImmediatePropagation();
       closeAddStudentModal();
@@ -160,6 +104,31 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
   syncStudentsLabels();
 }
 
+export function syncStudentsLabels() {
+  document.querySelectorAll(
+    '#students-view [data-ui], #add-student-overlay [data-ui]',
+  ).forEach(el => {
+    el.textContent = ui(el.dataset.ui);
+  });
+
+  if (emailInput) emailInput.placeholder = ui('inviteEmailPlaceholder');
+  if (searchInput) searchInput.placeholder = ui('studentsSearch');
+  if (submitBtn && !submitBtn.classList.contains('is-sent') && submitLabel) {
+    submitLabel.textContent = ui('addStudentSubmit');
+  }
+
+  syncSearchClear();
+  if (store.athletesLoaded) renderStudentsList();
+  syncCoachSessionsLabels();
+}
+
+export function clearCoachAthletesCache() {
+  resetCoachAthletesStore();
+  resetCoachSessionsUi();
+  resetStudentsSearch({ keepInput: false });
+}
+
+// ── Athletes fetch / search / cache ───────────────────────────────────
 /**
  * Fetch linked athletes for the authenticated coach (page 1, limit 5).
  * Cached in memory until force refresh, logout, search change, or session restore.
@@ -168,27 +137,27 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
 export async function loadCoachAthletes({ force = false } = {}) {
   if (force) resetStudentsSearch({ keepInput: false });
 
-  const shouldFetch = force || !athletesLoaded;
+  const shouldFetch = force || !store.athletesLoaded;
 
   if (!shouldFetch) {
-    renderStudentsList();
-    return athletes;
+    store.refreshList();
+    return store.athletes;
   }
 
   return fetchAthletesPage(1, { replace: true });
 }
 
 async function loadMoreAthletes() {
-  if (loadingAthletes || !hasMoreAthletes()) return;
-  return fetchAthletesPage(page + 1, { replace: false });
+  if (store.loadingAthletes || !hasMoreAthletes()) return;
+  return fetchAthletesPage(store.page + 1, { replace: false });
 }
 
 async function fetchAthletesPage(nextPage, { replace }) {
-  if (loadingAthletes) return athletes;
+  if (store.loadingAthletes) return store.athletes;
 
-  const seq = ++loadSeq;
-  loadingAthletes = true;
-  const showBootLoading = replace && (!athletesLoaded || athletes.length === 0);
+  const seq = ++store.loadSeq;
+  store.loadingAthletes = true;
+  const showBootLoading = replace && (!store.athletesLoaded || store.athletes.length === 0);
   if (showBootLoading) setStudentsLoading(true);
   syncLoadMoreBtn();
 
@@ -196,35 +165,35 @@ async function fetchAthletesPage(nextPage, { replace }) {
     const payload = await getCoachAthletes({
       page: nextPage,
       limit: ATHLETE_PAGE_SIZE,
-      search: searchQuery || undefined,
+      search: store.searchQuery || undefined,
     });
-    if (seq !== loadSeq) return athletes;
+    if (seq !== store.loadSeq) return store.athletes;
 
     const items = normalizeAthletes(payload);
-    page = Number(payload?.page) || nextPage;
-    pages = Number(payload?.pages) || 0;
-    total = Number(payload?.total) || 0;
+    store.page = Number(payload?.page) || nextPage;
+    store.pages = Number(payload?.pages) || 0;
+    store.total = Number(payload?.total) || 0;
     const merged = mergeLocalSessions(items);
-    athletes = replace ? merged : athletes.concat(merged);
-    athletesLoaded = true;
+    store.athletes = replace ? merged : store.athletes.concat(merged);
+    store.athletesLoaded = true;
   } catch (err) {
     console.error(err);
-    if (seq === loadSeq && replace) {
-      athletes = [];
-      athletesLoaded = true;
-      page = 0;
-      pages = 0;
-      total = 0;
+    if (seq === store.loadSeq && replace) {
+      store.athletes = [];
+      store.athletesLoaded = true;
+      store.page = 0;
+      store.pages = 0;
+      store.total = 0;
     }
   } finally {
-    if (seq === loadSeq) {
-      loadingAthletes = false;
+    if (seq === store.loadSeq) {
+      store.loadingAthletes = false;
       setStudentsLoading(false);
-      renderStudentsList();
+      store.refreshList();
     }
   }
 
-  return athletes;
+  return store.athletes;
 }
 
 function setStudentsLoading(show) {
@@ -243,7 +212,7 @@ function normalizeAthletes(payload) {
 }
 
 function hasMoreAthletes() {
-  return page > 0 && page < pages;
+  return store.page > 0 && store.page < store.pages;
 }
 
 function onSearchInput() {
@@ -251,10 +220,10 @@ function onSearchInput() {
   window.clearTimeout(searchTimer);
   searchTimer = window.setTimeout(() => {
     const next = searchInput?.value.trim() ?? '';
-    if (next === searchQuery) return;
-    searchQuery = next;
-    openAthleteId = null;
-    athletesLoaded = false;
+    if (next === store.searchQuery) return;
+    store.searchQuery = next;
+    store.openAthleteId = null;
+    store.athletesLoaded = false;
     void fetchAthletesPage(1, { replace: true });
   }, SEARCH_DEBOUNCE_MS);
 }
@@ -263,17 +232,17 @@ function clearStudentsSearch() {
   if (!searchInput) return;
   searchInput.value = '';
   syncSearchClear();
-  if (!searchQuery) return;
-  searchQuery = '';
-  openAthleteId = null;
-  athletesLoaded = false;
+  if (!store.searchQuery) return;
+  store.searchQuery = '';
+  store.openAthleteId = null;
+  store.athletesLoaded = false;
   void fetchAthletesPage(1, { replace: true });
 }
 
 function resetStudentsSearch({ keepInput = false } = {}) {
   window.clearTimeout(searchTimer);
   searchTimer = 0;
-  searchQuery = '';
+  store.searchQuery = '';
   if (!keepInput && searchInput) searchInput.value = '';
   syncSearchClear();
 }
@@ -282,49 +251,25 @@ function syncSearchClear() {
   searchClearBtn?.classList.toggle('visible', Boolean(searchInput?.value));
 }
 
-export function clearCoachAthletesCache() {
-  loadSeq += 1;
-  athletes = [];
-  athletesLoaded = false;
-  loadingAthletes = false;
-  page = 0;
-  pages = 0;
-  total = 0;
-  openAthleteId = null;
-  openSessionId = null;
-  editorAthleteId = null;
-  editorSessionId = null;
-  dirtyAthleteIds.clear();
-  savingAthleteIds.clear();
-  saveErrorByAthleteId.clear();
-  clearSessionAssignTarget();
-  resetStudentsSearch({ keepInput: false });
-}
-
 function mergeLocalSessions(nextItems) {
-  const prev = new Map(athletes.map(a => [String(a?.id), a]));
+  const prev = new Map(store.athletes.map(a => [String(a?.id), a]));
   return nextItems.map(a => {
     const id = String(a?.id || '');
     const old = prev.get(id);
-    const oldSessions = old && isSessionsShape(old.coachTrainingProgram || [])
-      ? old.coachTrainingProgram
-      : null;
-    const apiSessions = isSessionsShape(a?.coachTrainingProgram || [])
-      ? a.coachTrainingProgram
-      : null;
-    if (apiSessions?.length) return { ...a, coachTrainingProgram: apiSessions };
-    if (oldSessions?.length) return { ...a, coachTrainingProgram: oldSessions };
-    return {
-      ...a,
-      coachTrainingProgram: apiSessions || oldSessions || [],
-    };
+    const apiSessions = Array.isArray(a?.coachTrainingProgram) ? a.coachTrainingProgram : [];
+    const oldSessions = Array.isArray(old?.coachTrainingProgram) ? old.coachTrainingProgram : [];
+    // Prefer API when it has sessions; otherwise keep local (e.g. unsaved dirty plan).
+    if (apiSessions.length) return { ...a, coachTrainingProgram: apiSessions };
+    if (oldSessions.length) return { ...a, coachTrainingProgram: oldSessions };
+    return { ...a, coachTrainingProgram: [] };
   });
 }
 
 export function getStudents() {
-  return athletes;
+  return store.athletes;
 }
 
+// ── Invite student modal ──────────────────────────────────────────────
 export function openAddStudentModal() {
   if (!overlay) return;
   clearCloseTimer();
@@ -342,61 +287,99 @@ export function closeAddStudentModal() {
   resetSubmitBtn();
 }
 
-export function syncStudentsLabels() {
-  document.querySelectorAll(
-    '#students-view [data-ui], #session-editor-view [data-ui], #session-assign-banner [data-ui], #add-student-overlay [data-ui], #add-session-overlay [data-ui]',
-  ).forEach(el => {
-    el.textContent = ui(el.dataset.ui);
-  });
+async function onSubmit(e) {
+  e.preventDefault();
+  const email = emailInput?.value.trim() ?? '';
+  if (!email) return;
 
-  if (emailInput) emailInput.placeholder = ui('inviteEmailPlaceholder');
-  if (searchInput) searchInput.placeholder = ui('studentsSearch');
-  if (sessionNameInput && !sessionOverlay?.classList.contains('open')) {
-    sessionNameInput.placeholder = ui('addSessionNamePlaceholder');
+  clearCloseTimer();
+  setStatus('');
+  if (submitBtn) submitBtn.disabled = true;
+
+  try {
+    await inviteCoachAthlete(email);
+    void loadCoachAthletes({ force: true });
+    if (submitBtn) {
+      submitBtn.classList.add('is-sent');
+      submitBtn.disabled = true;
+    }
+    if (submitLabel) {
+      submitLabel.dataset.ui = 'inviteSent';
+      submitLabel.textContent = ui('inviteSent');
+    }
+    startSubmitFill();
+    closeTimer = window.setTimeout(() => {
+      closeTimer = 0;
+      closeAddStudentModal();
+    }, SUCCESS_CLOSE_MS);
+  } catch (err) {
+    console.error(err);
+    setStatus(inviteErrorMessage(err), 'error');
+    resetSubmitBtn();
   }
-  const sessionNameEditor = document.getElementById('session-editor-name');
-  if (sessionNameEditor) {
-    sessionNameEditor.setAttribute('aria-label', ui('addSessionName'));
-    sessionNameEditor.placeholder = ui('addSessionNamePlaceholder');
+}
+
+function inviteErrorMessage(err) {
+  const status = err?.status;
+  const raw = Array.isArray(err?.message) ? err.message.join(' ') : String(err?.message || '');
+  const lower = raw.toLowerCase();
+
+  if (status === 404) return ui('inviteNotFound');
+  if (status === 409) {
+    if (lower.includes('pending')) return ui('invitePending');
+    return ui('inviteHasCoach');
   }
-  if (submitBtn && !submitBtn.classList.contains('is-sent') && submitLabel) {
+  return ui('inviteFail');
+}
+
+function setStatus(message, kind = '') {
+  if (!statusEl) return;
+  if (!message) {
+    statusEl.hidden = true;
+    statusEl.textContent = '';
+    statusEl.classList.remove('is-error', 'is-ok');
+    return;
+  }
+  statusEl.hidden = false;
+  statusEl.textContent = message;
+  statusEl.classList.toggle('is-error', kind === 'error');
+  statusEl.classList.toggle('is-ok', kind === 'ok');
+}
+
+function resetSubmitBtn() {
+  if (!submitBtn) return;
+  submitBtn.disabled = false;
+  submitBtn.classList.remove('is-sent');
+  if (submitLabel) {
+    submitLabel.dataset.ui = 'addStudentSubmit';
     submitLabel.textContent = ui('addStudentSubmit');
   }
-
-  syncSearchClear();
-  if (athletesLoaded) renderStudentsList();
-  syncSessionEditorView();
-  syncSessionAssignBanner();
+  stopSubmitFill();
 }
 
-export function openAddSessionModal(athleteId) {
-  if (!sessionOverlay || !sessionForm) return;
-  const athlete = athletes.find(a => String(a?.id) === String(athleteId));
-  if (!athlete) return;
-
-  sessionAthleteId = String(athleteId);
-  setSessionStatus('');
-  sessionForm.reset();
-  const next = getAthleteSessions(athlete).length + 1;
-  const defaultName = ui('addSessionDefault', next);
-  if (sessionNameInput) {
-    sessionNameInput.placeholder = defaultName;
-    sessionNameInput.value = defaultName;
-  }
-  if (sessionSubmitBtn) sessionSubmitBtn.disabled = false;
-  sessionOverlay.classList.add('open');
-  sessionNameInput?.focus();
-  sessionNameInput?.select();
+function startSubmitFill() {
+  if (!submitFill) return;
+  submitFill.hidden = false;
+  submitFill.style.width = '';
+  submitFill.style.animation = 'none';
+  void submitFill.offsetWidth;
+  submitFill.style.animation = '';
 }
 
-export function closeAddSessionModal() {
-  sessionOverlay?.classList.remove('open');
-  sessionAthleteId = null;
-  setSessionStatus('');
-  sessionForm?.reset();
-  if (sessionSubmitBtn) sessionSubmitBtn.disabled = false;
+function stopSubmitFill() {
+  if (!submitFill) return;
+  submitFill.hidden = true;
+  submitFill.style.animation = 'none';
+  submitFill.style.width = '0%';
 }
 
+function clearCloseTimer() {
+  if (!closeTimer) return;
+  window.clearTimeout(closeTimer);
+  closeTimer = 0;
+}
+
+// ── Students list UI ──────────────────────────────────────────────────
 function renderStudentsList() {
   const loading = document.getElementById('students-loading');
   const empty = document.getElementById('students-empty');
@@ -406,21 +389,21 @@ function renderStudentsList() {
   const emptyAdd = document.getElementById('students-empty-add-btn');
   if (!empty || !list) return;
 
-  if (loadingAthletes && !athletesLoaded) {
+  if (store.loadingAthletes && !store.athletesLoaded) {
     setStudentsLoading(true);
     return;
   }
 
   if (loading) loading.hidden = true;
 
-  const has = athletes.length > 0;
-  const searching = Boolean(searchQuery);
+  const has = store.athletes.length > 0;
+  const searching = Boolean(store.searchQuery);
   empty.hidden = has;
   list.hidden = !has;
   list.replaceChildren();
 
   if (!has) {
-    openAthleteId = null;
+    store.openAthleteId = null;
     if (emptyTitle) {
       emptyTitle.dataset.ui = searching ? 'studentsSearchEmptyTitle' : 'studentsEmptyTitle';
       emptyTitle.textContent = ui(emptyTitle.dataset.ui);
@@ -437,7 +420,7 @@ function renderStudentsList() {
   if (emptyAdd) emptyAdd.hidden = false;
 
   const frag = document.createDocumentFragment();
-  for (const athlete of athletes) {
+  for (const athlete of store.athletes) {
     frag.appendChild(createStudentRow(athlete));
   }
   list.appendChild(frag);
@@ -448,9 +431,9 @@ function syncLoadMoreBtn() {
   if (!loadMoreBtn) loadMoreBtn = document.getElementById('students-load-more');
   if (!loadMoreBtn) return;
 
-  const show = athletes.length > 0 && hasMoreAthletes();
+  const show = store.athletes.length > 0 && hasMoreAthletes();
   loadMoreBtn.hidden = !show;
-  loadMoreBtn.disabled = loadingAthletes;
+  loadMoreBtn.disabled = store.loadingAthletes;
   const label = loadMoreBtn.querySelector('[data-ui="studentsLoadMore"]');
   if (label) label.textContent = ui('studentsLoadMore');
 }
@@ -479,13 +462,52 @@ function onDownloadAll() {
   // Shell: Excel export TBD (docs/TODO.md)
 }
 
+function onDownloadAthlete(_athleteId) {
+  // Shell: Excel export TBD (docs/TODO.md)
+}
+
+function createDetail(label, value) {
+  const row = document.createElement('div');
+  row.className = 'student-row-detail';
+
+  const labelEl = document.createElement('span');
+  labelEl.className = 'student-row-detail-label';
+  labelEl.textContent = label;
+
+  const valueEl = document.createElement('span');
+  valueEl.className = 'student-row-detail-value';
+  valueEl.textContent = value;
+
+  row.append(labelEl, valueEl);
+  return row;
+}
+
+function toggleStudentRow(row) {
+  const opening = !row.classList.contains('is-open');
+  document.querySelectorAll('#students-list .student-row.is-open').forEach(other => {
+    if (other !== row) closeStudentRow(other);
+  });
+  if (opening) openStudentRow(row);
+  else closeStudentRow(row);
+}
+
+function openStudentRow(row) {
+  const nextId = row.dataset.id || null;
+  // Switching athletes (or re-opening): start with sessions collapsed
+  if (store.openAthleteId !== nextId) store.openSessionId = null;
+
+  const header = row.querySelector('.student-row-header');
+  row.classList.add('is-open');
+  if (header) header.setAttribute('aria-expanded', 'true');
+  store.openAthleteId = nextId;
+}
+
 function createStudentRow(athlete) {
   const id = String(athlete?.id || '');
   const first = String(athlete?.firstName || '').trim();
   const last = String(athlete?.lastName || '').trim();
   const email = String(athlete?.email || '').trim();
-  const full = [first, last].filter(Boolean).join(' ') || email || '—';
-  const sessions = getAthleteSessions(athlete);
+  const full = athleteDisplayName(athlete);
 
   const row = document.createElement('div');
   row.className = 'student-row';
@@ -536,990 +558,28 @@ function createStudentRow(athlete) {
 
   emailLine.append(createDetail(ui('email'), email || '—'), downloadOne);
 
-  const plan = document.createElement('div');
-  plan.className = 'student-plan';
-
-  const planHead = document.createElement('div');
-  planHead.className = 'student-plan-head';
-
-  const planTitle = document.createElement('span');
-  planTitle.className = 'student-plan-title';
-  planTitle.textContent = ui('sessionsHeading');
-
-  const planHeadActions = document.createElement('div');
-  planHeadActions.className = 'student-plan-head-actions';
-
-  const addSessionBtn = document.createElement('button');
-  addSessionBtn.type = 'button';
-  addSessionBtn.className = 'student-plan-add';
-  addSessionBtn.textContent = ui('addSession');
-  addSessionBtn.addEventListener('click', e => {
-    e.stopPropagation();
-    openAddSessionModal(id);
-  });
-  planHeadActions.append(addSessionBtn);
-
-  if (isAthleteDirty(id)) {
-    const dirty = document.createElement('span');
-    dirty.className = 'student-plan-dirty';
-    dirty.textContent = ui('athletePlanUnsaved');
-    planHeadActions.prepend(dirty);
-  }
-
-  planHead.append(planTitle, planHeadActions);
-
-  const sessionList = document.createElement('div');
-  sessionList.className = 'student-session-list';
-
-  if (sessions.length === 0) {
-    const empty = document.createElement('p');
-    empty.className = 'student-plan-empty';
-    empty.textContent = ui('sessionsEmpty');
-    sessionList.append(empty);
-  } else {
-    for (const session of sessions) {
-      sessionList.appendChild(createSessionRow(session, id));
-    }
-  }
-
-  plan.append(planHead, sessionList);
-
-  if (isAthleteDirty(id) || savingAthleteIds.has(id) || saveErrorByAthleteId.has(id)) {
-    plan.append(createPlanSaveBar(id));
-  }
-
   body.append(
     createDetail(ui('firstName'), first || '—'),
     createDetail(ui('lastName'), last || '—'),
     emailLine,
-    plan,
+    createAthletePlan(athlete),
   );
 
   header.addEventListener('click', () => toggleStudentRow(row));
   row.append(header, body);
 
-  if (openAthleteId && openAthleteId === id) openStudentRow(row);
+  if (store.openAthleteId && store.openAthleteId === id) openStudentRow(row);
 
   return row;
-}
-
-function createSessionRow(session, athleteId) {
-  const id = String(session?.id || '');
-  const name = String(session?.name || '').trim() || '—';
-  const items = Array.isArray(session?.items) ? session.items : [];
-
-  const row = document.createElement('div');
-  row.className = 'student-session';
-  if (id) row.dataset.sessionId = id;
-
-  const top = document.createElement('div');
-  top.className = 'student-session-top';
-
-  const header = document.createElement('button');
-  header.type = 'button';
-  header.className = 'student-session-header';
-  header.setAttribute('aria-expanded', 'false');
-
-  const nameEl = document.createElement('span');
-  nameEl.className = 'student-session-name';
-  nameEl.textContent = name;
-
-  const meta = createSessionMetaChips(items);
-
-  const chevron = document.createElement('span');
-  chevron.className = 'student-session-chevron';
-  chevron.setAttribute('aria-hidden', 'true');
-
-  header.append(nameEl, meta, chevron);
-
-  const removeBtn = document.createElement('button');
-  removeBtn.type = 'button';
-  removeBtn.className = 'student-session-remove';
-  removeBtn.setAttribute('aria-label', ui('sessionRemove'));
-  removeBtn.title = ui('sessionRemove');
-  removeBtn.innerHTML = `
-    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
-      <path d="M4 4l8 8M12 4L4 12"/>
-    </svg>
-  `;
-  removeBtn.addEventListener('click', e => {
-    e.stopPropagation();
-    if (!window.confirm(ui('sessionRemoveConfirm', name))) return;
-    removeSessionFromAthlete(athleteId, id);
-  });
-
-  top.append(header, removeBtn);
-
-  const body = document.createElement('div');
-  body.className = 'student-session-body';
-
-  if (!items.length) {
-    const empty = document.createElement('p');
-    empty.className = 'student-session-empty';
-    empty.textContent = ui('sessionEmptyItems');
-    body.append(empty);
-  } else {
-    const summary = document.createElement('div');
-    summary.className = 'student-session-summary';
-    const sorted = [...items].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-    for (const item of sorted) {
-      summary.appendChild(createSessionMiniCard(item));
-    }
-    body.append(summary);
-  }
-
-  const actions = document.createElement('div');
-  actions.className = 'student-session-actions';
-
-  const editBtn = document.createElement('button');
-  editBtn.type = 'button';
-  editBtn.className = 'student-session-edit';
-  editBtn.textContent = items.length ? ui('sessionEdit') : ui('sessionAddExercises');
-  editBtn.addEventListener('click', e => {
-    e.stopPropagation();
-    openSessionEditor(athleteId, id);
-  });
-  actions.append(editBtn);
-  body.append(actions);
-
-  header.addEventListener('click', e => {
-    e.stopPropagation();
-    toggleSessionRow(row);
-  });
-
-  row.append(top, body);
-
-  if (openSessionId && openSessionId === id) openSessionRow(row);
-
-  return row;
-}
-
-export function openSessionEditor(athleteId, sessionId) {
-  const athlete = findAthlete(athleteId);
-  const session = findSession(athleteId, sessionId);
-  if (!athlete || !session) return;
-
-  editorAthleteId = String(athleteId);
-  editorSessionId = String(sessionId);
-  openAthleteId = editorAthleteId;
-  openSessionId = editorSessionId;
-  clearSessionAssignTarget();
-  navigateTo('session-editor');
-}
-
-export function beginSessionAssign(athleteId, sessionId) {
-  const athlete = findAthlete(athleteId);
-  const session = findSession(athleteId, sessionId);
-  if (!athlete || !session) return;
-
-  editorAthleteId = String(athleteId);
-  editorSessionId = String(sessionId);
-  navigateTo('catalog');
-  armSessionAssignTarget(athlete, session);
-}
-
-/** Open modal to edit an exercise already in the session (stay in editor). */
-export function editSessionExercise(athleteId, sessionId, exerciseId) {
-  const athlete = findAthlete(athleteId);
-  const session = findSession(athleteId, sessionId);
-  if (!athlete || !session || !exerciseId) return;
-  if (!isExerciseInSession(athleteId, sessionId, exerciseId)) return;
-
-  editorAthleteId = String(athleteId);
-  editorSessionId = String(sessionId);
-  armSessionAssignTarget(athlete, session);
-  openExercise(String(exerciseId));
-}
-
-function armSessionAssignTarget(athlete, session) {
-  sessionAssignTarget = {
-    athleteId: String(athlete.id),
-    sessionId: String(session.id),
-    sessionName: String(session.name || '').trim(),
-    athleteName: athleteDisplayName(athlete),
-  };
-  syncSessionAssignBanner();
-}
-
-export function clearSessionAssignTarget() {
-  sessionAssignTarget = null;
-  syncSessionAssignBanner();
-}
-
-export function getSessionAssignTarget() {
-  return sessionAssignTarget;
-}
-
-export function isExerciseInSession(athleteId, sessionId, exerciseId) {
-  return Boolean(getSessionExerciseItem(athleteId, sessionId, exerciseId));
-}
-
-export function getSessionExerciseItem(athleteId, sessionId, exerciseId) {
-  const session = findSession(athleteId, sessionId);
-  if (!session) return null;
-  const key = String(exerciseId || '');
-  return (session.items || []).find(
-    item => String(item.exercise?.id || item.exerciseId) === key,
-  ) || null;
-}
-
-export function addExerciseToSession(athleteId, sessionId, exercise) {
-  const session = findSession(athleteId, sessionId);
-  if (!session || !exercise?.id) return false;
-
-  const key = String(exercise.id);
-  if (isExerciseInSession(athleteId, sessionId, key)) return false;
-
-  if (!Array.isArray(session.items)) session.items = [];
-  session.items.push({
-    exerciseId: key,
-    exercise,
-    order: session.items.length,
-  });
-  markAthleteDirty(athleteId);
-  syncSessionEditorView();
-  if (athletesLoaded) renderStudentsList();
-  return true;
-}
-
-export function updateSessionExercise(athleteId, sessionId, exerciseId, updates) {
-  const item = getSessionExerciseItem(athleteId, sessionId, exerciseId);
-  if (!item || !updates) return false;
-
-  if ('sets' in updates) item.sets = updates.sets;
-  if ('reps' in updates) item.reps = updates.reps;
-  if ('rest' in updates) item.rest = updates.rest;
-  if ('notes' in updates) item.notes = updates.notes;
-
-  markAthleteDirty(athleteId);
-  syncSessionEditorView();
-  if (athletesLoaded) renderStudentsList();
-  return true;
-}
-
-export function removeExerciseFromSession(athleteId, sessionId, exerciseId) {
-  const session = findSession(athleteId, sessionId);
-  if (!session) return false;
-
-  const key = String(exerciseId || '');
-  const before = session.items?.length || 0;
-  session.items = (session.items || []).filter(
-    item => String(item.exercise?.id || item.exerciseId) !== key,
-  );
-  session.items.forEach((item, i) => { item.order = i; });
-  if (session.items.length === before) return false;
-
-  markAthleteDirty(athleteId);
-  syncSessionEditorView();
-  if (athletesLoaded) renderStudentsList();
-  return true;
-}
-
-/** Local remove — persists with Guardar plan (full PUT replace). */
-export function removeSessionFromAthlete(athleteId, sessionId) {
-  const athlete = findAthlete(athleteId);
-  if (!athlete) return false;
-
-  const sessions = ensureAthleteSessions(athlete);
-  const key = String(sessionId || '');
-  const before = sessions.length;
-  athlete.coachTrainingProgram = sessions.filter(s => String(s?.id) !== key);
-  athlete.coachTrainingProgram.forEach((s, i) => { s.order = i; });
-  if (athlete.coachTrainingProgram.length === before) return false;
-
-  if (openSessionId === key) openSessionId = null;
-
-  if (sessionAssignTarget
-    && String(sessionAssignTarget.athleteId) === String(athleteId)
-    && String(sessionAssignTarget.sessionId) === key) {
-    clearSessionAssignTarget();
-  }
-
-  if (String(editorAthleteId) === String(athleteId) && String(editorSessionId) === key) {
-    editorAthleteId = null;
-    editorSessionId = null;
-    const editorView = document.getElementById('session-editor-view');
-    if (editorView && !editorView.hidden) navigateTo('students');
-  }
-
-  markAthleteDirty(athleteId);
-  syncSessionEditorView();
-  if (athletesLoaded) renderStudentsList();
-  return true;
-}
-
-export function getSessionAssignLabel() {
-  const target = sessionAssignTarget;
-  if (!target) return '';
-  const athlete = findAthlete(target.athleteId);
-  const session = findSession(target.athleteId, target.sessionId);
-  if (!athlete || !session) return '';
-  const athleteName = athleteDisplayName(athlete);
-  return ui('sessionAssignTo', session.name, athleteName);
-}
-
-export function syncSessionEditorView() {
-  const view = document.getElementById('session-editor-view');
-  if (!view || view.hidden) return;
-
-  const nameInput = document.getElementById('session-editor-name');
-  const subtitleEl = document.getElementById('session-editor-subtitle');
-  const listEl = document.getElementById('session-editor-list');
-  if (!listEl) return;
-
-  const athlete = findAthlete(editorAthleteId);
-  const session = findSession(editorAthleteId, editorSessionId);
-
-  if (!athlete || !session) {
-    listEl.replaceChildren();
-    if (nameInput && document.activeElement !== nameInput) {
-      nameInput.value = '';
-    }
-    if (subtitleEl) subtitleEl.textContent = '';
-    return;
-  }
-
-  if (nameInput && document.activeElement !== nameInput) {
-    nameInput.value = String(session.name || '').trim();
-  }
-  if (subtitleEl) {
-    const items = Array.isArray(session.items) ? session.items : [];
-    subtitleEl.textContent = `${athleteDisplayName(athlete)} · ${sessionAccordionMeta(items)}`;
-  }
-
-  listEl.replaceChildren();
-  const items = [...(session.items || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  if (!items.length) return;
-
-  const frag = document.createDocumentFragment();
-  for (const item of items) {
-    frag.appendChild(createEditorItem(item, editorAthleteId, editorSessionId));
-  }
-  listEl.append(frag);
-}
-
-function revertSessionEditorName(input) {
-  const session = findSession(editorAthleteId, editorSessionId);
-  if (input) input.value = String(session?.name || '').trim();
-}
-
-function commitSessionEditorName(e) {
-  const input = e?.currentTarget || document.getElementById('session-editor-name');
-  if (!input || !editorAthleteId || !editorSessionId) return;
-
-  const next = String(input.value || '').trim();
-  if (!next) {
-    revertSessionEditorName(input);
-    return;
-  }
-
-  renameSession(editorAthleteId, editorSessionId, next);
-}
-
-export function renameSession(athleteId, sessionId, name) {
-  const session = findSession(athleteId, sessionId);
-  if (!session) return false;
-
-  const next = String(name || '').trim().slice(0, 40);
-  if (!next || next === String(session.name || '').trim()) {
-    const input = document.getElementById('session-editor-name');
-    if (input && document.activeElement !== input) input.value = String(session.name || '').trim();
-    return false;
-  }
-
-  session.name = next;
-
-  if (sessionAssignTarget
-    && String(sessionAssignTarget.athleteId) === String(athleteId)
-    && String(sessionAssignTarget.sessionId) === String(sessionId)) {
-    sessionAssignTarget.sessionName = next;
-    syncSessionAssignBanner();
-  }
-
-  markAthleteDirty(athleteId);
-  syncSessionEditorView();
-  if (athletesLoaded) renderStudentsList();
-  return true;
-}
-
-function syncSessionAssignBanner() {
-  const banner = document.getElementById('session-assign-banner');
-  const textEl = document.getElementById('session-assign-banner-text');
-  if (!banner) return;
-
-  const label = getSessionAssignLabel();
-  const show = Boolean(label);
-  banner.hidden = !show;
-  if (textEl) textEl.textContent = label;
-}
-
-function createSessionMiniCard(item) {
-  const ex = item.exercise;
-  const id = String(ex?.id || item.exerciseId || '');
-  const name = exerciseName(ex) || id || '—';
-
-  const card = document.createElement('article');
-  card.className = 'student-session-mini';
-  if (id) card.dataset.id = id;
-
-  const media = document.createElement('div');
-  media.className = 'student-session-mini-media';
-  const imageSrc = assetUrl(ex?.image || ex?.gif_url);
-  if (imageSrc) {
-    const thumb = document.createElement('img');
-    thumb.className = 'student-session-mini-thumb';
-    thumb.alt = name;
-    thumb.loading = 'lazy';
-    thumb.src = imageSrc;
-    thumb.addEventListener('load', () => media.classList.add('has-image'), { once: true });
-    thumb.addEventListener('error', () => {
-      thumb.remove();
-      media.classList.add('is-fallback');
-      media.textContent = name.slice(0, 1).toUpperCase() || '?';
-    }, { once: true });
-    media.append(thumb);
-  } else {
-    media.classList.add('is-fallback');
-    media.textContent = name.slice(0, 1).toUpperCase() || '?';
-  }
-
-  const main = document.createElement('div');
-  main.className = 'student-session-mini-main';
-
-  const nameEl = document.createElement('h4');
-  nameEl.className = 'student-session-mini-name';
-  nameEl.textContent = name;
-
-  main.append(nameEl);
-  appendPrescriptionDetail(main, item, {
-    rxClass: 'student-session-mini-rx',
-    chipClass: 'student-session-mini-chip',
-    bareClass: 'student-session-mini-bare',
-    noteClass: 'student-session-mini-note',
-  });
-  card.append(media, main);
-  return card;
-}
-
-function appendPrescriptionDetail(parent, item, {
-  rxClass,
-  chipClass,
-  bareClass,
-  noteClass,
-}) {
-  const lines = prescriptionLines(item);
-  const note = prescriptionNote(item);
-
-  const rx = document.createElement('div');
-  rx.className = rxClass;
-
-  if (lines.length) {
-    for (const line of lines) {
-      const chip = document.createElement('span');
-      chip.className = chipClass;
-      const ico = document.createElement('span');
-      ico.setAttribute('aria-hidden', 'true');
-      ico.textContent = line.ico;
-      const text = document.createElement('span');
-      text.textContent = line.text;
-      chip.append(ico, text);
-      rx.append(chip);
-    }
-  } else {
-    const bare = document.createElement('span');
-    bare.className = bareClass;
-    bare.textContent = ui('programBare');
-    rx.append(bare);
-  }
-  parent.append(rx);
-
-  if (note) {
-    const noteEl = document.createElement('p');
-    noteEl.className = noteClass;
-    noteEl.textContent = note;
-    noteEl.title = note;
-    parent.append(noteEl);
-  }
-}
-
-function createEditorItem(item, athleteId, sessionId) {
-  const ex = item.exercise;
-  const id = String(ex?.id || item.exerciseId || '');
-  const name = exerciseName(ex) || id || '—';
-
-  const row = document.createElement('article');
-  row.className = 'session-editor-item';
-  if (id) row.dataset.id = id;
-
-  const media = document.createElement('div');
-  media.className = 'session-editor-item-media';
-  const thumb = document.createElement('img');
-  thumb.className = 'session-editor-thumb';
-  thumb.alt = name;
-  thumb.loading = 'lazy';
-  const imageSrc = assetUrl(ex?.image || ex?.gif_url);
-  if (imageSrc) {
-    thumb.src = imageSrc;
-    thumb.addEventListener('load', () => media.classList.add('has-image'), { once: true });
-    thumb.addEventListener('error', () => {
-      thumb.remove();
-      media.classList.add('is-fallback');
-      media.textContent = name.slice(0, 1).toUpperCase() || '?';
-    }, { once: true });
-    media.append(thumb);
-  } else {
-    media.classList.add('is-fallback');
-    media.textContent = name.slice(0, 1).toUpperCase() || '?';
-  }
-
-  const main = document.createElement('div');
-  main.className = 'session-editor-item-main';
-
-  const nameEl = document.createElement('h3');
-  nameEl.className = 'session-editor-item-name';
-  nameEl.textContent = name;
-
-  main.append(nameEl);
-  appendPrescriptionDetail(main, item, {
-    rxClass: 'session-editor-item-rx',
-    chipClass: 'session-editor-rx-chip',
-    bareClass: 'session-editor-rx-bare',
-    noteClass: 'session-editor-item-note',
-  });
-
-  const actions = document.createElement('div');
-  actions.className = 'session-editor-item-actions';
-
-  const editBtn = document.createElement('button');
-  editBtn.type = 'button';
-  editBtn.className = 'session-editor-item-edit';
-  editBtn.textContent = ui('sessionEditExercise');
-  editBtn.addEventListener('click', () => {
-    editSessionExercise(athleteId, sessionId, id);
-  });
-
-  const removeBtn = document.createElement('button');
-  removeBtn.type = 'button';
-  removeBtn.className = 'session-editor-item-remove';
-  removeBtn.setAttribute('aria-label', ui('sessionRemoveExercise'));
-  removeBtn.title = ui('sessionRemoveExercise');
-  removeBtn.innerHTML = `
-    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
-      <path d="M4 4l8 8M12 4L4 12"/>
-    </svg>
-  `;
-  removeBtn.addEventListener('click', () => {
-    removeExerciseFromSession(athleteId, sessionId, id);
-  });
-
-  actions.append(editBtn, removeBtn);
-  row.append(media, main, actions);
-  return row;
-}
-
-function findAthlete(athleteId) {
-  return athletes.find(a => String(a?.id) === String(athleteId)) || null;
-}
-
-function findSession(athleteId, sessionId) {
-  const athlete = findAthlete(athleteId);
-  if (!athlete) return null;
-  return getAthleteSessions(athlete).find(s => String(s?.id) === String(sessionId)) || null;
-}
-
-function athleteDisplayName(athlete) {
-  const first = String(athlete?.firstName || '').trim();
-  const last = String(athlete?.lastName || '').trim();
-  const email = String(athlete?.email || '').trim();
-  return [first, last].filter(Boolean).join(' ') || email || '—';
-}
-
-function getAthleteSessions(athlete) {
-  const prog = athlete?.coachTrainingProgram;
-  if (!Array.isArray(prog) || !isSessionsShape(prog)) return [];
-  return [...prog].sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0));
-}
-
-/** Sum of items[].sets (missing / invalid → 0). Derived — not stored in API. */
-function totalSessionSets(items) {
-  return (items || []).reduce((sum, item) => {
-    const n = Number(item?.sets);
-    return sum + (Number.isFinite(n) && n > 0 ? Math.floor(n) : 0);
-  }, 0);
-}
-
-function sessionAccordionMeta(items) {
-  const list = Array.isArray(items) ? items : [];
-  const parts = [ui('sessionExercisesCount', list.length)];
-  if (list.length) parts.push(ui('sessionSetsCount', totalSessionSets(list)));
-  return parts.join(' · ');
-}
-
-function createSessionMetaChips(items) {
-  const list = Array.isArray(items) ? items : [];
-  const wrap = document.createElement('span');
-  wrap.className = 'student-session-meta';
-  wrap.setAttribute('aria-label', sessionAccordionMeta(list));
-
-  wrap.appendChild(createSessionStatChip(
-    list.length,
-    ui('sessionExercisesUnit', list.length),
-    'student-session-stat',
-  ));
-
-  if (list.length) {
-    const sets = totalSessionSets(list);
-    wrap.appendChild(createSessionStatChip(
-      sets,
-      ui('sessionSetsUnit', sets),
-      'student-session-stat student-session-stat--sets',
-    ));
-  }
-
-  return wrap;
-}
-
-function createSessionStatChip(value, unit, className) {
-  const chip = document.createElement('span');
-  chip.className = className;
-  chip.setAttribute('aria-hidden', 'true');
-
-  const num = document.createElement('strong');
-  num.className = 'student-session-stat-value';
-  num.textContent = String(value);
-
-  const label = document.createElement('span');
-  label.className = 'student-session-stat-unit';
-  label.textContent = unit;
-
-  chip.append(num, label);
-  return chip;
-}
-
-function isSessionsShape(prog) {
-  if (!prog.length) return true;
-  return prog.every(s => (
-    s
-    && typeof s.name === 'string'
-    && Array.isArray(s.items)
-    && s.exerciseId == null
-  ));
-}
-
-function ensureAthleteSessions(athlete) {
-  if (!isSessionsShape(athlete.coachTrainingProgram || [])) {
-    athlete.coachTrainingProgram = [];
-  } else if (!Array.isArray(athlete.coachTrainingProgram)) {
-    athlete.coachTrainingProgram = [];
-  }
-  return athlete.coachTrainingProgram;
-}
-
-function newLocalSessionId() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function onDownloadAthlete(_athleteId) {
-  // Shell: Excel export TBD (docs/TODO.md)
-}
-
-function createDetail(label, value) {
-  const row = document.createElement('div');
-  row.className = 'student-row-detail';
-
-  const labelEl = document.createElement('span');
-  labelEl.className = 'student-row-detail-label';
-  labelEl.textContent = label;
-
-  const valueEl = document.createElement('span');
-  valueEl.className = 'student-row-detail-value';
-  valueEl.textContent = value;
-
-  row.append(labelEl, valueEl);
-  return row;
-}
-
-function toggleSessionRow(row) {
-  const opening = !row.classList.contains('is-open');
-  const parent = row.closest('.student-row');
-  parent?.querySelectorAll('.student-session.is-open').forEach(other => {
-    if (other !== row) closeSessionRow(other);
-  });
-  if (opening) openSessionRow(row);
-  else closeSessionRow(row);
-}
-
-function openSessionRow(row) {
-  const header = row.querySelector('.student-session-header');
-  row.classList.add('is-open');
-  if (header) header.setAttribute('aria-expanded', 'true');
-  openSessionId = row.dataset.sessionId || null;
-}
-
-function closeSessionRow(row) {
-  const header = row.querySelector('.student-session-header');
-  row.classList.remove('is-open');
-  if (header) header.setAttribute('aria-expanded', 'false');
-  if (openSessionId && row.dataset.sessionId === openSessionId) openSessionId = null;
-}
-
-function setSessionStatus(message, kind = '') {
-  if (!sessionStatusEl) return;
-  if (!message) {
-    sessionStatusEl.hidden = true;
-    sessionStatusEl.textContent = '';
-    sessionStatusEl.classList.remove('is-error', 'is-ok');
-    return;
-  }
-  sessionStatusEl.hidden = false;
-  sessionStatusEl.textContent = message;
-  sessionStatusEl.classList.toggle('is-error', kind === 'error');
-  sessionStatusEl.classList.toggle('is-ok', kind === 'ok');
-}
-
-function onAddSessionSubmit(e) {
-  e.preventDefault();
-  const athleteId = sessionAthleteId;
-  const athlete = athletes.find(a => String(a?.id) === String(athleteId));
-  if (!athlete) return;
-
-  const name = (sessionNameInput?.value || '').trim();
-  if (!name) return;
-
-  const sessions = ensureAthleteSessions(athlete);
-  const session = {
-    id: newLocalSessionId(),
-    name,
-    order: sessions.length,
-    items: [],
-  };
-  sessions.push(session);
-
-  markAthleteDirty(athleteId);
-  openAthleteId = String(athleteId);
-  openSessionId = session.id;
-  closeAddSessionModal();
-  renderStudentsList();
-}
-
-function isAthleteDirty(athleteId) {
-  return dirtyAthleteIds.has(String(athleteId || ''));
-}
-
-function markAthleteDirty(athleteId) {
-  const id = String(athleteId || '');
-  if (!id) return;
-  dirtyAthleteIds.add(id);
-  saveErrorByAthleteId.delete(id);
-}
-
-function clearAthleteDirty(athleteId) {
-  const id = String(athleteId || '');
-  dirtyAthleteIds.delete(id);
-  saveErrorByAthleteId.delete(id);
-}
-
-/** Body payload shape for future PUT .../training-program (no populated exercise). */
-export function serializeCoachTrainingProgram(athlete) {
-  return getAthleteSessions(athlete).map((session, index) => ({
-    id: String(session.id),
-    name: String(session.name || '').trim(),
-    order: session.order ?? index,
-    items: (session.items || []).map((item, itemIndex) => {
-      const payload = {
-        exerciseId: String(item.exercise?.id || item.exerciseId || ''),
-        order: item.order ?? itemIndex,
-      };
-      if (item.sets != null) payload.sets = item.sets;
-      if (item.reps) payload.reps = String(item.reps);
-      if (item.rest != null) payload.rest = item.rest;
-      if (item.notes != null && String(item.notes).trim() !== '') {
-        payload.notes = String(item.notes).trim();
-      }
-      return payload;
-    }),
-  }));
-}
-
-function createPlanSaveBar(athleteId) {
-  const id = String(athleteId);
-  const bar = document.createElement('div');
-  bar.className = 'student-plan-save-bar';
-
-  const errMsg = saveErrorByAthleteId.get(id);
-  if (errMsg) {
-    const errEl = document.createElement('p');
-    errEl.className = 'student-plan-save-error';
-    errEl.textContent = errMsg;
-    bar.append(errEl);
-  }
-
-  const saving = savingAthleteIds.has(id);
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'student-plan-save';
-  btn.disabled = saving;
-  btn.textContent = saving ? ui('savingAthletePlan') : ui('saveAthletePlan');
-  btn.addEventListener('click', e => {
-    e.stopPropagation();
-    void saveAthletePlan(athleteId);
-  });
-
-  bar.append(btn);
-  return bar;
-}
-
-/** PUT /users/coach/athletes/:id/training-program — full replace. */
-async function saveAthletePlan(athleteId) {
-  const id = String(athleteId || '');
-  const athlete = findAthlete(id);
-  if (!athlete || savingAthleteIds.has(id)) return;
-
-  const coachTrainingProgram = serializeCoachTrainingProgram(athlete);
-
-  savingAthleteIds.add(id);
-  saveErrorByAthleteId.delete(id);
-  syncSessionEditorView();
-  if (athletesLoaded) renderStudentsList();
-
-  try {
-    const updated = await putCoachAthleteTrainingProgram(id, coachTrainingProgram);
-    if (Array.isArray(updated?.coachTrainingProgram)) {
-      athlete.coachTrainingProgram = updated.coachTrainingProgram;
-    }
-    clearAthleteDirty(id);
-  } catch (err) {
-    console.error(err);
-    saveErrorByAthleteId.set(id, ui('athletePlanSaveFail'));
-  } finally {
-    savingAthleteIds.delete(id);
-    syncSessionEditorView();
-    if (athletesLoaded) renderStudentsList();
-  }
-}
-
-function toggleStudentRow(row) {
-  const opening = !row.classList.contains('is-open');
-  document.querySelectorAll('#students-list .student-row.is-open').forEach(other => {
-    if (other !== row) closeStudentRow(other);
-  });
-  if (opening) openStudentRow(row);
-  else closeStudentRow(row);
-}
-
-function openStudentRow(row) {
-  const nextId = row.dataset.id || null;
-  // Switching athletes (or re-opening): start with sessions collapsed
-  if (openAthleteId !== nextId) openSessionId = null;
-
-  const header = row.querySelector('.student-row-header');
-  row.classList.add('is-open');
-  if (header) header.setAttribute('aria-expanded', 'true');
-  openAthleteId = nextId;
 }
 
 function closeStudentRow(row) {
   const header = row.querySelector('.student-row-header');
   row.classList.remove('is-open');
   if (header) header.setAttribute('aria-expanded', 'false');
-  row.querySelectorAll('.student-session.is-open').forEach(closeSessionRow);
-  if (openAthleteId && row.dataset.id === openAthleteId) {
-    openAthleteId = null;
-    openSessionId = null;
-  }
-}
-
-function clearCloseTimer() {
-  if (!closeTimer) return;
-  window.clearTimeout(closeTimer);
-  closeTimer = 0;
-}
-
-function resetSubmitBtn() {
-  if (!submitBtn) return;
-  submitBtn.disabled = false;
-  submitBtn.classList.remove('is-sent');
-  if (submitLabel) {
-    submitLabel.dataset.ui = 'addStudentSubmit';
-    submitLabel.textContent = ui('addStudentSubmit');
-  }
-  stopSubmitFill();
-}
-
-function stopSubmitFill() {
-  if (!submitFill) return;
-  submitFill.hidden = true;
-  submitFill.style.animation = 'none';
-  submitFill.style.width = '0%';
-}
-
-function startSubmitFill() {
-  if (!submitFill) return;
-  submitFill.hidden = false;
-  submitFill.style.width = '';
-  submitFill.style.animation = 'none';
-  void submitFill.offsetWidth;
-  submitFill.style.animation = '';
-}
-
-function setStatus(message, kind = '') {
-  if (!statusEl) return;
-  if (!message) {
-    statusEl.hidden = true;
-    statusEl.textContent = '';
-    statusEl.classList.remove('is-error', 'is-ok');
-    return;
-  }
-  statusEl.hidden = false;
-  statusEl.textContent = message;
-  statusEl.classList.toggle('is-error', kind === 'error');
-  statusEl.classList.toggle('is-ok', kind === 'ok');
-}
-
-function inviteErrorMessage(err) {
-  const status = err?.status;
-  const raw = Array.isArray(err?.message) ? err.message.join(' ') : String(err?.message || '');
-  const lower = raw.toLowerCase();
-
-  if (status === 404) return ui('inviteNotFound');
-  if (status === 409) {
-    if (lower.includes('pending')) return ui('invitePending');
-    return ui('inviteHasCoach');
-  }
-  return ui('inviteFail');
-}
-
-async function onSubmit(e) {
-  e.preventDefault();
-  const email = emailInput?.value.trim() ?? '';
-  if (!email) return;
-
-  clearCloseTimer();
-  setStatus('');
-  if (submitBtn) submitBtn.disabled = true;
-
-  try {
-    await inviteCoachAthlete(email);
-    void loadCoachAthletes({ force: true });
-    if (submitBtn) {
-      submitBtn.classList.add('is-sent');
-      submitBtn.disabled = true;
-    }
-    if (submitLabel) {
-      submitLabel.dataset.ui = 'inviteSent';
-      submitLabel.textContent = ui('inviteSent');
-    }
-    startSubmitFill();
-    closeTimer = window.setTimeout(() => {
-      closeTimer = 0;
-      closeAddStudentModal();
-    }, SUCCESS_CLOSE_MS);
-  } catch (err) {
-    console.error(err);
-    setStatus(inviteErrorMessage(err), 'error');
-    resetSubmitBtn();
+  collapseOpenSessionsIn(row);
+  if (store.openAthleteId && row.dataset.id === store.openAthleteId) {
+    store.openAthleteId = null;
+    store.openSessionId = null;
   }
 }
