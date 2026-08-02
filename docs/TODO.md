@@ -49,10 +49,21 @@ coachTrainingProgram: {
 - [x] Export Excel binary (`POST .../training-program/export`)
 - [x] Mis alumnos: ordenar sin/con pauta (client-side)
 - [x] Panel: historial invites filtrable (`GET /users/coach/invites`)
+- [x] Panel invites: al filtrar → vaciar lista → spinner → pintar data (sin dejar filas viejas)
 - [ ] Export PDF
 - [ ] Reordenar ejercicios / sesiones
 - [ ] Duplicar sesión o copiar a otro atleta
 - [ ] Plantillas reutilizables (`coach-templates`)
+
+---
+
+## Cuenta — perfil / configuración
+
+Menú de usuario en sidebar ya existe (iniciales + nombre corto + dropdown). Ítems deshabilitados por ahora.
+
+- [ ] **Mi perfil** — vista/edición de datos (nombre, email, …); habilitar ítem del menú
+- [ ] **Configuración** — preferencias (tema/idioma sync a user, notificaciones, …); habilitar ítem del menú
+- [ ] (BE) Endpoints de update de perfil / preferencias si hacen falta más allá de `GET /users/me`
 
 ---
 
@@ -68,7 +79,7 @@ coachTrainingProgram: {
 ## Plataforma / nice-to-have
 - [ ] Token en cookie httpOnly (opc.)
 - [ ] Historial de programas
-- [ ] Sync tema/idioma al user en API (solo si cross-device)
+- [ ] Sync tema/idioma al user en API (solo si cross-device) — ver también **Configuración**
 - [ ] Favoritos separados del plan
 - [ ] Deep link más corto
 - [ ] Tracking de workouts / progreso

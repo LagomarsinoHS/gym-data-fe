@@ -18,8 +18,9 @@ Consume la API desplegada en Render (o tu backend local).
 - Modal de detalle: meta, músculos, instrucciones ES/EN, compartir enlace
 - Botón **WOD** → ejercicio random (`GET /exercises/random`)
 - Auth (login / registro) + roles atleta / coach
+- Menú de cuenta en sidebar: iniciales, nombre corto, rol; dropdown (Mi perfil / Configuración deshabilitados; Cerrar sesión)
 - **Mi entrenamiento** (agregar / quitar / pauta) y **Plan del coach** (sesiones)
-- Coach: **Panel** (métricas), **Mis alumnos** (invitar, ordenar, editar plan, export Excel)
+- Coach: **Panel** (métricas + historial de invites filtrable), **Mis alumnos** (invitar, ordenar, editar plan, export Excel)
 - Banner de invite pendiente (atleta) vía `GET /users/me/pending-coach-invite`
 - UI bilingüe (Español / English)
 - Media local (`public/images`, `public/videos`)
@@ -99,6 +100,7 @@ Para desarrollar contra tu API local, levantá el backend en el puerto **3000** 
 | `PUT` | `/users/training-program/remove` | Quitar un ejercicio |
 | `PUT` | `/users/training-program/:exerciseId` | Editar pauta |
 | `POST` | `/users/coach/invites` | Coach invita por email |
+| `GET` | `/users/coach/invites` | Historial invites (`status?`, page, limit) |
 | `POST` | `/users/me/pending-coach-invite/respond` | Atleta accept / reject |
 | `GET` | `/users/coach/athletes` | Mis alumnos / stats Panel |
 | `PUT` | `/users/coach/athletes/:id/training-program` | Guardar plan coach |

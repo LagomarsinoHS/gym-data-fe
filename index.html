@@ -64,22 +64,50 @@
 
       <!-- Con sesión — js/features/session-ui.js -->
       <div id="sidebar-auth" class="sidebar-auth" hidden>
-        <div class="sidebar-user">
-          <div class="sidebar-user-identity">
+        <div class="sidebar-user" id="sidebar-user">
+          <button
+            type="button"
+            class="sidebar-user-trigger"
+            id="sidebar-user-trigger"
+            aria-expanded="false"
+            aria-haspopup="menu"
+            aria-controls="sidebar-user-menu"
+          >
             <span class="sidebar-user-avatar" id="sidebar-user-avatar" aria-hidden="true"></span>
             <div class="sidebar-user-meta">
               <span class="sidebar-user-name" id="sidebar-user-name"></span>
               <span class="sidebar-user-role" id="sidebar-user-role" hidden></span>
             </div>
-          </div>
-          <button type="button" class="sidebar-logout" id="logout-btn">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M6 3H3.5A1.5 1.5 0 0 0 2 4.5v7A1.5 1.5 0 0 0 3.5 13H6"/>
-              <path d="M10.5 10.5 13 8l-2.5-2.5"/>
-              <path d="M6.5 8H13"/>
-            </svg>
-            <span data-ui="logout">Salir</span>
+            <span class="sidebar-user-chevron" aria-hidden="true">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 6.5 8 10.5 12 6.5"/>
+              </svg>
+            </span>
           </button>
+          <div class="sidebar-user-menu" id="sidebar-user-menu" role="menu" hidden>
+            <button type="button" class="sidebar-user-menu-item" role="menuitem" id="sidebar-user-profile" data-action="profile" disabled>
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="8" cy="5.5" r="2.5"/>
+                <path d="M3.5 13.5c.7-2.2 2.3-3.3 4.5-3.3s3.8 1.1 4.5 3.3"/>
+              </svg>
+              <span data-ui="myProfile">Mi perfil</span>
+            </button>
+            <button type="button" class="sidebar-user-menu-item" role="menuitem" id="sidebar-user-settings" data-action="settings" disabled>
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="8" cy="8" r="2.2"/>
+                <path d="M8 2.5v1.2M8 12.3v1.2M2.5 8h1.2M12.3 8h1.2M4.1 4.1l.85.85M11.05 11.05l.85.85M11.9 4.1l-.85.85M4.95 11.05l-.85.85"/>
+              </svg>
+              <span data-ui="settings">Configuración</span>
+            </button>
+            <button type="button" class="sidebar-user-menu-item is-danger" role="menuitem" id="logout-btn" data-action="logout">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M6 3H3.5A1.5 1.5 0 0 0 2 4.5v7A1.5 1.5 0 0 0 3.5 13H6"/>
+                <path d="M10.5 10.5 13 8l-2.5-2.5"/>
+                <path d="M6.5 8H13"/>
+              </svg>
+              <span data-ui="logout">Cerrar sesión</span>
+            </button>
+          </div>
         </div>
 
         <nav class="sidebar-nav" aria-label="App">

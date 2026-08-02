@@ -33,11 +33,15 @@ Si el boot falla → mensaje de error en el contador de resultados.
 |--------|----------|
 | Login | `POST /auth/login` → guarda `FLEX_TOKEN` → `GET /users/me` → (atleta) pending invite → vista según rol |
 | Register | Form extra: nombre, apellido, rol Atleta/Entrenador → `POST /auth/register` (mismo flujo de token) |
-| Logout | Borra token, user=null, vista catálogo, limpia recommend / cache alumnos / pending invite |
+| Logout | Menú cuenta → **Cerrar sesión** → borra token, user=null, vista catálogo, limpia recommend / cache alumnos / pending invite |
 | Restaurar sesión | Al boot / post-login: Bearer + `/users/me`; si falla → guest |
 
 - Overlay auth: backdrop / Escape cierran; errores mapeados (401, 409, etc.).
 - Password min 6; autocomplete distinto login vs register.
+- **Menú de cuenta** (`session-ui.js` / `#sidebar-user`): avatar con iniciales, nombre corto (`Humberto L`), badge de rol, chevron → dropdown.
+  - **Mi perfil** y **Configuración**: visibles pero `disabled` (tooltip “Próximamente”).
+  - **Cerrar sesión**: activo (rojo).
+  - Cierra con click afuera o Escape.
 
 ---
 
@@ -54,15 +58,14 @@ Si el boot falla → mensaje de error en el contador de resultados.
 | `training` | Plan personal (`trainingProgram`) |
 | `recommend` | Recomendar (solo si `isPremium`) |
 | `coach-plan` | Plan del coach (`coachTrainingProgram` por sesiones; empty sin coach / sin plan) |
-| `coach-panel` | Resumen informativo (`coach-panel-ui`): total alumnos + sin pauta |
+| `coach-panel` | Resumen informativo (`coach-panel-ui`): total alumnos + sin pauta + historial invites |
 | `coach-templates` | Shell placeholder |
 | `students` | Mis alumnos (`students-ui` + `coach-sessions-ui` + `students-download-ui` + store) |
 | `session-editor` | Editor de una sesión del atleta (coach) |
 
 - Post-login: coach/admin → `coach-panel`; athlete → `training`.
 - Recomendar: nav locked + tooltip si no es Pro.
-- Badge de rol en sidebar (Atleta / Entrenador / Admin).
-
+- Identidad en sidebar: menú de cuenta (iniciales + rol); ver Auth.
 ---
 
 ## 4. Catálogo
@@ -168,6 +171,8 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 - Loading (opción B): spinner + stats ocultas hasta tener números (sin placeholders `—`).
 - **Invitaciones:** historial filtrable (`GET /users/coach/invites?status=&page=&limit=`).
   - Filtros: Todas / Pendientes / Aceptadas / Rechazadas / Canceladas.
+  - Al cambiar filtro (`replace`): vacía lista + empty + “Cargar más” → spinner → pinta resultados (sin dejar filas viejas debajo del spinner).
+  - Un filtro nuevo puede interrumpir una carga en curso (`invitesSeq`); “Cargar más” espera a que termine.
   - Filas: nombre (si existe), email, status, fechas; “Cargar más” si hay más páginas.
 - Sin click-through en las stats: actuar en Mis alumnos.
 

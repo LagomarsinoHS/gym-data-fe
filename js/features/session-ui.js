@@ -103,10 +103,57 @@ export function initSessionUi({ onViewChange: cb } = {}) {
     setView('catalog');
   });
   document.getElementById('coach-plan-catalog-btn')?.addEventListener('click', () => setView('catalog'));
-  document.getElementById('logout-btn')?.addEventListener('click', logout);
+  initUserMenu();
 
   syncSessionLabels();
   renderSessionChrome();
+}
+
+function initUserMenu() {
+  const root = document.getElementById('sidebar-user');
+  const trigger = document.getElementById('sidebar-user-trigger');
+  const menu = document.getElementById('sidebar-user-menu');
+  if (!root || !trigger || !menu) return;
+
+  trigger.setAttribute('aria-label', ui('accountMenu'));
+
+  trigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setUserMenuOpen(!isUserMenuOpen());
+  });
+
+  menu.addEventListener('click', (e) => {
+    const item = e.target.closest('[data-action]');
+    if (!item || !menu.contains(item) || item.disabled) return;
+    const action = item.dataset.action;
+    setUserMenuOpen(false);
+    if (action === 'logout') logout();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!isUserMenuOpen()) return;
+    if (root.contains(e.target)) return;
+    setUserMenuOpen(false);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !isUserMenuOpen()) return;
+    setUserMenuOpen(false);
+    trigger.focus();
+  });
+}
+
+function isUserMenuOpen() {
+  const trigger = document.getElementById('sidebar-user-trigger');
+  return trigger?.getAttribute('aria-expanded') === 'true';
+}
+
+function setUserMenuOpen(open) {
+  const trigger = document.getElementById('sidebar-user-trigger');
+  const menu = document.getElementById('sidebar-user-menu');
+  if (!trigger || !menu) return;
+  trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  menu.hidden = !open;
 }
 
 export async function restoreSession() {
@@ -184,6 +231,7 @@ export function setView(next) {
 }
 
 export function logout() {
+  setUserMenuOpen(false);
   clearToken();
   user = null;
   view = 'catalog';
@@ -204,6 +252,13 @@ export function syncSessionLabels() {
   const myPlanBtn = document.getElementById('my-plan-btn');
   if (myPlanBtn) myPlanBtn.title = ui('myPlan');
 
+  const trigger = document.getElementById('sidebar-user-trigger');
+  if (trigger) trigger.setAttribute('aria-label', ui('accountMenu'));
+
+  const soonTitle = ui('comingSoon');
+  document.getElementById('sidebar-user-profile')?.setAttribute('title', soonTitle);
+  document.getElementById('sidebar-user-settings')?.setAttribute('title', soonTitle);
+
   renderUserName();
   syncNavActive();
   syncRecommendAccess();
@@ -220,14 +275,18 @@ function renderUserName() {
   const first = String(user.firstName || '').trim();
   const last = String(user.lastName || '').trim();
   const full = [first, last].filter(Boolean).join(' ');
+  const shortName = last
+    ? `${first} ${last.charAt(0)}.`.trim()
+    : first || user.email || '—';
 
   if (nameEl) {
-    nameEl.textContent = full;
-    nameEl.title = full;
+    nameEl.textContent = shortName;
+    nameEl.title = full || shortName;
   }
 
   if (avatarEl) {
-    const initials = `${first.charAt(0)}${last.charAt(0)}`.toUpperCase() || '?';
+    const initials = `${first.charAt(0)}${last.charAt(0)}`.toUpperCase()
+      || String(user.email || '?').charAt(0).toUpperCase();
     avatarEl.textContent = initials;
   }
 
@@ -370,6 +429,7 @@ function renderSessionChrome() {
 
   if (guest) guest.hidden = loggedIn;
   if (auth) auth.hidden = !loggedIn;
+  if (!loggedIn) setUserMenuOpen(false);
 
   normalizeViewForRole();
 
