@@ -29,7 +29,7 @@ import {
   updateSessionExercise,
   removeExerciseFromSession,
 } from './features/coach-sessions-ui.js';
-import { initCoachInviteUi, loadPendingCoachInvite, syncCoachInviteBanner } from './features/coach-invite-ui.js';
+import { initCoachInviteUi, syncCoachInviteBanner } from './features/coach-invite-ui.js';
 import {
   initSessionUi,
   restoreSession,
@@ -138,7 +138,6 @@ async function init() {
   initAuthUi({
     onAuthSuccess: async () => {
       await restoreSession();
-      await loadPendingCoachInvite();
       setView(isCoach() ? 'coach-panel' : 'training');
       if (modalOverlay.classList.contains('open') && modalOverlay.dataset.openId) {
         syncPlanAction(modalOverlay.dataset.openId);
@@ -171,7 +170,6 @@ async function init() {
   collapseFiltersOnMobile();
   initResultsBarPlacement();
   await restoreSession();
-  await loadPendingCoachInvite();
   await reloadExercises();
   wireEvents();
   initFooter();

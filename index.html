@@ -315,6 +315,51 @@
         </div>
 
         <p class="coach-panel-status" id="coach-panel-status" hidden></p>
+
+        <section class="coach-panel-invites" id="coach-panel-invites" aria-labelledby="coach-panel-invites-title">
+          <header class="coach-panel-invites-header">
+            <h3 class="coach-panel-invites-title" id="coach-panel-invites-title" data-ui="coachPanelInvitesTitle">
+              Invitaciones
+            </h3>
+            <p class="coach-panel-invites-lead" data-ui="coachPanelInvitesLead">
+              Historial de invitaciones que enviaste.
+            </p>
+          </header>
+
+          <div class="coach-panel-invites-filters" id="coach-panel-invites-filters" role="tablist" aria-label="Filtrar invitaciones">
+            <button type="button" class="coach-panel-invites-filter is-active" data-status="" role="tab" aria-selected="true">
+              <span data-ui="coachPanelInvitesFilterAll">Todas</span>
+            </button>
+            <button type="button" class="coach-panel-invites-filter" data-status="pending" role="tab" aria-selected="false">
+              <span data-ui="coachPanelInvitesFilterPending">Pendientes</span>
+            </button>
+            <button type="button" class="coach-panel-invites-filter" data-status="accepted" role="tab" aria-selected="false">
+              <span data-ui="coachPanelInvitesFilterAccepted">Aceptadas</span>
+            </button>
+            <button type="button" class="coach-panel-invites-filter" data-status="rejected" role="tab" aria-selected="false">
+              <span data-ui="coachPanelInvitesFilterRejected">Rechazadas</span>
+            </button>
+            <button type="button" class="coach-panel-invites-filter" data-status="cancelled" role="tab" aria-selected="false">
+              <span data-ui="coachPanelInvitesFilterCancelled">Canceladas</span>
+            </button>
+          </div>
+
+          <div class="coach-panel-invites-loading" id="coach-panel-invites-loading" hidden>
+            <div class="load-spinner visible" aria-hidden="true"></div>
+          </div>
+
+          <p class="coach-panel-invites-empty" id="coach-panel-invites-empty" hidden data-ui="coachPanelInvitesEmpty">
+            Aún no hay invitaciones.
+          </p>
+
+          <ul class="coach-panel-invites-list" id="coach-panel-invites-list" hidden></ul>
+
+          <button type="button" class="coach-panel-invites-more" id="coach-panel-invites-more" hidden>
+            <span data-ui="coachPanelInvitesLoadMore">Cargar más</span>
+          </button>
+
+          <p class="coach-panel-invites-status" id="coach-panel-invites-status" hidden></p>
+        </section>
       </div>
     </div>
 

@@ -17,8 +17,7 @@ API: `localhost:3000` en local · `https://gym-data-8d3l.onrender.com` en prod.
    - Inicia sesión, auth, tema, drawer mobile, students, coach panel, coach invite, recommend
    - Revela filtros (animación cascade)
    - En mobile: colapsa filtros + mueve results bar arriba
-   - `restoreSession()` → si hay token, `GET /users/me`
-   - Si atleta: `loadPendingCoachInvite()` → `GET /users/me/pending-coach-invite`
+   - `restoreSession()` → si hay token, `GET /users/me` (+ `onUserSynced` → pending invite)
    - Primera página del catálogo
    - Wire de eventos (search, chips, cards, modal, WOD, infinite scroll…)
    - Footer (taglines + contador de flexes)
@@ -165,9 +164,12 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 ## 8. Coach — Panel
 
 - Vista informativa (`coach-panel-ui.js`): **Total de alumnos** y **Alumnos sin pauta**.
-- Data: pagina `GET /users/coach/athletes` hasta completar; “sin pauta” = sin sesiones con `items`.
+- Data stats: pagina `GET /users/coach/athletes` hasta completar; “sin pauta” = sin sesiones con `items`.
 - Loading (opción B): spinner + stats ocultas hasta tener números (sin placeholders `—`).
-- Sin click-through: actuar en Mis alumnos.
+- **Invitaciones:** historial filtrable (`GET /users/coach/invites?status=&page=&limit=`).
+  - Filtros: Todas / Pendientes / Aceptadas / Rechazadas / Canceladas.
+  - Filas: nombre (si existe), email, status, fechas; “Cargar más” si hay más páginas.
+- Sin click-through en las stats: actuar en Mis alumnos.
 
 ---
 
@@ -192,7 +194,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 - Colección `invites` en BE; **no** vive en el documento User ni en `GET /users/me`.
 - `GET /users/me/pending-coach-invite` → siempre `{ invite: null | { coachId, invitedAt, coach } }` (máx. 1 pendiente).
-- FE (`coach-invite-ui.js`): carga en login / `restoreSession`, y de nuevo al volver a la pestaña (`visibilitychange`). No re-fetch al navegar.
+- FE (`coach-invite-ui.js`): carga junto a cada `/users/me` (`restoreSession` / `refreshUser` vía `onUserSynced`), y de nuevo al volver a la pestaña (`visibilitychange`). No re-fetch al navegar.
 - Banner + dot en Plan del coach → accept / reject `POST /users/me/pending-coach-invite/respond`.
 
 ---
@@ -228,6 +230,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 | POST | `/users/coach/invites` | Sí | Coach invita atleta por email |
 | POST | `/users/me/pending-coach-invite/respond` | Sí | Atleta accept / reject |
 | GET | `/users/coach/athletes` | Sí | Lista paginada Mis alumnos / stats Panel |
+| GET | `/users/coach/invites` | Sí | Historial invites coach (`status` opcional) |
 | PUT | `/users/coach/athletes/:athleteId/training-program` | Sí | Guardar plan (replace sesiones) |
 | POST | `/users/coach/training-program/export` | Sí | Export Excel/zip (binary) |
 
@@ -277,6 +280,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 | `reps.js` | `cleanReps`, `formatReps` |
 | `assets.js` | `assetUrl` para media |
 | `auth-errors.js` | mensajes de error de auth |
+| `dates.js` | `formatDate` via `Intl.DateTimeFormat` (es: 2026-agosto-02 · en: August 2, 2026) |
 
 ---
 
@@ -328,7 +332,6 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 ## 18. Stubs / aún no cableado
 
-- Coach Panel: bloque invites pendientes del coach (lista) pendiente.
 - Plantillas (`coach-templates`) placeholder.
 - Export PDF (UI disabled “Pronto”).
 - Admin no se elige en register (solo DB); en nav se comporta como coach.

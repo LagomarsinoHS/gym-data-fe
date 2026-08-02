@@ -2,10 +2,10 @@
  * Athlete — pending coach invite banner (accept / reject).
  * Markup: #coach-invite-banner, #nav-coach-plan-dot
  * API: GET /users/me/pending-coach-invite
- *      POST /users/me/pending-coach-invite/respond { action: 'accept' | 'reject' }
+ *      POST /users/coach/invites/respond { action: 'accept' | 'reject' }
  *
- * Fetch: once on session start (login / restore), and again when the tab
- * becomes visible. Not on every navigation / chrome re-render.
+ * Fetch: whenever /users/me is restored/refetched (onUserSynced), and when
+ * the tab becomes visible. Not on every navigation / chrome re-render.
  */
 import { getPendingCoachInvite, respondCoachInvite } from '../api/users.js';
 import { ui } from '../utils/labels.js';
@@ -13,6 +13,7 @@ import {
   getUser,
   isAthlete,
   onSessionChrome,
+  onUserSynced,
   refreshUser,
   setView,
 } from './session-ui.js';
@@ -46,6 +47,9 @@ export function initCoachInviteUi() {
     paintBanner();
   });
 
+  // Paired with GET /users/me (restoreSession / refreshUser).
+  onUserSynced(() => loadPendingCoachInvite({ force: true }));
+
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       void loadPendingCoachInvite({ force: true });
@@ -54,7 +58,7 @@ export function initCoachInviteUi() {
 }
 
 /**
- * Load pending invite from API (session start or tab focus).
+ * Load pending invite from API.
  * Concurrent calls share one in-flight request.
  */
 export function loadPendingCoachInvite({ force = false } = {}) {

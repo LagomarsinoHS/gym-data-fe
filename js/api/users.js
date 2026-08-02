@@ -94,6 +94,19 @@ export function getCoachAthletes({ page = 1, limit = 50, search } = {}) {
 }
 
 /**
+ * GET /users/coach/invites
+ * Invite history for the coach. Optional status: pending | accepted | rejected | cancelled.
+ * Returns PaginatedResponse: { data, page, limit, pages, total }
+ */
+export function getCoachInvites({ page = 1, limit = 20, status } = {}) {
+  return get(
+    `${USERS}/coach/invites`,
+    { page, limit, status: status || undefined },
+    { auth: true },
+  );
+}
+
+/**
  * PUT /users/coach/athletes/:athleteId/training-program
  * Replaces the athlete's coachTrainingProgram (full sessions array).
  * Body: { coachTrainingProgram } — items with exerciseId only (no populated exercise).

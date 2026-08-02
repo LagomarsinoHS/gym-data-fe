@@ -48,7 +48,7 @@ coachTrainingProgram: {
 - [x] `GET /users/me/pending-coach-invite` → `{ invite }` (banner atleta)
 - [x] Export Excel binary (`POST .../training-program/export`)
 - [x] Mis alumnos: ordenar sin/con pauta (client-side)
-- [ ] Panel: listar invites **pendientes del coach** (`GET /users/coach/invites?status=pending`)
+- [x] Panel: historial invites filtrable (`GET /users/coach/invites`)
 - [ ] Export PDF
 - [ ] Reordenar ejercicios / sesiones
 - [ ] Duplicar sesión o copiar a otro atleta

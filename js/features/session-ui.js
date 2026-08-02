@@ -31,10 +31,23 @@ let view = 'catalog';
 let user = null;
 let onViewChange = () => {};
 const chromeListeners = new Set();
+/** After GET /users/me (or cleared session) — e.g. pending invite. */
+const userSyncedListeners = new Set();
 
 /** Run after session chrome re-renders (banner, extras). */
 export function onSessionChrome(fn) {
   if (typeof fn === 'function') chromeListeners.add(fn);
+}
+
+/** Run after restoreSession / refreshUser finish (user set or cleared). */
+export function onUserSynced(fn) {
+  if (typeof fn === 'function') userSyncedListeners.add(fn);
+}
+
+async function notifyUserSynced() {
+  await Promise.all(
+    [...userSyncedListeners].map((fn) => Promise.resolve().then(() => fn())),
+  );
 }
 
 export function isCoach(u = user) {
@@ -101,6 +114,7 @@ export async function restoreSession() {
     user = null;
     clearCoachAthletesCache();
     renderSessionChrome();
+    await notifyUserSynced();
     return null;
   }
 
@@ -108,6 +122,7 @@ export async function restoreSession() {
     user = await getMe();
     clearCoachAthletesCache();
     renderSessionChrome();
+    await notifyUserSynced();
     return user;
   } catch (err) {
     console.error(err);
@@ -115,6 +130,7 @@ export async function restoreSession() {
     user = null;
     clearCoachAthletesCache();
     renderSessionChrome();
+    await notifyUserSynced();
     return null;
   }
 }
@@ -130,15 +146,17 @@ export function setUser(next) {
   return user;
 }
 
-/** Refetch GET /users/me into session. */
+/** Refetch GET /users/me into session (then notify user-synced listeners). */
 export async function refreshUser() {
   if (!isLoggedIn()) {
     user = null;
     renderSessionChrome();
+    await notifyUserSynced();
     return null;
   }
   user = await getMe();
   renderSessionChrome();
+  await notifyUserSynced();
   return user;
 }
 
@@ -172,6 +190,7 @@ export function logout() {
   clearRecommendPlan();
   clearCoachAthletesCache();
   renderSessionChrome();
+  void notifyUserSynced();
   onViewChange(view);
 }
 
