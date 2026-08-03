@@ -63,10 +63,12 @@ coachTrainingProgram: {
 ## Cuenta — perfil / configuración
 
 Menú de usuario en sidebar ya existe (iniciales + nombre corto + dropdown). Ítems deshabilitados por ahora.
+Se cablean al clickear **Mi perfil** / **Configuración** en ese menú.
 
 - [ ] **Mi perfil** — vista/edición de datos (nombre, email, …); habilitar ítem del menú
 - [ ] **Configuración** — preferencias (tema/idioma sync a user, notificaciones, …); habilitar ítem del menú
-- [ ] (BE) Endpoints de update de perfil / preferencias si hacen falta más allá de `GET /users/me`
+- [ ] **Configuración → darse de baja** — opción en Configuración (no en Mi perfil) que llama al soft-delete BE (`deletedAt`); confirmar + cerrar sesión
+- [ ] (BE) Endpoints de update de perfil / preferencias / deactivate si hacen falta más allá de `GET /users/me`
 
 ---
 
