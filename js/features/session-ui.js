@@ -66,11 +66,16 @@ export function hasCoach(u = user) {
 
 /**
  * Acceso a “Recomendar Entrenamiento”.
- * Gate: athlete + user.isPremium (GET /users/me).
+ * Gate: athlete + subscription.plan === 'premium' (GET /users/me).
  */
 export function canAccessRecommendPlan(u = user) {
   if (!u || !isAthlete(u)) return false;
-  return u.isPremium === true;
+  return isPremium(u);
+}
+
+/** True when GET /users/me has subscription.plan === 'premium'. */
+export function isPremium(u = user) {
+  return u?.subscription?.plan === 'premium';
 }
 
 export function initSessionUi({ onViewChange: cb } = {}) {

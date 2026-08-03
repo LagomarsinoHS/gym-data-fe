@@ -56,7 +56,7 @@ Si el boot falla → mensaje de error en el contador de resultados.
 |-------|-----------|
 | `catalog` | Grid + filtros + search + WOD |
 | `training` | Plan personal (`trainingProgram`) |
-| `recommend` | Recomendar (solo si `isPremium`) |
+| `recommend` | Recomendar (solo si `subscription.plan === 'premium'`) |
 | `coach-plan` | Plan del coach (`coachTrainingProgram` por sesiones; empty sin coach / sin plan) |
 | `coach-panel` | Resumen informativo (`coach-panel-ui`): total alumnos + sin pauta + historial invites |
 | `coach-templates` | Shell placeholder |
@@ -342,7 +342,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 - Export PDF (UI disabled “Pronto”).
 - Admin no se elige en register (solo DB); en nav se comporta como coach.
 - Sin refresh token; si `/me` falla, sesión guest.
-- Recommend exige `isPremium` del back.
+- Recommend exige `subscription.plan === 'premium'` del back.
 
 ---
 
