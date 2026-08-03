@@ -50,10 +50,13 @@ coachTrainingProgram: {
 - [x] Mis alumnos: ordenar sin/con pauta (client-side)
 - [x] Panel: historial invites filtrable (`GET /users/coach/invites`)
 - [x] Panel invites: al filtrar → vaciar lista → spinner → pintar data (sin dejar filas viejas)
+- [x] Cupo coach: deshabilitar Invitar si `coachQuota.canInvite === false`; errores por `ApiErrorCode`
+- [x] Accept invite con coach al límite: flash del mensaje localizado; pending canceladas en BE
 - [ ] Export PDF
 - [ ] Reordenar ejercicios / sesiones
 - [ ] Duplicar sesión o copiar a otro atleta
 - [ ] Plantillas reutilizables (`coach-templates`)
+- [ ] (Opc.) UI upsell cuando el cupo está lleno (growth/pro)
 
 ---
 

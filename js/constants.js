@@ -102,6 +102,7 @@ const UI_LABELS_EN = {
     coachInviteReject: 'Decline',
     coachInviteAcceptFail: 'Could not accept the invitation.',
     coachInviteRejectFail: 'Could not decline the invitation.',
+    coachInviteQuotaFull: 'This coach has reached their athlete limit.',
   },
     coach: {
     navGroupCoach: 'Coach',
@@ -159,6 +160,7 @@ const UI_LABELS_EN = {
     inviteNotFound: 'No athlete found with that email.',
     inviteHasCoach: 'This athlete already has a coach.',
     invitePending: 'This athlete already has a pending invitation.',
+    inviteQuotaFull: 'Athlete limit reached for your plan. Upgrade to invite more.',
     inviteFail: 'Could not send the invitation.',
     addSession: 'Add session',
     addSessionTitle: 'New session',
@@ -301,6 +303,7 @@ const UI_LABELS_ES = {
     coachInviteReject: 'Rechazar',
     coachInviteAcceptFail: 'No se pudo aceptar la invitación.',
     coachInviteRejectFail: 'No se pudo rechazar la invitación.',
+    coachInviteQuotaFull: 'Este coach alcanzó su límite de alumnos.',
   },
   coach: {
     navGroupCoach: 'Coach',
@@ -358,6 +361,7 @@ const UI_LABELS_ES = {
     inviteNotFound: 'No encontramos un atleta con ese email.',
     inviteHasCoach: 'Este atleta ya tiene un coach.',
     invitePending: 'Este atleta ya tiene una invitación pendiente.',
+    inviteQuotaFull: 'Alcanzaste el límite de alumnos de tu plan. Mejora el plan para invitar más.',
     inviteFail: 'No se pudo enviar la invitación.',
     addSession: 'Agregar sesión',
     addSessionTitle: 'Nueva sesión',

@@ -78,6 +78,12 @@ export function isPremium(u = user) {
   return u?.subscription?.plan === 'premium';
 }
 
+/** Coach can open/send athlete invites (coachQuota.canInvite from GET /users/me). */
+export function canInviteAthlete(u = user) {
+  if (!u || !isCoach(u)) return false;
+  return Boolean(u.coachQuota?.canInvite);
+}
+
 export function initSessionUi({ onViewChange: cb } = {}) {
   if (cb) onViewChange = cb;
 

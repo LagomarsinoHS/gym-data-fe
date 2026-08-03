@@ -33,6 +33,7 @@ import { initCoachInviteUi, syncCoachInviteBanner } from './features/coach-invit
 import {
   initSessionUi,
   restoreSession,
+  refreshUser,
   setUser,
   setView,
   syncSessionLabels,
@@ -131,7 +132,9 @@ async function init() {
       if (view === 'training') refreshTrainingGrid();
       else if (view === 'coach-plan') refreshCoachPlanGrid();
       else if (view === 'coach-panel') void refreshCoachPanel();
-      else if (view === 'students') void loadCoachAthletes();
+      else if (view === 'students') {
+        void refreshUser().finally(() => void loadCoachAthletes());
+      }
       else if (view === 'catalog') reloadExercises();
     },
   });

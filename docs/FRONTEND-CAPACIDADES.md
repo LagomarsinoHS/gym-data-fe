@@ -60,7 +60,7 @@ Si el boot falla → mensaje de error en el contador de resultados.
 | `coach-plan` | Plan del coach (`coachTrainingProgram` por sesiones; empty sin coach / sin plan) |
 | `coach-panel` | Resumen informativo (`coach-panel-ui`): total alumnos + sin pauta + historial invites |
 | `coach-templates` | Shell placeholder |
-| `students` | Mis alumnos (`students-ui` + `coach-sessions-ui` + `students-download-ui` + store) |
+| `students` | Mis alumnos (`students-ui` + cupo `coachQuota.canInvite` + `coach-sessions-ui` + `students-download-ui` + store) |
 | `session-editor` | Editor de una sesión del atleta (coach) |
 
 - Post-login: coach/admin → `coach-panel`; athlete → `training`.
@@ -181,12 +181,13 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 ## 9. Mis alumnos (coach)
 
 - Toolbar: buscar (debounce 500ms), **Ordenar** (menú: sin/con pauta primero), **Descargar**, Invitar alumno.
+- **Invitar** se deshabilita si `GET /users/me` → `coachQuota.canInvite === false` (tooltip con mensaje de cuota). Al entrar a Mis alumnos se refresca `/me`.
+- Modal email exacto → `POST /users/coach/invites`; errores por `code` (`mapApiError` → copy i18n).
 - Orden: client-side sobre alumnos **ya cargados** (incluye “Cargar más”); re-click de la opción activa quita el orden.
 - Badge **Nuevo**: invites `accepted` con `respondedAt` ≤ 48h (vía `GET /users/coach/invites`); al abrir la fila se guarda como visto en `localStorage` y no vuelve a marcarse (ni al recargar / re-login).
 - Descargar: menú toolbar “Descargar todos”; por alumno ⏬ → Excel (activo) / PDF (pronto).
   - `POST /users/coach/training-program/export` binary (`athleteIds: []` = todos; `[id]` = uno) + `locale`.
 - Loading spinner al primer fetch; empty / sin resultados sin flash raro.
-- Modal email exacto → `POST /users/coach/invites` (Bearer); “Invitación enviada”.
 - Lista → `GET /users/coach/athletes` (paginado 5 + Cargar más); cache en memoria.
 - Acordeón alumno → info + plan; **Agregar sesión** (modal nombre, local).
 - Sub-acordeón sesión → mini-cards (thumb, nombre, pauta) + Editar sesión.
@@ -202,6 +203,8 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 - `GET /users/me/pending-coach-invite` → siempre `{ invite: null | { coachId, invitedAt, coach } }` (máx. 1 pendiente).
 - FE (`coach-invite-ui.js`): carga junto a cada `/users/me` (`restoreSession` / `refreshUser` vía `onUserSynced`), y de nuevo al volver a la pestaña (`visibilitychange`). No re-fetch al navegar.
 - Banner + dot en Plan del coach → accept / reject `POST /users/me/pending-coach-invite/respond`.
+- Si accept falla por cupo del coach (`COACH_ATHLETE_QUOTA_FULL`): se oculta el copy/botones del invite y el banner muestra solo el mensaje localizado ~4s.
+- Errores de invite/respond: preferir `err.code` → `mapApiError` / copy en `constants.js` (ES/EN).
 
 ---
 
@@ -228,7 +231,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 | GET | `/exercises/recommend?zone&equipment` | Sí | Submit recommend |
 | POST | `/auth/login` | No | Login |
 | POST | `/auth/register` | No | Register |
-| GET | `/users/me` | Sí | Sesión (user + programs enriquecidos; **sin** invite) |
+| GET | `/users/me` | Sí | Sesión (user + programs + `subscription` + `coachQuota` si coach; **sin** invite) |
 | GET | `/users/me/pending-coach-invite` | Sí | Atleta: `{ invite }` (null o pendiente) |
 | POST | `/users/training-program` | Sí | Agregar al plan |
 | PUT | `/users/training-program/remove` | Sí | Confirmar quitar |
@@ -330,8 +333,8 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 | Drawer | `js/features/nav-drawer.js` |
 | Tema | `theme-boot.js`, `theme-ui.js` |
 | Footer / eggs | `footer.js`, `easter-egg.js` |
-| API | `js/api/request.js`, `auth.js`, `users.js`, `exercises.js`, `token.js` |
-| Copy | `js/constants.js` |
+| API | `js/api/request.js` (expone `err.code`), `auth.js`, `users.js`, `exercises.js`, `token.js` |
+| Copy / i18n errors | `js/constants.js`, `js/utils/api-errors.js`, `js/utils/auth-errors.js` |
 | Estilos | `public/css/base.css`, `app.css` |
 
 ---
@@ -342,7 +345,8 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 - Export PDF (UI disabled “Pronto”).
 - Admin no se elige en register (solo DB); en nav se comporta como coach.
 - Sin refresh token; si `/me` falla, sesión guest.
-- Recommend exige `subscription.plan === 'premium'` del back.
+- Recommend exige `subscription.plan === 'premium'` del back (athletes).
+- Coach tiers (`growth` / `pro`) e invite quotas: ver `coachQuota` en `/me`.
 
 ---
 

@@ -20,8 +20,9 @@ Consume la API desplegada en Render (o tu backend local).
 - Auth (login / registro) + roles atleta / coach
 - Menú de cuenta en sidebar: iniciales, nombre corto, rol; dropdown (Mi perfil / Configuración deshabilitados; Cerrar sesión)
 - **Mi entrenamiento** (agregar / quitar / pauta) y **Plan del coach** (sesiones)
-- Coach: **Panel** (métricas + historial de invites filtrable), **Mis alumnos** (invitar, ordenar, editar plan, export Excel)
-- Banner de invite pendiente (atleta) vía `GET /users/me/pending-coach-invite`
+- Coach: **Panel** (métricas + historial de invites filtrable), **Mis alumnos** (invitar con cupo, ordenar, editar plan, export Excel)
+- Banner de invite pendiente (atleta) vía `GET /users/me/pending-coach-invite` (mensaje localizado si el coach no tiene cupo)
+- Planes: athlete `free`/`premium`; coach `free`/`growth`/`pro` + `coachQuota` en `/me`
 - UI bilingüe (Español / English)
 - Media local (`public/images`, `public/videos`)
 
@@ -94,17 +95,18 @@ Para desarrollar contra tu API local, levantá el backend en el puerto **3000** 
 | `GET` | `/exercises/labels` | Chips de filtros |
 | `GET` | `/exercises/recommend?zone=&equipment=` | Recomendar (Pro) |
 | `POST` | `/auth/login` · `/auth/register` | Sesión |
-| `GET` | `/users/me` | Perfil + `trainingProgram` + `coachTrainingProgram` |
+| `GET` | `/users/me` | Perfil + programs + `subscription` + `coachQuota` (coach) |
 | `GET` | `/users/me/pending-coach-invite` | Invite pendiente atleta `{ invite }` |
 | `POST` | `/users/training-program` | Agregar ejercicios al plan |
 | `PUT` | `/users/training-program/remove` | Quitar un ejercicio |
 | `PUT` | `/users/training-program/:exerciseId` | Editar pauta |
-| `POST` | `/users/coach/invites` | Coach invita por email |
+| `POST` | `/users/coach/invites` | Coach invita por email (cupo por plan) |
 | `GET` | `/users/coach/invites` | Historial invites (`status?`, page, limit) |
 | `POST` | `/users/me/pending-coach-invite/respond` | Atleta accept / reject |
 | `GET` | `/users/coach/athletes` | Mis alumnos / stats Panel |
 | `PUT` | `/users/coach/athletes/:id/training-program` | Guardar plan coach |
 | `POST` | `/users/coach/training-program/export` | Export Excel / zip (binary) |
+| `POST` | `/admin/subscriptions/grant` · `/revoke` | Admin (JWT + role admin) |
 
 Respuesta típica de listado:
 

@@ -57,9 +57,11 @@ export async function postBinary(path, body, { auth = false } = {}) {
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    const err = new Error(data.message || `API ${res.status}: ${url.pathname}`);
-    err.status = res.status;
-    throw err;
+    const err = new Error(
+      (typeof data?.message === 'string' && data.message) ||
+        `API ${res.status}: ${url.pathname}`,
+    );
+    throw attachApiError(err, res.status, data || {});
   }
 
   const blob = await res.blob();
@@ -83,6 +85,29 @@ function authHeaders(auth) {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+/**
+ * Normalize Nest/API error JSON onto the thrown Error:
+ * - err.status  — HTTP status
+ * - err.code    — stable ApiErrorCode (when present)
+ * - err.message — human string (English fallback from API)
+ * - err.details — optional payload
+ */
+function attachApiError(err, status, data) {
+  err.status = status;
+  err.code = typeof data?.code === 'string' ? data.code : null;
+  err.details =
+    data?.details && typeof data.details === 'object' ? data.details : null;
+
+  const message = data?.message;
+  if (typeof message === 'string' && message.trim()) {
+    err.message = message.trim();
+  } else if (Array.isArray(message)) {
+    err.message = message.filter(Boolean).join(' ');
+  }
+
+  return err;
+}
+
 async function send(url, options) {
   const res = await fetch(url, options);
   const text = await res.text();
@@ -96,10 +121,10 @@ async function send(url, options) {
   }
   if (!res.ok) {
     const err = new Error(
-      (data && data.message) || `API ${res.status}: ${url.pathname}`,
+      (typeof data?.message === 'string' && data.message) ||
+        `API ${res.status}: ${url.pathname}`,
     );
-    err.status = res.status;
-    throw err;
+    throw attachApiError(err, res.status, data || {});
   }
   return data;
 }

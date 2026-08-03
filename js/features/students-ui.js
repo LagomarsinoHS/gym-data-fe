@@ -7,6 +7,13 @@
  */
 import { getCoachAthletes, getCoachInvites, inviteCoachAthlete } from '../api/users.js';
 import { ui } from '../utils/labels.js';
+import { ApiErrorCode, mapApiError } from '../utils/api-errors.js';
+import {
+  canInviteAthlete,
+  getUser,
+  onUserSynced,
+  refreshUser,
+} from './session-ui.js';
 import {
   store,
   athleteDisplayName,
@@ -118,6 +125,7 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
     }
   });
 
+  onUserSynced(() => syncInviteStudentButtons());
   syncStudentsLabels();
 }
 
@@ -136,6 +144,7 @@ export function syncStudentsLabels() {
 
   syncSearchClear();
   syncStudentsSortMenuState();
+  syncInviteStudentButtons();
   if (store.athletesLoaded) renderStudentsList();
   syncCoachSessionsLabels();
   syncDownloadAllState();
@@ -298,8 +307,25 @@ export function getStudents() {
 }
 
 // ── Invite student modal ──────────────────────────────────────────────
+function syncInviteStudentButtons() {
+  const allowed = canInviteAthlete(getUser());
+  const title = allowed ? '' : ui('inviteQuotaFull');
+
+  for (const id of ['students-add-btn', 'students-empty-add-btn']) {
+    const btn = document.getElementById(id);
+    if (!btn) continue;
+    btn.disabled = !allowed;
+    btn.title = title;
+    btn.setAttribute('aria-disabled', allowed ? 'false' : 'true');
+  }
+}
+
 export function openAddStudentModal() {
   if (!overlay) return;
+  if (!canInviteAthlete(getUser())) {
+    syncInviteStudentButtons();
+    return;
+  }
   clearCloseTimer();
   setStatus('');
   form?.reset();
@@ -327,6 +353,7 @@ async function onSubmit(e) {
   try {
     await inviteCoachAthlete(email);
     void loadCoachAthletes({ force: true });
+    void refreshUser().then(() => syncInviteStudentButtons());
     if (submitBtn) {
       submitBtn.classList.add('is-sent');
       submitBtn.disabled = true;
@@ -348,16 +375,14 @@ async function onSubmit(e) {
 }
 
 function inviteErrorMessage(err) {
-  const status = err?.status;
-  const raw = Array.isArray(err?.message) ? err.message.join(' ') : String(err?.message || '');
-  const lower = raw.toLowerCase();
-
-  if (status === 404) return ui('inviteNotFound');
-  if (status === 409) {
-    if (lower.includes('pending')) return ui('invitePending');
-    return ui('inviteHasCoach');
-  }
-  return ui('inviteFail');
+  return mapApiError(err, {
+    byCode: {
+      [ApiErrorCode.CoachAthleteQuotaFull]: 'inviteQuotaFull',
+      [ApiErrorCode.AthleteNotFoundByEmail]: 'inviteNotFound',
+      [ApiErrorCode.AthleteHasPendingInvite]: 'invitePending',
+    },
+    fallback: 'inviteFail',
+  });
 }
 
 function setStatus(message, kind = '') {

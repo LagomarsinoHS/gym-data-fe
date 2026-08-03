@@ -579,6 +579,11 @@ html, body { height: 100%; }
   gap: 2px;
 }
 
+.coach-invite-banner-copy[hidden],
+.coach-invite-banner-actions[hidden] {
+  display: none !important;
+}
+
 .coach-invite-banner-label {
   margin: 0;
   font-size: 11px;
@@ -657,16 +662,25 @@ html, body { height: 100%; }
 .coach-invite-banner-status {
   flex: 1 1 100%;
   margin: 0;
-  font-size: 12px;
-  line-height: 1.35;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .coach-invite-banner-status.is-error {
   color: #b91c1c;
+  background: color-mix(in srgb, #b91c1c 10%, transparent);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
 }
 
 .coach-invite-banner-status[hidden] {
   display: none !important;
+}
+
+html[data-theme="dark"] .coach-invite-banner-status.is-error {
+  color: #fca5a5;
+  background: color-mix(in srgb, #f87171 14%, transparent);
 }
 
 .sidebar-nav-dot {
@@ -4465,6 +4479,21 @@ html[data-theme="dark"] .coach-panel-invite-status-pill.is-cancelled {
   border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
   color: var(--accent);
   background: color-mix(in srgb, var(--accent) 8%, var(--bg-surface));
+}
+
+.recommend-again-btn:disabled,
+.recommend-again-btn:disabled:hover {
+  opacity: 0.55;
+  cursor: not-allowed;
+  border-color: var(--border);
+  color: var(--text-primary);
+  background: var(--bg-surface);
+}
+
+#students-empty-add-btn:disabled,
+#students-empty-add-btn:disabled:hover {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .recommend-title {
