@@ -4,10 +4,17 @@
  * Filters/search run in memory (no catalog API).
  * Cards are training-specific (not catalog exercise-card).
  */
+import { assetUrl } from '../utils/assets.js';
 import { fillCardMedia } from '../utils/cards.js';
 import { normalizeSearch } from '../utils/helpers.js';
 import { exerciseName, label, ui } from '../utils/labels.js';
+import { prescriptionLines, prescriptionNote } from '../utils/prescription.js';
 import { setView } from './session-ui.js';
+
+export { prescriptionLines, prescriptionNote };
+
+/** Which coach-plan session accordion is open (athlete view). */
+let openCoachPlanSessionId = null;
 
 /**
  * @param {object|null} user
@@ -24,17 +31,218 @@ export function renderTrainingProgram(user, filters = {}) {
 }
 
 /**
- * Plan del coach — paints user.coachTrainingProgram (same item shape as trainingProgram for now).
+ * Plan del coach — paints user.coachTrainingProgram as sessions.
  * Markup: #coach-plan-grid
  */
-export function renderCoachTrainingProgram(user, filters = {}) {
-  renderProgramIntoGrid({
-    gridId: 'coach-plan-grid',
-    items: user?.coachTrainingProgram,
-    filters,
-    emptyKey: 'coachPlanProgramEmpty',
-    showCatalogCta: false,
+export function renderCoachTrainingProgram(user) {
+  const root = document.getElementById('coach-plan-grid');
+  if (!root) return;
+
+  root.replaceChildren();
+  root.classList.remove('training-grid');
+  root.classList.add('coach-plan-sessions');
+
+  const prog = Array.isArray(user?.coachTrainingProgram) ? user.coachTrainingProgram : [];
+  if (!prog.length) {
+    root.appendChild(createTrainingEmptyState(true, {
+      emptyKey: 'coachPlanProgramEmpty',
+      showCatalogCta: false,
+    }));
+    return;
+  }
+
+  const sessions = [...prog].sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0));
+  const frag = document.createDocumentFragment();
+  sessions.forEach((session, index) => {
+    frag.appendChild(createCoachPlanSession(session, { index }));
   });
+  root.appendChild(frag);
+}
+
+function createCoachPlanSession(session, { index = 0 } = {}) {
+  const id = String(session?.id || '');
+  const name = String(session?.name || '').trim() || '—';
+  const items = [...(session?.items || [])]
+    .filter(item => item?.exercise)
+    .sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0));
+  const sets = totalCoachSessionSets(items);
+  const sessionNumber = (session?.order ?? index) + 1;
+
+  const section = document.createElement('section');
+  section.className = 'coach-plan-session';
+  if (id) section.dataset.sessionId = id;
+
+  const header = document.createElement('button');
+  header.type = 'button';
+  header.className = 'coach-plan-session-header';
+  header.setAttribute('aria-expanded', 'false');
+
+  const indexEl = document.createElement('span');
+  indexEl.className = 'coach-plan-session-index';
+  indexEl.textContent = String(sessionNumber).padStart(2, '0');
+  indexEl.setAttribute('aria-label', ui('sessionIndex', sessionNumber));
+
+  const title = document.createElement('span');
+  title.className = 'coach-plan-session-title';
+  title.textContent = name;
+
+  const meta = document.createElement('span');
+  meta.className = 'coach-plan-session-meta';
+  meta.append(
+    createCoachPlanMetaChip(items.length, ui('sessionExercisesUnit', items.length)),
+  );
+  if (items.length) {
+    meta.append(
+      createCoachPlanMetaChip(sets, ui('sessionSetsUnit', sets), true),
+    );
+  }
+
+  const chevron = document.createElement('span');
+  chevron.className = 'coach-plan-session-chevron';
+  chevron.setAttribute('aria-hidden', 'true');
+
+  header.append(indexEl, title, meta, chevron);
+
+  const body = document.createElement('div');
+  body.className = 'coach-plan-session-body';
+
+  if (!items.length) {
+    const empty = document.createElement('p');
+    empty.className = 'coach-plan-session-empty';
+    empty.textContent = ui('sessionEmptyItems');
+    body.append(empty);
+  } else {
+    const list = document.createElement('div');
+    list.className = 'coach-plan-workout-list';
+    items.forEach((item, itemIndex) => {
+      list.appendChild(createCoachPlanWorkoutItem(item, itemIndex));
+    });
+    body.append(list);
+  }
+
+  header.addEventListener('click', () => toggleCoachPlanSession(section));
+  section.append(header, body);
+
+  if (openCoachPlanSessionId && openCoachPlanSessionId === id) {
+    openCoachPlanSession(section);
+  }
+
+  return section;
+}
+
+function createCoachPlanMetaChip(value, unit, emphasize = false) {
+  const chip = document.createElement('span');
+  chip.className = emphasize
+    ? 'coach-plan-meta-chip coach-plan-meta-chip--sets'
+    : 'coach-plan-meta-chip';
+
+  const num = document.createElement('strong');
+  num.textContent = String(value);
+  const labelEl = document.createElement('span');
+  labelEl.textContent = unit;
+  chip.append(num, labelEl);
+  return chip;
+}
+
+function createCoachPlanWorkoutItem(item, index = 0) {
+  const ex = item.exercise;
+  const id = String(ex?.id || item.exerciseId || '');
+  const name = exerciseName(ex) || id || '—';
+  const lines = prescriptionLines(item);
+  const note = prescriptionNote(item);
+
+  const row = document.createElement('article');
+  row.className = 'coach-plan-workout-item';
+  row.style.setProperty('--item-i', String(index));
+  if (id) row.dataset.id = id;
+
+  const media = document.createElement('div');
+  media.className = 'coach-plan-workout-media';
+  const imageSrc = assetUrl(ex?.image || ex?.gif_url);
+  if (imageSrc) {
+    const thumb = document.createElement('img');
+    thumb.className = 'coach-plan-workout-thumb';
+    thumb.alt = name;
+    thumb.loading = 'lazy';
+    thumb.src = imageSrc;
+    thumb.addEventListener('error', () => {
+      thumb.remove();
+      media.classList.add('is-fallback');
+      media.textContent = name.slice(0, 1).toUpperCase() || '?';
+    }, { once: true });
+    media.append(thumb);
+  } else {
+    media.classList.add('is-fallback');
+    media.textContent = name.slice(0, 1).toUpperCase() || '?';
+  }
+
+  const main = document.createElement('div');
+  main.className = 'coach-plan-workout-main';
+
+  const nameEl = document.createElement('h4');
+  nameEl.className = 'coach-plan-workout-name';
+  nameEl.textContent = name;
+
+  const rx = document.createElement('div');
+  rx.className = 'coach-plan-workout-rx';
+  if (lines.length) {
+    for (const line of lines) {
+      const chip = document.createElement('span');
+      chip.className = 'coach-plan-workout-chip';
+      chip.textContent = `${line.ico} ${line.text}`;
+      rx.append(chip);
+    }
+  } else {
+    const bare = document.createElement('span');
+    bare.className = 'coach-plan-workout-bare';
+    bare.textContent = ui('programBare');
+    rx.append(bare);
+  }
+
+  main.append(nameEl, rx);
+  if (note) {
+    const noteEl = document.createElement('p');
+    noteEl.className = 'coach-plan-workout-note';
+    noteEl.textContent = note;
+    noteEl.title = note;
+    main.append(noteEl);
+  }
+
+  row.append(media, main);
+  return row;
+}
+
+function toggleCoachPlanSession(section) {
+  const opening = !section.classList.contains('is-open');
+  const root = section.closest('.coach-plan-sessions');
+  root?.querySelectorAll('.coach-plan-session.is-open').forEach(other => {
+    if (other !== section) closeCoachPlanSession(other);
+  });
+  if (opening) openCoachPlanSession(section);
+  else closeCoachPlanSession(section);
+}
+
+function openCoachPlanSession(section) {
+  const header = section.querySelector('.coach-plan-session-header');
+  section.classList.add('is-open');
+  if (header) header.setAttribute('aria-expanded', 'true');
+  openCoachPlanSessionId = section.dataset.sessionId || null;
+}
+
+function closeCoachPlanSession(section) {
+  const header = section.querySelector('.coach-plan-session-header');
+  section.classList.remove('is-open');
+  if (header) header.setAttribute('aria-expanded', 'false');
+  if (openCoachPlanSessionId && section.dataset.sessionId === openCoachPlanSessionId) {
+    openCoachPlanSessionId = null;
+  }
+}
+
+function totalCoachSessionSets(items) {
+  return (items || []).reduce((sum, item) => {
+    const n = Number(item?.sets);
+    return sum + (Number.isFinite(n) && n > 0 ? Math.floor(n) : 0);
+  }, 0);
 }
 
 function renderProgramIntoGrid({
@@ -183,12 +391,4 @@ function createProgramCard(item) {
   }
 
   return article;
-}
-
-export function prescriptionLines(item) {
-  const lines = [];
-  if (item?.sets != null) lines.push({ ico: '🏋️', text: String(item.sets) });
-  if (item?.reps) lines.push({ ico: '🔁', text: String(item.reps) });
-  if (item?.rest != null) lines.push({ ico: '⏱️', text: `${item.rest}s` });
-  return lines;
 }

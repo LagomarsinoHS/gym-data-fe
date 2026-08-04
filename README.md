@@ -17,7 +17,12 @@ Consume la API desplegada en Render (o tu backend local).
 - Búsqueda por texto y por **ID** (`GET /exercises/:id`)
 - Modal de detalle: meta, músculos, instrucciones ES/EN, compartir enlace
 - Botón **WOD** → ejercicio random (`GET /exercises/random`)
-- Auth (login / registro) + **Mi entrenamiento** (agregar / quitar del plan)
+- Auth (login / registro) + roles atleta / coach
+- Menú de cuenta en sidebar: iniciales, nombre corto, rol; dropdown (Mi perfil / Configuración deshabilitados; Cerrar sesión)
+- **Mi entrenamiento** (agregar / quitar / pauta) y **Plan del coach** (sesiones)
+- Coach: **Panel** (métricas + historial de invites filtrable), **Mis alumnos** (invitar con cupo, ordenar, editar plan, export Excel)
+- Banner de invite pendiente (atleta) vía `GET /users/me/pending-coach-invite` (mensaje localizado si el coach no tiene cupo)
+- Planes: athlete `free`/`premium`; coach `free`/`growth`/`pro` + `coachQuota` en `/me`
 - UI bilingüe (Español / English)
 - Media local (`public/images`, `public/videos`)
 
@@ -39,15 +44,16 @@ gym-data-fe/
 ├── js/
 │   ├── main.js             # Catálogo, modal, plan
 │   ├── constants.js
-│   ├── api/                # client, auth, users, exercises, token
-│   ├── features/           # auth-ui, session-ui, training-ui, …
+│   ├── api/                # request, auth, users, exercises, token
+│   ├── features/           # auth, session, training, students, panel, invite…
 │   └── utils/              # assets, cards, helpers, labels
 ├── public/
 │   ├── css/                # base.css, app.css
 │   ├── images/
 │   └── videos/
 └── docs/
-    └── PLAN-PERFIL-ENTRENAMIENTO.md
+    ├── FRONTEND-CAPACIDADES.md   # qué hace el FE hoy
+    └── TODO.md                   # pendientes
 ```
 
 ---
@@ -66,7 +72,7 @@ npx serve .
 
 ### API local vs producción
 
-En `js/api/client.js` (base URL):
+En `js/api/request.js` (base URL):
 
 | Dónde abrís el front        | API usada                                      |
 |----------------------------|-------------------------------------------------|
@@ -87,10 +93,20 @@ Para desarrollar contra tu API local, levantá el backend en el puerto **3000** 
 | `GET` | `/exercises/:id` | Detalle / búsqueda por id |
 | `GET` | `/exercises/random` | Botón WOD |
 | `GET` | `/exercises/labels` | Chips de filtros |
+| `GET` | `/exercises/recommend?zone=&equipment=` | Recomendar (Pro) |
 | `POST` | `/auth/login` · `/auth/register` | Sesión |
-| `GET` | `/users/me` | Perfil + `trainingProgram` |
-| `PUT` | `/users/:id/training-program` | Reemplazar ids del plan |
-| `PUT` | `/users/:id/training-program/remove` | Quitar un ejercicio |
+| `GET` | `/users/me` | Perfil + programs + `subscription` + `coachQuota` (coach) |
+| `GET` | `/users/me/pending-coach-invite` | Invite pendiente atleta `{ invite }` |
+| `POST` | `/users/training-program` | Agregar ejercicios al plan |
+| `PUT` | `/users/training-program/remove` | Quitar un ejercicio |
+| `PUT` | `/users/training-program/:exerciseId` | Editar pauta |
+| `POST` | `/users/coach/invites` | Coach invita por email (cupo por plan) |
+| `GET` | `/users/coach/invites` | Historial invites (`status?`, page, limit) |
+| `POST` | `/users/me/pending-coach-invite/respond` | Atleta accept / reject |
+| `GET` | `/users/coach/athletes` | Mis alumnos / stats Panel |
+| `PUT` | `/users/coach/athletes/:id/training-program` | Guardar plan coach |
+| `POST` | `/users/coach/training-program/export` | Export Excel / zip (binary) |
+| `POST` | `/admin/subscriptions/grant` · `/revoke` | Admin (JWT + role admin) |
 
 Respuesta típica de listado:
 
@@ -114,7 +130,8 @@ Los campos `image` y `gif_url` vienen como paths relativos (`images/...`, `video
 
 - Sin build step: editás y refrescás.
 - Render puede “dormir” el servicio gratis; el primer request tras inactividad puede tardar unos segundos.
-- Plan de producto (perfil / coach / pauta): ver [`docs/PLAN-PERFIL-ENTRENAMIENTO.md`](docs/PLAN-PERFIL-ENTRENAMIENTO.md).
+- Capacidades actuales: [`docs/FRONTEND-CAPACIDADES.md`](docs/FRONTEND-CAPACIDADES.md).
+- Pendientes: [`docs/TODO.md`](docs/TODO.md).
 - Maintained by **Mister L** 💪
 
 ---

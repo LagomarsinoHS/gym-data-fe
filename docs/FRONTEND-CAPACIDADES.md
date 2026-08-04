@@ -14,10 +14,10 @@ API: `localhost:3000` en local · `https://gym-data-8d3l.onrender.com` en prod.
 3. **`init()` en `main.js`:**
    - Sincroniza labels `[data-ui]` según idioma guardado
    - `GET /exercises/labels` → chips de filtros
-   - Inicia sesión, auth, tema, drawer mobile, students, recommend
+   - Inicia sesión, auth, tema, drawer mobile, students, coach panel, coach invite, recommend
    - Revela filtros (animación cascade)
    - En mobile: colapsa filtros + mueve results bar arriba
-   - `restoreSession()` → si hay token, `GET /users/me`
+   - `restoreSession()` → si hay token, `GET /users/me` (+ `onUserSynced` → pending invite)
    - Primera página del catálogo
    - Wire de eventos (search, chips, cards, modal, WOD, infinite scroll…)
    - Footer (taglines + contador de flexes)
@@ -31,13 +31,17 @@ Si el boot falla → mensaje de error en el contador de resultados.
 
 | Acción | Qué pasa |
 |--------|----------|
-| Login | `POST /auth/login` → guarda `FLEX_TOKEN` → `GET /users/me` → vista según rol |
+| Login | `POST /auth/login` → guarda `FLEX_TOKEN` → `GET /users/me` → (atleta) pending invite → vista según rol |
 | Register | Form extra: nombre, apellido, rol Atleta/Entrenador → `POST /auth/register` (mismo flujo de token) |
-| Logout | Borra token, user=null, vista catálogo, limpia recommend |
+| Logout | Menú cuenta → **Cerrar sesión** → borra token, user=null, vista catálogo, limpia recommend / cache alumnos / pending invite |
 | Restaurar sesión | Al boot / post-login: Bearer + `/users/me`; si falla → guest |
 
 - Overlay auth: backdrop / Escape cierran; errores mapeados (401, 409, etc.).
 - Password min 6; autocomplete distinto login vs register.
+- **Menú de cuenta** (`session-ui.js` / `#sidebar-user`): avatar con iniciales, nombre corto (`Humberto L`), badge de rol, chevron → dropdown.
+  - **Mi perfil** y **Configuración**: visibles pero `disabled` (tooltip “Próximamente”).
+  - **Cerrar sesión**: activo (rojo).
+  - Cierra con click afuera o Escape.
 
 ---
 
@@ -46,20 +50,22 @@ Si el boot falla → mensaje de error en el contador de resultados.
 | Rol | Nav |
 |-----|-----|
 | **Athlete** | Mi plan → Entrenamiento, Recomendar (Pro), Plan del coach · Catálogo |
-| **Coach / Admin** | Mis alumnos · Catálogo |
+| **Coach / Admin** | Panel · Plantillas · Mis alumnos · Catálogo |
 
 | Vista | Contenido |
 |-------|-----------|
 | `catalog` | Grid + filtros + search + WOD |
 | `training` | Plan personal (`trainingProgram`) |
-| `recommend` | Recomendar (solo si `isPremium`) |
-| `coach-plan` | Placeholder (plan del coach; sin datos aún) |
-| `students` | Shell Mis alumnos (lista aún vacía) |
+| `recommend` | Recomendar (solo si `subscription.plan === 'premium'`) |
+| `coach-plan` | Plan del coach (`coachTrainingProgram` por sesiones; empty sin coach / sin plan) |
+| `coach-panel` | Resumen informativo (`coach-panel-ui`): total alumnos + sin pauta + historial invites |
+| `coach-templates` | Shell placeholder |
+| `students` | Mis alumnos (`students-ui` + cupo `coachQuota.canInvite` + `coach-sessions-ui` + `students-download-ui` + store) |
+| `session-editor` | Editor de una sesión del atleta (coach) |
 
-- Post-login: coach/admin → `students`; athlete → `training`.
+- Post-login: coach/admin → `coach-panel`; athlete → `training`.
 - Recomendar: nav locked + tooltip si no es Pro.
-- Badge de rol en sidebar (Atleta / Entrenador / Admin).
-
+- Identidad en sidebar: menú de cuenta (iniciales + rol); ver Auth.
 ---
 
 ## 4. Catálogo
@@ -158,16 +164,51 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 ---
 
-## 8. Mis alumnos (coach)
+## 8. Coach — Panel
 
-- Toolbar + empty state + “Invitar alumno”.
-- Modal email exacto → `POST /users/coach/invites` (Bearer).
-- Success: “Invitación enviada”; 404/409 mapeados a copy local.
-- Lista de alumnos: markup listo, **aún no se pinta** (falta `GET .../athletes`).
+- Vista informativa (`coach-panel-ui.js`): **Total de alumnos** y **Alumnos sin pauta**.
+- Data stats: pagina `GET /users/coach/athletes` hasta completar; “sin pauta” = sin sesiones con `items`.
+- Loading (opción B): spinner + stats ocultas hasta tener números (sin placeholders `—`).
+- **Invitaciones:** historial filtrable (`GET /users/coach/invites?status=&page=&limit=`).
+  - Filtros: Todas / Pendientes / Aceptadas / Rechazadas / Canceladas.
+  - Al cambiar filtro (`replace`): vacía lista + empty + “Cargar más” → spinner → pinta resultados (sin dejar filas viejas debajo del spinner).
+  - Un filtro nuevo puede interrumpir una carga en curso (`invitesSeq`); “Cargar más” espera a que termine.
+  - Filas: nombre (si existe), email, status, fechas; “Cargar más” si hay más páginas.
+- Sin click-through en las stats: actuar en Mis alumnos.
 
 ---
 
-## 9. Tema e idioma
+## 9. Mis alumnos (coach)
+
+- Toolbar: buscar (debounce 500ms), **Ordenar** (menú: sin/con pauta primero), **Descargar**, Invitar alumno.
+- **Invitar** se deshabilita si `GET /users/me` → `coachQuota.canInvite === false` (tooltip con mensaje de cuota). Al entrar a Mis alumnos se refresca `/me`.
+- Modal email exacto → `POST /users/coach/invites`; errores por `code` (`mapApiError` → copy i18n).
+- Orden: client-side sobre alumnos **ya cargados** (incluye “Cargar más”); re-click de la opción activa quita el orden.
+- Badge **Nuevo**: invites `accepted` con `respondedAt` ≤ 48h (vía `GET /users/coach/invites`); al abrir la fila se guarda como visto en `localStorage` y no vuelve a marcarse (ni al recargar / re-login).
+- Descargar: menú toolbar “Descargar todos”; por alumno ⏬ → Excel (activo) / PDF (pronto).
+  - `POST /users/coach/training-program/export` binary (`athleteIds: []` = todos; `[id]` = uno) + `locale`.
+- Loading spinner al primer fetch; empty / sin resultados sin flash raro.
+- Lista → `GET /users/coach/athletes` (paginado 5 + Cargar más); cache en memoria.
+- Acordeón alumno → info + plan; **Agregar sesión** (modal nombre, local).
+- Sub-acordeón sesión → mini-cards (thumb, nombre, pauta) + Editar sesión.
+- Vista `session-editor`: cards, Editar / ✕, Agregar ejercicios; modal confirmar quitar sesión.
+- Catálogo en modo asignar: banner + “Agregar a la sesión” + lápiz pauta (local); guardar vuelve al editor.
+- Sesiones en `athlete.coachTrainingProgram`; **Guardar plan** → `PUT /users/coach/athletes/:id/training-program` (replace; respuesta enriquecida).
+
+---
+
+## 10. Invite atleta (pending)
+
+- Colección `invites` en BE; **no** vive en el documento User ni en `GET /users/me`.
+- `GET /users/me/pending-coach-invite` → siempre `{ invite: null | { coachId, invitedAt, coach } }` (máx. 1 pendiente).
+- FE (`coach-invite-ui.js`): carga junto a cada `/users/me` (`restoreSession` / `refreshUser` vía `onUserSynced`), y de nuevo al volver a la pestaña (`visibilitychange`). No re-fetch al navegar.
+- Banner + dot en Plan del coach → accept / reject `POST /users/me/pending-coach-invite/respond`.
+- Si accept falla por cupo del coach (`COACH_ATHLETE_QUOTA_FULL`): se oculta el copy/botones del invite y el banner muestra solo el mensaje localizado ~4s.
+- Errores de invite/respond: preferir `err.code` → `mapApiError` / copy en `constants.js` (ES/EN).
+
+---
+
+## 11. Tema e idioma
 
 | Preferencia | Key | Valores |
 |-------------|-----|---------|
@@ -179,7 +220,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 ---
 
-## 10. API — mapa completo
+## 12. API — mapa completo
 
 | Método | Path | Auth | Cuándo |
 |--------|------|------|--------|
@@ -190,17 +231,21 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 | GET | `/exercises/recommend?zone&equipment` | Sí | Submit recommend |
 | POST | `/auth/login` | No | Login |
 | POST | `/auth/register` | No | Register |
-| GET | `/users/me` | Sí | Sesión |
+| GET | `/users/me` | Sí | Sesión (user + programs + `subscription` + `coachQuota` si coach; **sin** invite) |
+| GET | `/users/me/pending-coach-invite` | Sí | Atleta: `{ invite }` (null o pendiente) |
 | POST | `/users/training-program` | Sí | Agregar al plan |
 | PUT | `/users/training-program/remove` | Sí | Confirmar quitar |
 | PUT | `/users/training-program/:exerciseId` | Sí | Guardar pauta |
 | POST | `/users/coach/invites` | Sí | Coach invita atleta por email |
-
-No hay accept/reject ni listado de alumnos todavía.
+| POST | `/users/me/pending-coach-invite/respond` | Sí | Atleta accept / reject |
+| GET | `/users/coach/athletes` | Sí | Lista paginada Mis alumnos / stats Panel |
+| GET | `/users/coach/invites` | Sí | Historial invites coach (`status` opcional) |
+| PUT | `/users/coach/athletes/:athleteId/training-program` | Sí | Guardar plan (replace sesiones) |
+| POST | `/users/coach/training-program/export` | Sí | Export Excel/zip (binary) |
 
 ---
 
-## 11. Animaciones y microinteracciones
+## 13. Animaciones y microinteracciones
 
 | Qué | Cuándo |
 |-----|--------|
@@ -232,7 +277,7 @@ No hay accept/reject ni listado de alumnos todavía.
 
 ---
 
-## 12. Utils
+## 14. Utils
 
 | Archivo | Rol |
 |---------|-----|
@@ -244,10 +289,11 @@ No hay accept/reject ni listado de alumnos todavía.
 | `reps.js` | `cleanReps`, `formatReps` |
 | `assets.js` | `assetUrl` para media |
 | `auth-errors.js` | mensajes de error de auth |
+| `dates.js` | `formatDate` via `Intl.DateTimeFormat` (es: 2026-agosto-02 · en: August 2, 2026) |
 
 ---
 
-## 13. Storage
+## 15. Storage
 
 | Key | Dónde | Contenido |
 |-----|-------|-----------|
@@ -258,7 +304,7 @@ No hay accept/reject ni listado de alumnos todavía.
 
 ---
 
-## 14. Mobile (≤768px)
+## 16. Mobile (≤768px)
 
 - Topbar + hamburger; sidebar drawer off-canvas.
 - Cierre: ✕, backdrop, item de nav, Escape, resize a desktop.
@@ -269,7 +315,7 @@ No hay accept/reject ni listado de alumnos todavía.
 
 ---
 
-## 15. Mapa de archivos
+## 17. Mapa de archivos
 
 | Área | Archivos |
 |------|----------|
@@ -278,27 +324,32 @@ No hay accept/reject ni listado de alumnos todavía.
 | Auth UI | `js/features/auth-ui.js` |
 | Entrenamiento | `js/features/training-ui.js` |
 | Recommend | `js/features/recommend-ui.js` |
+| Coach Panel | `js/features/coach-panel-ui.js` |
+| Coach invite banner | `js/features/coach-invite-ui.js` |
 | Students | `js/features/students-ui.js` |
+| Students download | `js/features/students-download-ui.js` |
+| Coach sessions / editor | `js/features/coach-sessions-ui.js` |
+| Athletes store | `js/features/coach-athletes-store.js` |
 | Drawer | `js/features/nav-drawer.js` |
 | Tema | `theme-boot.js`, `theme-ui.js` |
 | Footer / eggs | `footer.js`, `easter-egg.js` |
-| API | `js/api/*` |
-| Copy | `js/constants.js` |
+| API | `js/api/request.js` (expone `err.code`), `auth.js`, `users.js`, `exercises.js`, `token.js` |
+| Copy / i18n errors | `js/constants.js`, `js/utils/api-errors.js`, `js/utils/auth-errors.js` |
 | Estilos | `public/css/base.css`, `app.css` |
 
 ---
 
-## 16. Stubs / aún no cableado
+## 18. Stubs / aún no cableado
 
-- Plan del coach: copy según `coachId`; grid sin datos.
-- Mis alumnos: lista vacía; agregar alumno sin endpoint.
+- Plantillas (`coach-templates`) placeholder.
+- Export PDF (UI disabled “Pronto”).
 - Admin no se elige en register (solo DB); en nav se comporta como coach.
 - Sin refresh token; si `/me` falla, sesión guest.
-- Recommend exige `isPremium` del back.
+- Recommend exige `subscription.plan === 'premium'` del back (athletes).
+- Coach tiers (`growth` / `pro`) e invite quotas: ver `coachQuota` en `/me`.
 
 ---
 
 ## Ver también
 
-- [TODO.md](./TODO.md) — pendientes
-- [PLAN-PERFIL-ENTRENAMIENTO.md](./PLAN-PERFIL-ENTRENAMIENTO.md) — diseño del plan / API
+- [TODO.md](./TODO.md) — pendientes (FE + BE)

@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ExerciseDB 🏋️</title>
+  <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="stylesheet" href="public/css/base.css" />
   <link rel="stylesheet" href="public/css/app.css" />
   <script src="js/theme-boot.js"></script>
@@ -14,9 +15,11 @@
     · #theme-toggle-btn                            → js/features/theme-ui.js
     · theme early (head, sin defer)                → js/theme-boot.js
     · #nav-drawer-toggle / #app-sidebar (móvil)    → js/features/nav-drawer.js
-    · #sidebar-auth / vistas catalog|training|recommend|coach-plan|students → js/features/session-ui.js
+    · #sidebar-auth / vistas catalog|training|recommend|coach-plan|coach-panel|coach-templates|students|session-editor → js/features/session-ui.js
     · #recommend-overlay                               → js/features/recommend-ui.js
-    · #students-view / #add-student-overlay             → js/features/students-ui.js
+    · #students-view / overlays → js/features/students-ui.js · download → students-download-ui.js
+    · #coach-panel-view → js/features/coach-panel-ui.js
+    · #session-editor-view / session overlays → js/features/coach-sessions-ui.js
     · #coach-invite-banner                             → js/features/coach-invite-ui.js
     · #training-grid                               → js/features/training-ui.js
     · Footer                                       → js/features/footer.js
@@ -61,22 +64,50 @@
 
       <!-- Con sesión — js/features/session-ui.js -->
       <div id="sidebar-auth" class="sidebar-auth" hidden>
-        <div class="sidebar-user">
-          <div class="sidebar-user-identity">
+        <div class="sidebar-user" id="sidebar-user">
+          <button
+            type="button"
+            class="sidebar-user-trigger"
+            id="sidebar-user-trigger"
+            aria-expanded="false"
+            aria-haspopup="menu"
+            aria-controls="sidebar-user-menu"
+          >
             <span class="sidebar-user-avatar" id="sidebar-user-avatar" aria-hidden="true"></span>
             <div class="sidebar-user-meta">
               <span class="sidebar-user-name" id="sidebar-user-name"></span>
               <span class="sidebar-user-role" id="sidebar-user-role" hidden></span>
             </div>
-          </div>
-          <button type="button" class="sidebar-logout" id="logout-btn">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M6 3H3.5A1.5 1.5 0 0 0 2 4.5v7A1.5 1.5 0 0 0 3.5 13H6"/>
-              <path d="M10.5 10.5 13 8l-2.5-2.5"/>
-              <path d="M6.5 8H13"/>
-            </svg>
-            <span data-ui="logout">Salir</span>
+            <span class="sidebar-user-chevron" aria-hidden="true">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 6.5 8 10.5 12 6.5"/>
+              </svg>
+            </span>
           </button>
+          <div class="sidebar-user-menu" id="sidebar-user-menu" role="menu" hidden>
+            <button type="button" class="sidebar-user-menu-item" role="menuitem" id="sidebar-user-profile" data-action="profile" disabled>
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="8" cy="5.5" r="2.5"/>
+                <path d="M3.5 13.5c.7-2.2 2.3-3.3 4.5-3.3s3.8 1.1 4.5 3.3"/>
+              </svg>
+              <span data-ui="myProfile">Mi perfil</span>
+            </button>
+            <button type="button" class="sidebar-user-menu-item" role="menuitem" id="sidebar-user-settings" data-action="settings" disabled>
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="8" cy="8" r="2.2"/>
+                <path d="M8 2.5v1.2M8 12.3v1.2M2.5 8h1.2M12.3 8h1.2M4.1 4.1l.85.85M11.05 11.05l.85.85M11.9 4.1l-.85.85M4.95 11.05l-.85.85"/>
+              </svg>
+              <span data-ui="settings">Configuración</span>
+            </button>
+            <button type="button" class="sidebar-user-menu-item is-danger" role="menuitem" id="logout-btn" data-action="logout">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M6 3H3.5A1.5 1.5 0 0 0 2 4.5v7A1.5 1.5 0 0 0 3.5 13H6"/>
+                <path d="M10.5 10.5 13 8l-2.5-2.5"/>
+                <path d="M6.5 8H13"/>
+              </svg>
+              <span data-ui="logout">Cerrar sesión</span>
+            </button>
+          </div>
         </div>
 
         <nav class="sidebar-nav" aria-label="App">
@@ -105,6 +136,14 @@
           <div id="nav-coach" class="sidebar-nav-group" hidden>
             <div class="sidebar-nav-label" data-ui="navGroupCoach">Coach</div>
             <div class="sidebar-nav-group-items">
+              <button type="button" class="sidebar-nav-btn" id="nav-coach-panel" data-view="coach-panel">
+                <span class="sidebar-nav-marker" aria-hidden="true"></span>
+                <span data-ui="coachPanel">Panel</span>
+              </button>
+              <button type="button" class="sidebar-nav-btn" id="nav-coach-templates" data-view="coach-templates">
+                <span class="sidebar-nav-marker" aria-hidden="true"></span>
+                <span data-ui="coachTemplates">Plantillas</span>
+              </button>
               <button type="button" class="sidebar-nav-btn" id="nav-students" data-view="students">
                 <span class="sidebar-nav-marker" aria-hidden="true"></span>
                 <span data-ui="myStudents">Mis alumnos</span>
@@ -216,6 +255,15 @@
     </div>
 
     <div id="catalog-view">
+      <div class="session-assign-banner" id="session-assign-banner" hidden>
+        <div class="session-assign-banner-copy">
+          <p class="session-assign-banner-label" data-ui="sessionAssignLabel">Asignando a sesión</p>
+          <p class="session-assign-banner-text" id="session-assign-banner-text"></p>
+        </div>
+        <button type="button" class="recommend-again-btn" id="session-assign-done">
+          <span data-ui="sessionAssignDone">Volver al editor</span>
+        </button>
+      </div>
       <div class="grid-wrapper">
         <div class="exercise-grid" id="exercise-grid">
           <div class="catalog-boot-loading" id="catalog-boot-loading">
@@ -265,22 +313,202 @@
         </button>
       </div>
       <div class="recommend-results" id="coach-plan-results" hidden>
-        <div class="recommend-toolbar">
-          <h2 class="recommend-toolbar-title" data-ui="coachPlan">Plan del coach</h2>
+        <div class="coach-plan-sessions" id="coach-plan-grid"></div>
+      </div>
+    </div>
+
+    <div id="coach-panel-view" class="recommend-view" hidden>
+      <div class="coach-panel">
+        <header class="coach-panel-header">
+          <h2 class="coach-panel-title" data-ui="coachPanel">Panel</h2>
+          <p class="coach-panel-lead" data-ui="coachPanelLead">
+            Resumen rápido de tus alumnos y sus pautas.
+          </p>
+        </header>
+
+        <div class="coach-panel-loading" id="coach-panel-loading" hidden>
+          <div class="load-spinner visible" aria-hidden="true"></div>
+          <span data-ui="coachPanelLoading">Cargando resumen…</span>
         </div>
-        <div class="recommend-grid training-grid" id="coach-plan-grid"></div>
+
+        <div class="coach-panel-stats" id="coach-panel-stats" hidden aria-live="polite">
+          <div class="coach-panel-stat">
+            <p class="coach-panel-stat-value" id="coach-panel-total"></p>
+            <p class="coach-panel-stat-label" data-ui="coachPanelTotalAthletes">Total de alumnos</p>
+          </div>
+          <div class="coach-panel-stat">
+            <p class="coach-panel-stat-value" id="coach-panel-without-plan"></p>
+            <p class="coach-panel-stat-label" data-ui="coachPanelWithoutPlan">Alumnos sin pauta</p>
+          </div>
+        </div>
+
+        <p class="coach-panel-status" id="coach-panel-status" hidden></p>
+
+        <section class="coach-panel-invites" id="coach-panel-invites" aria-labelledby="coach-panel-invites-title">
+          <header class="coach-panel-invites-header">
+            <h3 class="coach-panel-invites-title" id="coach-panel-invites-title" data-ui="coachPanelInvitesTitle">
+              Invitaciones
+            </h3>
+            <p class="coach-panel-invites-lead" data-ui="coachPanelInvitesLead">
+              Historial de invitaciones que enviaste.
+            </p>
+          </header>
+
+          <div class="coach-panel-invites-filters" id="coach-panel-invites-filters" role="tablist" aria-label="Filtrar invitaciones">
+            <button type="button" class="coach-panel-invites-filter is-active" data-status="" role="tab" aria-selected="true">
+              <span data-ui="coachPanelInvitesFilterAll">Todas</span>
+            </button>
+            <button type="button" class="coach-panel-invites-filter" data-status="pending" role="tab" aria-selected="false">
+              <span data-ui="coachPanelInvitesFilterPending">Pendientes</span>
+            </button>
+            <button type="button" class="coach-panel-invites-filter" data-status="accepted" role="tab" aria-selected="false">
+              <span data-ui="coachPanelInvitesFilterAccepted">Aceptadas</span>
+            </button>
+            <button type="button" class="coach-panel-invites-filter" data-status="rejected" role="tab" aria-selected="false">
+              <span data-ui="coachPanelInvitesFilterRejected">Rechazadas</span>
+            </button>
+            <button type="button" class="coach-panel-invites-filter" data-status="cancelled" role="tab" aria-selected="false">
+              <span data-ui="coachPanelInvitesFilterCancelled">Canceladas</span>
+            </button>
+          </div>
+
+          <div class="coach-panel-invites-loading" id="coach-panel-invites-loading" hidden>
+            <div class="load-spinner visible" aria-hidden="true"></div>
+          </div>
+
+          <p class="coach-panel-invites-empty" id="coach-panel-invites-empty" hidden data-ui="coachPanelInvitesEmpty">
+            Aún no hay invitaciones.
+          </p>
+
+          <ul class="coach-panel-invites-list" id="coach-panel-invites-list" hidden></ul>
+
+          <button type="button" class="coach-panel-invites-more" id="coach-panel-invites-more" hidden>
+            <span data-ui="coachPanelInvitesLoadMore">Cargar más</span>
+          </button>
+
+          <p class="coach-panel-invites-status" id="coach-panel-invites-status" hidden></p>
+        </section>
+      </div>
+    </div>
+
+    <div id="coach-templates-view" class="recommend-view" hidden>
+      <div class="recommend-panel">
+        <h2 class="recommend-title" data-ui="coachTemplates">Plantillas</h2>
+        <p class="recommend-lead" data-ui="coachTemplatesLead">
+          Acá vas a armar rutinas reutilizables para asignar a tus alumnos.
+        </p>
+      </div>
+    </div>
+
+    <div id="session-editor-view" class="session-editor-view" hidden>
+      <div class="session-editor">
+        <div class="session-editor-chrome">
+          <button type="button" class="session-editor-back" id="session-editor-back">
+            <span class="session-editor-back-ico" aria-hidden="true">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 3L5 8l5 5"/>
+              </svg>
+            </span>
+            <span data-ui="sessionEditorBack">Mis alumnos</span>
+          </button>
+          <header class="session-editor-header">
+            <div class="session-editor-heading">
+              <p class="session-editor-kicker" data-ui="sessionEditorKicker">Sesión</p>
+              <input
+                type="text"
+                class="session-editor-title"
+                id="session-editor-name"
+                name="sessionName"
+                maxlength="40"
+                autocomplete="off"
+                aria-label="Nombre"
+              />
+              <p class="session-editor-subtitle" id="session-editor-subtitle"></p>
+            </div>
+            <button type="button" class="recommend-cta session-editor-add" id="session-editor-add">
+              <span data-ui="sessionAddExercises">Agregar ejercicios</span>
+            </button>
+          </header>
+        </div>
+        <div class="session-editor-list" id="session-editor-list"></div>
       </div>
     </div>
 
     <div id="students-view" class="students-view" hidden>
       <div class="recommend-results students-shell">
-        <div class="recommend-toolbar">
-          <h2 class="recommend-toolbar-title" data-ui="myStudents">Mis alumnos</h2>
-          <button type="button" class="recommend-again-btn" id="students-add-btn">
-            <span data-ui="addStudent">Invitar alumno</span>
-          </button>
+        <div class="recommend-toolbar students-toolbar">
+          <div class="search-wrapper students-search">
+            <svg class="search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <circle cx="6.5" cy="6.5" r="4.5"/>
+              <path d="M10.5 10.5L14 14" stroke-linecap="round"/>
+            </svg>
+            <input type="text" class="search-box" id="students-search" placeholder="Buscar alumnos…" autocomplete="off" />
+            <button type="button" class="search-clear" id="students-search-clear" aria-label="Limpiar búsqueda">×</button>
+          </div>
+          <div class="students-toolbar-actions">
+            <div class="students-download students-sort" id="students-sort">
+              <button
+                type="button"
+                class="recommend-again-btn students-download-trigger"
+                id="students-sort-btn"
+                aria-expanded="false"
+                aria-haspopup="menu"
+                aria-controls="students-sort-menu"
+              >
+                <span data-ui="studentsSort">Ordenar</span>
+                <span class="students-download-caret" aria-hidden="true"></span>
+              </button>
+              <div class="students-download-menu" id="students-sort-menu" role="menu" hidden>
+                <button
+                  type="button"
+                  class="students-download-item"
+                  role="menuitemradio"
+                  id="students-sort-without-plan"
+                  data-sort="without-plan"
+                  aria-checked="false"
+                >
+                  <span data-ui="studentsSortWithoutPlan">Sin pauta primero</span>
+                </button>
+                <button
+                  type="button"
+                  class="students-download-item"
+                  role="menuitemradio"
+                  id="students-sort-with-plan"
+                  data-sort="with-plan"
+                  aria-checked="false"
+                >
+                  <span data-ui="studentsSortWithPlan">Con pauta primero</span>
+                </button>
+              </div>
+            </div>
+            <div class="students-download" id="students-download">
+              <button
+                type="button"
+                class="recommend-again-btn students-download-trigger"
+                id="students-download-btn"
+                aria-expanded="false"
+                aria-haspopup="menu"
+                aria-controls="students-download-menu"
+              >
+                <span data-ui="studentsDownload">Descargar</span>
+                <span class="students-download-caret" aria-hidden="true"></span>
+              </button>
+              <div class="students-download-menu" id="students-download-menu" role="menu" hidden>
+                <button type="button" class="students-download-item" role="menuitem" id="students-download-all">
+                  <span data-ui="studentsDownloadAll">Descargar todos</span>
+                </button>
+              </div>
+            </div>
+            <button type="button" class="recommend-again-btn" id="students-add-btn">
+              <span data-ui="addStudent">Invitar alumno</span>
+            </button>
+          </div>
         </div>
-        <div class="students-empty" id="students-empty">
+        <div class="students-loading" id="students-loading" hidden>
+          <div class="load-spinner visible" aria-hidden="true"></div>
+          <span data-ui="studentsLoading">Cargando alumnos…</span>
+        </div>
+        <div class="students-empty" id="students-empty" hidden>
           <p class="students-empty-title" data-ui="studentsEmptyTitle">Aún no tienes alumnos</p>
           <p class="students-empty-lead" data-ui="studentsEmptyLead">
             Invita a un atleta por su email exacto. Cuando acepte, aparecerá acá.
@@ -290,6 +518,9 @@
           </button>
         </div>
         <div class="students-list" id="students-list" hidden></div>
+        <button type="button" class="students-load-more" id="students-load-more" hidden>
+          <span data-ui="studentsLoadMore">Cargar más</span>
+        </button>
       </div>
     </div>
   </main>
@@ -422,6 +653,46 @@
         <span class="recommend-submit-label" data-ui="addStudentSubmit">Enviar invitación</span>
       </button>
     </form>
+  </div>
+</div>
+
+<!-- ═══ MODAL agregar sesión (coach → atleta) — js/features/coach-sessions-ui.js ═══ -->
+<div class="recommend-overlay" id="add-session-overlay" role="dialog" aria-modal="true" aria-labelledby="add-session-title">
+  <div class="recommend-modal">
+    <div class="recommend-modal-header">
+      <h2 class="recommend-modal-title" id="add-session-title" data-ui="addSessionTitle">Nueva sesión</h2>
+      <button type="button" class="modal-close" id="add-session-close" aria-label="Close">✕</button>
+    </div>
+    <form class="recommend-form" id="add-session-form">
+      <label class="recommend-field">
+        <span class="recommend-label" data-ui="addSessionName">Nombre</span>
+        <input type="text" id="add-session-name" name="name" required maxlength="40" autocomplete="off" />
+      </label>
+      <p class="recommend-hint" data-ui="addSessionHint">
+        Nombre visible para el atleta (ej. Lunes, Sesión 1).
+      </p>
+      <p class="recommend-status" id="add-session-status" hidden></p>
+      <button type="submit" class="recommend-submit" id="add-session-submit">
+        <span class="recommend-submit-label" data-ui="addSessionSubmit">Crear sesión</span>
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- ═══ MODAL confirmar eliminar sesión — js/features/coach-sessions-ui.js ═══ -->
+<div class="recommend-overlay" id="remove-session-overlay" role="dialog" aria-modal="true" aria-labelledby="remove-session-title">
+  <div class="recommend-modal confirm-modal">
+    <div class="recommend-modal-header">
+      <h2 class="recommend-modal-title" id="remove-session-title">¿Eliminar sesión?</h2>
+      <button type="button" class="modal-close" id="remove-session-close" aria-label="Close">✕</button>
+    </div>
+    <p class="confirm-modal-lead" id="remove-session-lead" data-ui="sessionRemoveConfirm">
+      Los cambios quedan sin guardar hasta que guardes el plan.
+    </p>
+    <div class="confirm-modal-actions">
+      <button type="button" class="confirm-modal-cancel" id="remove-session-cancel" data-ui="sessionRemoveCancel">Cancelar</button>
+      <button type="button" class="confirm-modal-danger" id="remove-session-confirm" data-ui="sessionRemoveConfirmBtn">Eliminar</button>
+    </div>
   </div>
 </div>
 

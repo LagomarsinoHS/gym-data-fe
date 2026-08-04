@@ -1,26 +1,53 @@
 /**
  * Session shell: guest vs logged-in sidebar; role-based nav (athlete | coach).
  * Markup: #sidebar-guest, #sidebar-auth, #nav-athlete, #nav-coach,
- * views: catalog | training | recommend | coach-plan | students
+ * views: catalog | training | recommend | coach-plan | coach-panel | coach-templates | students | session-editor
  * Training grid rendering is driven by main.js (filters live there).
  */
 import { getMe } from '../api/users.js';
 import { clearToken, isLoggedIn } from '../api/token.js';
 import { ui } from '../utils/labels.js';
 import { clearRecommendPlan } from './recommend-ui.js';
+import { clearCoachAthletesCache } from './students-ui.js';
+import {
+  clearSessionAssignTarget,
+  syncSessionEditorView,
+} from './coach-sessions-ui.js';
 
-const VIEWS = new Set(['catalog', 'training', 'recommend', 'coach-plan', 'students']);
+const VIEWS = new Set([
+  'catalog',
+  'training',
+  'recommend',
+  'coach-plan',
+  'coach-panel',
+  'coach-templates',
+  'students',
+  'session-editor',
+]);
 const ATHLETE_VIEWS = new Set(['training', 'recommend', 'coach-plan']);
-const COACH_VIEWS = new Set(['students']);
+const COACH_VIEWS = new Set(['coach-panel', 'coach-templates', 'students', 'session-editor']);
 
-let view = 'catalog'; // 'catalog' | 'training' | 'recommend' | 'coach-plan' | 'students'
+let view = 'catalog';
 let user = null;
 let onViewChange = () => {};
 const chromeListeners = new Set();
+/** After GET /users/me (or cleared session) — e.g. pending invite. */
+const userSyncedListeners = new Set();
 
 /** Run after session chrome re-renders (banner, extras). */
 export function onSessionChrome(fn) {
   if (typeof fn === 'function') chromeListeners.add(fn);
+}
+
+/** Run after restoreSession / refreshUser finish (user set or cleared). */
+export function onUserSynced(fn) {
+  if (typeof fn === 'function') userSyncedListeners.add(fn);
+}
+
+async function notifyUserSynced() {
+  await Promise.all(
+    [...userSyncedListeners].map((fn) => Promise.resolve().then(() => fn())),
+  );
 }
 
 export function isCoach(u = user) {
@@ -39,11 +66,22 @@ export function hasCoach(u = user) {
 
 /**
  * Acceso a “Recomendar Entrenamiento”.
- * Gate: athlete + user.isPremium (GET /users/me).
+ * Gate: athlete + subscription.plan === 'premium' (GET /users/me).
  */
 export function canAccessRecommendPlan(u = user) {
   if (!u || !isAthlete(u)) return false;
-  return u.isPremium === true;
+  return isPremium(u);
+}
+
+/** True when GET /users/me has subscription.plan === 'premium'. */
+export function isPremium(u = user) {
+  return u?.subscription?.plan === 'premium';
+}
+
+/** Coach can open/send athlete invites (coachQuota.canInvite from GET /users/me). */
+export function canInviteAthlete(u = user) {
+  if (!u || !isCoach(u)) return false;
+  return Boolean(u.coachQuota?.canInvite);
 }
 
 export function initSessionUi({ onViewChange: cb } = {}) {
@@ -58,34 +96,99 @@ export function initSessionUi({ onViewChange: cb } = {}) {
     if (!isAthlete()) return;
     setView('coach-plan');
   });
+  document.getElementById('nav-coach-panel')?.addEventListener('click', () => {
+    if (!isCoach()) return;
+    setView('coach-panel');
+  });
+  document.getElementById('nav-coach-templates')?.addEventListener('click', () => {
+    if (!isCoach()) return;
+    setView('coach-templates');
+  });
   document.getElementById('nav-students')?.addEventListener('click', () => {
     if (!isCoach()) return;
+    clearSessionAssignTarget();
     setView('students');
   });
-  document.getElementById('nav-catalog')?.addEventListener('click', () => setView('catalog'));
+  document.getElementById('nav-catalog')?.addEventListener('click', () => {
+    if (isCoach()) clearSessionAssignTarget();
+    setView('catalog');
+  });
   document.getElementById('coach-plan-catalog-btn')?.addEventListener('click', () => setView('catalog'));
-  document.getElementById('logout-btn')?.addEventListener('click', logout);
+  initUserMenu();
 
   syncSessionLabels();
   renderSessionChrome();
 }
 
+function initUserMenu() {
+  const root = document.getElementById('sidebar-user');
+  const trigger = document.getElementById('sidebar-user-trigger');
+  const menu = document.getElementById('sidebar-user-menu');
+  if (!root || !trigger || !menu) return;
+
+  trigger.setAttribute('aria-label', ui('accountMenu'));
+
+  trigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setUserMenuOpen(!isUserMenuOpen());
+  });
+
+  menu.addEventListener('click', (e) => {
+    const item = e.target.closest('[data-action]');
+    if (!item || !menu.contains(item) || item.disabled) return;
+    const action = item.dataset.action;
+    setUserMenuOpen(false);
+    if (action === 'logout') logout();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!isUserMenuOpen()) return;
+    if (root.contains(e.target)) return;
+    setUserMenuOpen(false);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !isUserMenuOpen()) return;
+    setUserMenuOpen(false);
+    trigger.focus();
+  });
+}
+
+function isUserMenuOpen() {
+  const trigger = document.getElementById('sidebar-user-trigger');
+  return trigger?.getAttribute('aria-expanded') === 'true';
+}
+
+function setUserMenuOpen(open) {
+  const trigger = document.getElementById('sidebar-user-trigger');
+  const menu = document.getElementById('sidebar-user-menu');
+  if (!trigger || !menu) return;
+  trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  menu.hidden = !open;
+}
+
 export async function restoreSession() {
   if (!isLoggedIn()) {
     user = null;
+    clearCoachAthletesCache();
     renderSessionChrome();
+    await notifyUserSynced();
     return null;
   }
 
   try {
     user = await getMe();
+    clearCoachAthletesCache();
     renderSessionChrome();
+    await notifyUserSynced();
     return user;
   } catch (err) {
     console.error(err);
     clearToken();
     user = null;
+    clearCoachAthletesCache();
     renderSessionChrome();
+    await notifyUserSynced();
     return null;
   }
 }
@@ -101,15 +204,17 @@ export function setUser(next) {
   return user;
 }
 
-/** Refetch GET /users/me into session. */
+/** Refetch GET /users/me into session (then notify user-synced listeners). */
 export async function refreshUser() {
   if (!isLoggedIn()) {
     user = null;
     renderSessionChrome();
+    await notifyUserSynced();
     return null;
   }
   user = await getMe();
   renderSessionChrome();
+  await notifyUserSynced();
   return user;
 }
 
@@ -128,32 +233,42 @@ export function setView(next) {
   if (!VIEWS.has(next)) return;
   if (next === 'recommend' && !canAccessRecommendPlan()) return;
   if (next === 'coach-plan' && !isAthlete()) return;
-  if (next === 'students' && !isCoach()) return;
   if (ATHLETE_VIEWS.has(next) && !isAthlete()) return;
   if (COACH_VIEWS.has(next) && !isCoach()) return;
+  if (next !== 'catalog') clearSessionAssignTarget();
   view = next;
   renderSessionChrome();
   onViewChange(view);
 }
 
 export function logout() {
+  setUserMenuOpen(false);
   clearToken();
   user = null;
   view = 'catalog';
   clearRecommendPlan();
+  clearCoachAthletesCache();
   renderSessionChrome();
+  void notifyUserSynced();
   onViewChange(view);
 }
 
 export function syncSessionLabels() {
   document.querySelectorAll(
-    '#sidebar-guest [data-ui], #sidebar-auth [data-ui], #recommend-view [data-ui], #coach-plan-view [data-ui], #students-view [data-ui]',
+    '#sidebar-guest [data-ui], #sidebar-auth [data-ui], #recommend-view [data-ui], #coach-plan-view [data-ui], #coach-panel-view [data-ui], #coach-templates-view [data-ui], #students-view [data-ui], #session-editor-view [data-ui], #session-assign-banner [data-ui]',
   ).forEach(el => {
     el.textContent = ui(el.dataset.ui);
   });
 
   const myPlanBtn = document.getElementById('my-plan-btn');
   if (myPlanBtn) myPlanBtn.title = ui('myPlan');
+
+  const trigger = document.getElementById('sidebar-user-trigger');
+  if (trigger) trigger.setAttribute('aria-label', ui('accountMenu'));
+
+  const soonTitle = ui('comingSoon');
+  document.getElementById('sidebar-user-profile')?.setAttribute('title', soonTitle);
+  document.getElementById('sidebar-user-settings')?.setAttribute('title', soonTitle);
 
   renderUserName();
   syncNavActive();
@@ -171,14 +286,18 @@ function renderUserName() {
   const first = String(user.firstName || '').trim();
   const last = String(user.lastName || '').trim();
   const full = [first, last].filter(Boolean).join(' ');
+  const shortName = last
+    ? `${first} ${last.charAt(0)}.`.trim()
+    : first || user.email || '—';
 
   if (nameEl) {
-    nameEl.textContent = full;
-    nameEl.title = full;
+    nameEl.textContent = shortName;
+    nameEl.title = full || shortName;
   }
 
   if (avatarEl) {
-    const initials = `${first.charAt(0)}${last.charAt(0)}`.toUpperCase() || '?';
+    const initials = `${first.charAt(0)}${last.charAt(0)}`.toUpperCase()
+      || String(user.email || '?').charAt(0).toUpperCase();
     avatarEl.textContent = initials;
   }
 
@@ -214,16 +333,30 @@ function syncCoachPlanPanel() {
   if (!titleEl || !leadEl) return;
 
   const linked = hasCoach();
-  const hasProgram = (user?.coachTrainingProgram || []).some(item => item?.exercise);
+  const hasProgram = hasCoachTrainingProgram();
 
-  if (emptyPanel) emptyPanel.hidden = hasProgram;
-  if (results) results.hidden = !hasProgram;
+  // Empty panel: no coach, or coach but still no sessions/plan
+  if (emptyPanel) emptyPanel.hidden = linked && hasProgram;
+  if (results) results.hidden = !(linked && hasProgram);
 
-  titleEl.dataset.ui = linked ? 'coachPlan' : 'coachPlanEmpty';
-  leadEl.dataset.ui = linked ? 'coachPlanLead' : 'coachPlanEmptyLead';
+  if (!linked) {
+    titleEl.dataset.ui = 'coachPlanEmpty';
+    leadEl.dataset.ui = 'coachPlanEmptyLead';
+  } else if (!hasProgram) {
+    titleEl.dataset.ui = 'coachPlan';
+    leadEl.dataset.ui = 'coachPlanProgramEmpty';
+  } else {
+    titleEl.dataset.ui = 'coachPlan';
+    leadEl.dataset.ui = 'coachPlanLead';
+  }
+
   titleEl.textContent = ui(titleEl.dataset.ui);
   leadEl.textContent = ui(leadEl.dataset.ui);
   if (ctaBtn) ctaBtn.hidden = linked;
+}
+
+function hasCoachTrainingProgram(u = user) {
+  return Array.isArray(u?.coachTrainingProgram) && u.coachTrainingProgram.length > 0;
 }
 
 function syncRoleNav() {
@@ -239,6 +372,8 @@ function syncNavActive() {
   const training = document.getElementById('nav-training');
   const recommend = document.getElementById('nav-recommend');
   const coachPlan = document.getElementById('nav-coach-plan');
+  const coachPanel = document.getElementById('nav-coach-panel');
+  const coachTemplates = document.getElementById('nav-coach-templates');
   const students = document.getElementById('nav-students');
   const catalog = document.getElementById('nav-catalog');
 
@@ -246,7 +381,9 @@ function syncNavActive() {
     [training, view === 'training'],
     [recommend, view === 'recommend'],
     [coachPlan, view === 'coach-plan'],
-    [students, view === 'students'],
+    [coachPanel, view === 'coach-panel'],
+    [coachTemplates, view === 'coach-templates'],
+    [students, view === 'students' || view === 'session-editor'],
     [catalog, view === 'catalog'],
   ];
 
@@ -290,7 +427,10 @@ function renderSessionChrome() {
   const trainingView = document.getElementById('training-view');
   const recommendView = document.getElementById('recommend-view');
   const coachPlanView = document.getElementById('coach-plan-view');
+  const coachPanelView = document.getElementById('coach-panel-view');
+  const coachTemplatesView = document.getElementById('coach-templates-view');
   const studentsView = document.getElementById('students-view');
+  const sessionEditorView = document.getElementById('session-editor-view');
   const catalogBar = document.getElementById('catalog-bar-extras');
   const catalogFilters = document.getElementById('sidebar-catalog-filters');
   const wodBtn = document.getElementById('wod-btn');
@@ -300,21 +440,39 @@ function renderSessionChrome() {
 
   if (guest) guest.hidden = loggedIn;
   if (auth) auth.hidden = !loggedIn;
+  if (!loggedIn) setUserMenuOpen(false);
 
   normalizeViewForRole();
 
   const showTraining = loggedIn && view === 'training';
   const showRecommend = loggedIn && view === 'recommend';
   const showCoachPlan = loggedIn && view === 'coach-plan';
+  const showCoachPanel = loggedIn && view === 'coach-panel';
+  const showCoachTemplates = loggedIn && view === 'coach-templates';
   const showStudents = loggedIn && view === 'students';
-  const hideCatalogChrome = showTraining || showRecommend || showCoachPlan || showStudents;
-  const hideSearch = showRecommend || showCoachPlan || showStudents;
+  const showSessionEditor = loggedIn && view === 'session-editor';
+  const hideCatalogChrome = showTraining
+    || showRecommend
+    || showCoachPlan
+    || showCoachPanel
+    || showCoachTemplates
+    || showStudents
+    || showSessionEditor;
+  const hideSearch = showRecommend
+    || showCoachPlan
+    || showCoachPanel
+    || showCoachTemplates
+    || showStudents
+    || showSessionEditor;
 
   if (catalogView) catalogView.hidden = hideCatalogChrome;
   if (trainingView) trainingView.hidden = !showTraining;
   if (recommendView) recommendView.hidden = !showRecommend;
   if (coachPlanView) coachPlanView.hidden = !showCoachPlan;
+  if (coachPanelView) coachPanelView.hidden = !showCoachPanel;
+  if (coachTemplatesView) coachTemplatesView.hidden = !showCoachTemplates;
   if (studentsView) studentsView.hidden = !showStudents;
+  if (sessionEditorView) sessionEditorView.hidden = !showSessionEditor;
   if (catalogBar) catalogBar.hidden = hideCatalogChrome;
   if (wodBtn) wodBtn.hidden = hideCatalogChrome;
   if (catalogFilters) catalogFilters.hidden = hideCatalogChrome;
@@ -329,6 +487,7 @@ function renderSessionChrome() {
   syncRecommendAccess();
   syncCoachPlanPanel();
   syncRoleNav();
+  syncSessionEditorView();
 
   for (const fn of chromeListeners) fn();
 }

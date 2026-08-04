@@ -10,11 +10,30 @@ import { initAuthUi, openAuth, syncAuthLabels } from './features/auth-ui.js';
 import { initThemeUi } from './features/theme-ui.js';
 import { initNavDrawer } from './features/nav-drawer.js';
 import { initRecommendUi, syncRecommendLabels, renderRecommendPlan } from './features/recommend-ui.js';
-import { initStudentsUi, syncStudentsLabels } from './features/students-ui.js';
+import {
+  initStudentsUi,
+  syncStudentsLabels,
+  loadCoachAthletes,
+} from './features/students-ui.js';
+import {
+  initCoachPanelUi,
+  refreshCoachPanel,
+  syncCoachPanelLabels,
+} from './features/coach-panel-ui.js';
+import {
+  getSessionAssignTarget,
+  clearSessionAssignTarget,
+  isExerciseInSession,
+  getSessionExerciseItem,
+  addExerciseToSession,
+  updateSessionExercise,
+  removeExerciseFromSession,
+} from './features/coach-sessions-ui.js';
 import { initCoachInviteUi, syncCoachInviteBanner } from './features/coach-invite-ui.js';
 import {
   initSessionUi,
   restoreSession,
+  refreshUser,
   setUser,
   setView,
   syncSessionLabels,
@@ -112,13 +131,17 @@ async function init() {
     onViewChange(view) {
       if (view === 'training') refreshTrainingGrid();
       else if (view === 'coach-plan') refreshCoachPlanGrid();
+      else if (view === 'coach-panel') void refreshCoachPanel();
+      else if (view === 'students') {
+        void refreshUser().finally(() => void loadCoachAthletes());
+      }
       else if (view === 'catalog') reloadExercises();
     },
   });
   initAuthUi({
     onAuthSuccess: async () => {
       await restoreSession();
-      setView(isCoach() ? 'students' : 'training');
+      setView(isCoach() ? 'coach-panel' : 'training');
       if (modalOverlay.classList.contains('open') && modalOverlay.dataset.openId) {
         syncPlanAction(modalOverlay.dataset.openId);
       }
@@ -126,7 +149,11 @@ async function init() {
   });
   initThemeUi();
   initNavDrawer();
-  initStudentsUi();
+  initStudentsUi({
+    navigateTo: setView,
+    openExercise: id => openModal(id),
+  });
+  initCoachPanelUi();
   initCoachInviteUi();
   initRecommendUi({
     getFilterLabels: () => state.labels,
@@ -289,6 +316,7 @@ function syncChromeLabels() {
   syncSessionLabels();
   syncRecommendLabels();
   syncStudentsLabels();
+  syncCoachPanelLabels();
   syncCoachInviteBanner();
 }
 
@@ -683,11 +711,37 @@ function syncPlanAction(exerciseId) {
   stopPlanUndoFill();
   delete modalAddPlan.dataset.error;
 
-  // Coach/admin: catalog is browse-only (no self-serve training view)
+  // Coach: browse-only, unless assigning exercises to an athlete session
   if (isCoach()) {
-    modalAddPlan.hidden = true;
+    const assign = getSessionAssignTarget();
+    if (!assign) {
+      modalAddPlan.hidden = true;
+      setPrescriptionEditorVisible(false);
+      if (modalActions) modalActions.hidden = true;
+      return;
+    }
+
+    if (modalActions) modalActions.hidden = !exerciseId;
+    modalAddPlan.hidden = !exerciseId;
+    if (!exerciseId) {
+      setPrescriptionEditorVisible(false);
+      return;
+    }
+
+    const inSession = isExerciseInSession(assign.athleteId, assign.sessionId, exerciseId);
+    if (inSession) {
+      modalAddPlan.disabled = false;
+      modalAddPlan.dataset.mode = 'session-remove';
+      modalAddPlan.classList.add('is-remove');
+      setPlanBtnLabel(ui('sessionRemoveExercise'));
+      setPrescriptionEditorVisible(true, { keepOpen: false });
+      return;
+    }
+
+    modalAddPlan.disabled = false;
+    modalAddPlan.dataset.mode = 'session-add';
+    setPlanBtnLabel(ui('sessionAddTo'));
     setPrescriptionEditorVisible(false);
-    if (modalActions) modalActions.hidden = true;
     return;
   }
 
@@ -733,6 +787,18 @@ function getProgramItem(exerciseId) {
   return (user.trainingProgram || []).find(
     item => String(item.exercise?.id || item.exerciseId) === exerciseId,
   ) || null;
+}
+
+/** Athlete plan item, or coach session item while assigning. */
+function getActiveProgramItem(exerciseId) {
+  exerciseId = String(exerciseId || '');
+  if (!exerciseId) return null;
+
+  const assign = getSessionAssignTarget();
+  if (isCoach() && assign) {
+    return getSessionExerciseItem(assign.athleteId, assign.sessionId, exerciseId);
+  }
+  return getProgramItem(exerciseId);
 }
 
 function setPrescriptionEditorVisible(visible, { keepOpen = false } = {}) {
@@ -823,7 +889,7 @@ function syncPrescriptionSummary(exerciseId, { celebrate = false } = {}) {
     return;
   }
 
-  const item = getProgramItem(exerciseId);
+  const item = getActiveProgramItem(exerciseId);
   const metrics = [];
   if (item?.sets != null) {
     metrics.push({ ico: '🏋️', text: String(item.sets) });
@@ -900,7 +966,7 @@ async function togglePrescriptionForm() {
 }
 
 function populatePrescriptionForm(exerciseId) {
-  const item = getProgramItem(exerciseId);
+  const item = getActiveProgramItem(exerciseId);
   if (modalRxSets) modalRxSets.value = item?.sets != null ? String(item.sets) : '';
   if (modalRxReps) modalRxReps.value = item?.reps ? cleanReps(item.reps) : '';
   if (modalRxRest) modalRxRest.value = item?.rest != null ? String(item.rest) : '';
@@ -965,6 +1031,22 @@ async function onPrescriptionSubmit(e) {
   setPrescriptionStatus('');
 
   try {
+    const assign = getSessionAssignTarget();
+    if (isCoach() && assign) {
+      const ok = updateSessionExercise(
+        assign.athleteId,
+        assign.sessionId,
+        exerciseId,
+        built.updates,
+      );
+      if (!ok) throw new Error('session exercise missing');
+      await collapsePrescriptionForm();
+      closeModal();
+      clearSessionAssignTarget();
+      setView('session-editor');
+      return;
+    }
+
     await applyUserUpdate(
       await updateTrainingProgramExercise(exerciseId, built.updates),
       { highlightId: exerciseId },
@@ -1062,9 +1144,31 @@ async function saveProgramIds(exerciseIds) {
 }
 
 async function onPlanActionClick() {
-  if (!modalAddPlan || modalAddPlan.disabled || isCoach()) return;
+  if (!modalAddPlan || modalAddPlan.disabled) return;
 
   const mode = modalAddPlan.dataset.mode;
+  const exerciseId = String(modalOverlay.dataset.openId || '');
+
+  if (isCoach()) {
+    const assign = getSessionAssignTarget();
+    if (!assign || !exerciseId) return;
+
+    if (mode === 'session-remove') {
+      removeExerciseFromSession(assign.athleteId, assign.sessionId, exerciseId);
+      syncPlanAction(exerciseId);
+      return;
+    }
+    if (mode === 'session-add') {
+      const exercise = findCachedExercise(exerciseId);
+      if (!exercise) return;
+      addExerciseToSession(assign.athleteId, assign.sessionId, exercise);
+      syncPlanAction(exerciseId);
+      openPrescriptionForm();
+      return;
+    }
+    return;
+  }
+
   if (mode === 'login') {
     openAuth('login');
     return;
@@ -1079,7 +1183,6 @@ async function onPlanActionClick() {
   }
   if (mode !== 'add') return;
 
-  const exerciseId = modalOverlay.dataset.openId;
   const user = getUser();
   if (!exerciseId || !user?.id) return;
 
@@ -1089,7 +1192,7 @@ async function onPlanActionClick() {
 
   try {
     clearPlanUndoState();
-    await saveProgramIds([String(exerciseId)]);
+    await saveProgramIds([exerciseId]);
     syncPlanAction(exerciseId);
   } catch (err) {
     console.error(err);
@@ -1436,6 +1539,10 @@ function wireEvents() {
   wireCardGrid(gridEl, { cardSelector: '.exercise-card', onOpen: openModal });
   wireCardGrid(document.getElementById('training-grid'), {
     cardSelector: '.training-card',
+    onOpen: openModal,
+  });
+  wireCardGrid(document.getElementById('coach-plan-grid'), {
+    cardSelector: '.training-card, .coach-plan-workout-item',
     onOpen: openModal,
   });
   wireCardGrid(document.getElementById('recommend-grid'), {
