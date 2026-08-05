@@ -1,8 +1,7 @@
 /**
  * Session shell: guest vs logged-in sidebar; role-based nav (athlete | coach).
  * Markup: #sidebar-guest, #sidebar-auth, #nav-athlete, #nav-coach,
- * views: catalog | training | recommend | coach-plan | coach-panel | coach-templates | students | session-editor
- * Training grid rendering is driven by main.js (filters live there).
+ * views: catalog | training | recommend | coach-plan | coach-panel | coach-templates | students | avances | athlete-avances | session-editor | progress-photos
  */
 import { getMe } from '../api/users.js';
 import { clearToken, isLoggedIn } from '../api/token.js';
@@ -13,6 +12,9 @@ import {
   clearSessionAssignTarget,
   syncSessionEditorView,
 } from './coach-sessions-ui.js';
+import { syncProgressPhotosView } from './progress-photos-ui.js';
+import { syncAvancesView } from './avances-ui.js';
+import { syncAthleteAvancesView } from './athlete-avances-ui.js';
 
 const VIEWS = new Set([
   'catalog',
@@ -22,10 +24,20 @@ const VIEWS = new Set([
   'coach-panel',
   'coach-templates',
   'students',
+  'avances',
+  'athlete-avances',
   'session-editor',
+  'progress-photos',
 ]);
-const ATHLETE_VIEWS = new Set(['training', 'recommend', 'coach-plan']);
-const COACH_VIEWS = new Set(['coach-panel', 'coach-templates', 'students', 'session-editor']);
+const ATHLETE_VIEWS = new Set(['training', 'recommend', 'coach-plan', 'athlete-avances']);
+const COACH_VIEWS = new Set([
+  'coach-panel',
+  'coach-templates',
+  'students',
+  'avances',
+  'session-editor',
+  'progress-photos',
+]);
 
 let view = 'catalog';
 let user = null;
@@ -96,6 +108,10 @@ export function initSessionUi({ onViewChange: cb } = {}) {
     if (!isAthlete()) return;
     setView('coach-plan');
   });
+  document.getElementById('nav-athlete-avances')?.addEventListener('click', () => {
+    if (!isAthlete()) return;
+    setView('athlete-avances');
+  });
   document.getElementById('nav-coach-panel')?.addEventListener('click', () => {
     if (!isCoach()) return;
     setView('coach-panel');
@@ -108,6 +124,11 @@ export function initSessionUi({ onViewChange: cb } = {}) {
     if (!isCoach()) return;
     clearSessionAssignTarget();
     setView('students');
+  });
+  document.getElementById('nav-avances')?.addEventListener('click', () => {
+    if (!isCoach()) return;
+    clearSessionAssignTarget();
+    setView('avances');
   });
   document.getElementById('nav-catalog')?.addEventListener('click', () => {
     if (isCoach()) clearSessionAssignTarget();
@@ -255,7 +276,7 @@ export function logout() {
 
 export function syncSessionLabels() {
   document.querySelectorAll(
-    '#sidebar-guest [data-ui], #sidebar-auth [data-ui], #recommend-view [data-ui], #coach-plan-view [data-ui], #coach-panel-view [data-ui], #coach-templates-view [data-ui], #students-view [data-ui], #session-editor-view [data-ui], #session-assign-banner [data-ui]',
+    '#sidebar-guest [data-ui], #sidebar-auth [data-ui], #recommend-view [data-ui], #coach-plan-view [data-ui], #coach-panel-view [data-ui], #coach-templates-view [data-ui], #students-view [data-ui], #avances-view [data-ui], #athlete-avances-view [data-ui], #session-editor-view [data-ui], #progress-photos-view [data-ui], #session-assign-banner [data-ui]',
   ).forEach(el => {
     el.textContent = ui(el.dataset.ui);
   });
@@ -372,18 +393,22 @@ function syncNavActive() {
   const training = document.getElementById('nav-training');
   const recommend = document.getElementById('nav-recommend');
   const coachPlan = document.getElementById('nav-coach-plan');
+  const athleteAvances = document.getElementById('nav-athlete-avances');
   const coachPanel = document.getElementById('nav-coach-panel');
   const coachTemplates = document.getElementById('nav-coach-templates');
   const students = document.getElementById('nav-students');
+  const avances = document.getElementById('nav-avances');
   const catalog = document.getElementById('nav-catalog');
 
   const pairs = [
     [training, view === 'training'],
     [recommend, view === 'recommend'],
     [coachPlan, view === 'coach-plan'],
+    [athleteAvances, view === 'athlete-avances'],
     [coachPanel, view === 'coach-panel'],
     [coachTemplates, view === 'coach-templates'],
     [students, view === 'students' || view === 'session-editor'],
+    [avances, view === 'avances' || view === 'progress-photos'],
     [catalog, view === 'catalog'],
   ];
 
@@ -430,7 +455,10 @@ function renderSessionChrome() {
   const coachPanelView = document.getElementById('coach-panel-view');
   const coachTemplatesView = document.getElementById('coach-templates-view');
   const studentsView = document.getElementById('students-view');
+  const avancesView = document.getElementById('avances-view');
+  const athleteAvancesView = document.getElementById('athlete-avances-view');
   const sessionEditorView = document.getElementById('session-editor-view');
+  const progressPhotosView = document.getElementById('progress-photos-view');
   const catalogBar = document.getElementById('catalog-bar-extras');
   const catalogFilters = document.getElementById('sidebar-catalog-filters');
   const wodBtn = document.getElementById('wod-btn');
@@ -450,20 +478,29 @@ function renderSessionChrome() {
   const showCoachPanel = loggedIn && view === 'coach-panel';
   const showCoachTemplates = loggedIn && view === 'coach-templates';
   const showStudents = loggedIn && view === 'students';
+  const showAvances = loggedIn && view === 'avances';
+  const showAthleteAvances = loggedIn && view === 'athlete-avances';
   const showSessionEditor = loggedIn && view === 'session-editor';
+  const showProgressPhotos = loggedIn && view === 'progress-photos';
   const hideCatalogChrome = showTraining
     || showRecommend
     || showCoachPlan
     || showCoachPanel
     || showCoachTemplates
     || showStudents
-    || showSessionEditor;
+    || showAvances
+    || showAthleteAvances
+    || showSessionEditor
+    || showProgressPhotos;
   const hideSearch = showRecommend
     || showCoachPlan
     || showCoachPanel
     || showCoachTemplates
     || showStudents
-    || showSessionEditor;
+    || showAvances
+    || showAthleteAvances
+    || showSessionEditor
+    || showProgressPhotos;
 
   if (catalogView) catalogView.hidden = hideCatalogChrome;
   if (trainingView) trainingView.hidden = !showTraining;
@@ -472,7 +509,10 @@ function renderSessionChrome() {
   if (coachPanelView) coachPanelView.hidden = !showCoachPanel;
   if (coachTemplatesView) coachTemplatesView.hidden = !showCoachTemplates;
   if (studentsView) studentsView.hidden = !showStudents;
+  if (avancesView) avancesView.hidden = !showAvances;
+  if (athleteAvancesView) athleteAvancesView.hidden = !showAthleteAvances;
   if (sessionEditorView) sessionEditorView.hidden = !showSessionEditor;
+  if (progressPhotosView) progressPhotosView.hidden = !showProgressPhotos;
   if (catalogBar) catalogBar.hidden = hideCatalogChrome;
   if (wodBtn) wodBtn.hidden = hideCatalogChrome;
   if (catalogFilters) catalogFilters.hidden = hideCatalogChrome;
@@ -488,6 +528,9 @@ function renderSessionChrome() {
   syncCoachPlanPanel();
   syncRoleNav();
   syncSessionEditorView();
+  void syncAvancesView();
+  syncProgressPhotosView();
+  syncAthleteAvancesView();
 
   for (const fn of chromeListeners) fn();
 }

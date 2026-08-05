@@ -204,7 +204,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 - FE (`coach-invite-ui.js`): carga junto a cada `/users/me` (`restoreSession` / `refreshUser` vía `onUserSynced`), y de nuevo al volver a la pestaña (`visibilitychange`). No re-fetch al navegar.
 - Banner + dot en Plan del coach → accept / reject `POST /users/me/pending-coach-invite/respond`.
 - Si accept falla por cupo del coach (`COACH_ATHLETE_QUOTA_FULL`): se oculta el copy/botones del invite y el banner muestra solo el mensaje localizado ~4s.
-- Errores de invite/respond: preferir `err.code` → `mapApiError` / copy en `constants.js` (ES/EN).
+- Errores de invite/respond: preferir `err.code` → `mapApiError` / copy en `js/i18n/` (ES/EN).
 
 ---
 
@@ -334,7 +334,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 | Tema | `theme-boot.js`, `theme-ui.js` |
 | Footer / eggs | `footer.js`, `easter-egg.js` |
 | API | `js/api/request.js` (expone `err.code`), `auth.js`, `users.js`, `exercises.js`, `token.js` |
-| Copy / i18n errors | `js/constants.js`, `js/utils/api-errors.js`, `js/utils/auth-errors.js` |
+| Copy / i18n errors | `js/i18n/`, `js/utils/api-errors.js`, `js/utils/auth-errors.js` |
 | Estilos | `public/css/base.css`, `app.css` |
 
 ---

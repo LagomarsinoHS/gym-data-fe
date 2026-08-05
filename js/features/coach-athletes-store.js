@@ -15,6 +15,12 @@ export const store = {
   openSessionId: null,
   editorAthleteId: null,
   editorSessionId: null,
+  /** Athlete id for the progress-photos coach view. */
+  progressAthleteId: null,
+  /** Where progress-photos back navigates: 'students' | 'avances'. */
+  progressReturnView: 'students',
+  /** Fallback athlete fields when not present in store.athletes. */
+  progressAthleteSnapshot: null,
   sessionAssignTarget: null,
   dirtyAthleteIds: new Set(),
   savingAthleteIds: new Set(),
@@ -27,7 +33,13 @@ export const store = {
 };
 
 export function findAthlete(athleteId) {
-  return store.athletes.find(a => String(a?.id) === String(athleteId)) || null;
+  const id = String(athleteId || '');
+  return (
+    store.athletes.find(a => String(a?.id) === id)
+    || (String(store.progressAthleteSnapshot?.id) === id
+      ? store.progressAthleteSnapshot
+      : null)
+  );
 }
 
 export function findSession(athleteId, sessionId) {
@@ -86,6 +98,9 @@ export function resetCoachAthletesStore() {
   store.openSessionId = null;
   store.editorAthleteId = null;
   store.editorSessionId = null;
+  store.progressAthleteId = null;
+  store.progressReturnView = 'students';
+  store.progressAthleteSnapshot = null;
   store.sessionAssignTarget = null;
   store.dirtyAthleteIds.clear();
   store.savingAthleteIds.clear();

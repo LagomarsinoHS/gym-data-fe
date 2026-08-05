@@ -15,6 +15,12 @@ import {
   syncStudentsLabels,
   loadCoachAthletes,
 } from './features/students-ui.js';
+import { initProgressPhotosUi } from './features/progress-photos-ui.js';
+import { initAvancesUi, syncAvancesLabels } from './features/avances-ui.js';
+import {
+  initAthleteAvancesUi,
+  syncAthleteAvancesLabels,
+} from './features/athlete-avances-ui.js';
 import {
   initCoachPanelUi,
   refreshCoachPanel,
@@ -153,6 +159,9 @@ async function init() {
     navigateTo: setView,
     openExercise: id => openModal(id),
   });
+  initAvancesUi();
+  initProgressPhotosUi();
+  initAthleteAvancesUi({ getUser, refreshUser });
   initCoachPanelUi();
   initCoachInviteUi();
   initRecommendUi({
@@ -316,6 +325,8 @@ function syncChromeLabels() {
   syncSessionLabels();
   syncRecommendLabels();
   syncStudentsLabels();
+  syncAvancesLabels();
+  syncAthleteAvancesLabels();
   syncCoachPanelLabels();
   syncCoachInviteBanner();
 }

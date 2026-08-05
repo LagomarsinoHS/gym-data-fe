@@ -1,4 +1,4 @@
-import { get, post, postBinary, put } from './request.js';
+import { get, post, postBinary, postMultipart, put } from './request.js';
 
 const USERS = '/users';
 
@@ -104,6 +104,31 @@ export function getCoachInvites({ page = 1, limit = 20, status } = {}) {
     { page, limit, status: status || undefined },
     { auth: true },
   );
+}
+
+/**
+ * GET /users/:userId/progress-photos
+ * Authz: self or assigned coach. Optional year filter.
+ * Returns { currentWeightKg, years: [{ year, months: [{ month, yearMonth, weightKg, front, back }] }] }
+ */
+export function getProgressPhotos(userId, { year } = {}) {
+  return get(
+    `${USERS}/${userId}/progress-photos`,
+    { year: year || undefined },
+    { auth: true },
+  );
+}
+
+/**
+ * POST /users/me/progress-photos (multipart)
+ * Fields: weightKg (required) + front? and/or back? image files.
+ */
+export function uploadProgressPhotos({ weightKg, frontFile, backFile }) {
+  const form = new FormData();
+  form.append('weightKg', String(weightKg));
+  if (frontFile) form.append('front', frontFile);
+  if (backFile) form.append('back', backFile);
+  return postMultipart(`${USERS}/me/progress-photos`, form, { auth: true });
 }
 
 /**
