@@ -43,7 +43,8 @@ gym-data-fe/
 ├── index.html              # App principal
 ├── js/
 │   ├── main.js             # Catálogo, modal, plan
-│   ├── constants.js
+│   ├── constants.js        # constantes no-i18n (ej. EQUIP_INITIAL)
+│   ├── i18n/               # copy EN/ES por dominio (common, auth, athlete, coach)
 │   ├── api/                # request, auth, users, exercises, token
 │   ├── features/           # auth, session, training, students, panel, invite…
 │   └── utils/              # assets, cards, helpers, labels

@@ -1,4 +1,4 @@
-import { UI_LABELS, VALUE_LABELS_ES } from '../constants.js';
+import { UI_LABELS, VALUE_LABELS_ES } from '../i18n/index.js';
 
 let currentLang = 'es';
 

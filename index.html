@@ -15,9 +15,12 @@
     · #theme-toggle-btn                            → js/features/theme-ui.js
     · theme early (head, sin defer)                → js/theme-boot.js
     · #nav-drawer-toggle / #app-sidebar (móvil)    → js/features/nav-drawer.js
-    · #sidebar-auth / vistas catalog|training|recommend|coach-plan|coach-panel|coach-templates|students|session-editor → js/features/session-ui.js
+    · #sidebar-auth / vistas catalog|training|recommend|coach-plan|coach-panel|coach-templates|students|avances|athlete-avances|session-editor|progress-photos → js/features/session-ui.js
     · #recommend-overlay                               → js/features/recommend-ui.js
     · #students-view / overlays → js/features/students-ui.js · download → students-download-ui.js
+    · #avances-view → js/features/avances-ui.js
+    · #athlete-avances-view → js/features/athlete-avances-ui.js
+    · #progress-photos-view → js/features/progress-photos-ui.js
     · #coach-panel-view → js/features/coach-panel-ui.js
     · #session-editor-view / session overlays → js/features/coach-sessions-ui.js
     · #coach-invite-banner                             → js/features/coach-invite-ui.js
@@ -123,6 +126,10 @@
                 <span data-ui="coachPlan">Plan del coach</span>
                 <span class="sidebar-nav-dot" id="nav-coach-plan-dot" hidden aria-hidden="true"></span>
               </button>
+              <button type="button" class="sidebar-nav-btn" id="nav-athlete-avances" data-view="athlete-avances">
+                <span class="sidebar-nav-marker" aria-hidden="true"></span>
+                <span data-ui="athleteAvances">Avances</span>
+              </button>
               <button type="button" class="sidebar-nav-btn" id="nav-recommend" data-view="recommend">
                 <span class="sidebar-nav-marker" aria-hidden="true"></span>
                 <span data-ui="recommendPlan">Recomendar Entrenamiento</span>
@@ -147,6 +154,10 @@
               <button type="button" class="sidebar-nav-btn" id="nav-students" data-view="students">
                 <span class="sidebar-nav-marker" aria-hidden="true"></span>
                 <span data-ui="myStudents">Mis alumnos</span>
+              </button>
+              <button type="button" class="sidebar-nav-btn" id="nav-avances" data-view="avances">
+                <span class="sidebar-nav-marker" aria-hidden="true"></span>
+                <span data-ui="navAvances">Avances</span>
               </button>
             </div>
           </div>
@@ -279,6 +290,73 @@
 
     <div id="training-view" class="training-view" hidden>
       <div class="training-grid" id="training-grid"></div>
+    </div>
+
+    <div id="athlete-avances-view" class="athlete-avances-view" hidden>
+      <div class="athlete-avances">
+        <header class="athlete-avances-header">
+          <h2 class="athlete-avances-title" data-ui="athleteAvances">Avances</h2>
+          <p class="athlete-avances-month-hint" data-ui="athleteAvancesMonthHint">
+            Se guarda como avance del mes actual.
+          </p>
+          <p class="athlete-avances-current-weight" id="athlete-avances-current-weight" hidden>
+            <span data-ui="progressPhotosInfoCurrentWeight">Peso actual</span>
+            <strong id="athlete-avances-current-weight-value">—</strong>
+          </p>
+        </header>
+
+        <div class="athlete-avances-body">
+          <div class="athlete-avances-body-inner">
+            <section class="athlete-avances-upload">
+              <form class="athlete-avances-form" id="athlete-avances-form">
+                <div class="athlete-avances-form-grid">
+                  <label class="athlete-avances-field athlete-avances-photo-field">
+                    <span class="athlete-avances-field-label" data-ui="progressPhotosFront">Frente</span>
+                    <span class="athlete-avances-photo-slot">
+                      <input type="file" id="athlete-avances-front" name="front" accept="image/jpeg,image/png,image/webp" />
+                      <span class="athlete-avances-photo-plus" aria-hidden="true">+</span>
+                      <img class="athlete-avances-photo-preview" id="athlete-avances-front-preview" alt="" hidden />
+                    </span>
+                  </label>
+                  <label class="athlete-avances-field athlete-avances-photo-field">
+                    <span class="athlete-avances-field-label" data-ui="progressPhotosBackSide">Espalda</span>
+                    <span class="athlete-avances-photo-slot">
+                      <input type="file" id="athlete-avances-back" name="back" accept="image/jpeg,image/png,image/webp" />
+                      <span class="athlete-avances-photo-plus" aria-hidden="true">+</span>
+                      <img class="athlete-avances-photo-preview" id="athlete-avances-back-preview" alt="" hidden />
+                    </span>
+                  </label>
+                  <label class="athlete-avances-field athlete-avances-field-weight">
+                    <span class="athlete-avances-field-label" data-ui="athleteAvancesWeight">Peso (kg)</span>
+                    <input
+                      type="number"
+                      id="athlete-avances-weight"
+                      name="weightKg"
+                      inputmode="decimal"
+                      step="0.1"
+                      min="20"
+                      max="400"
+                      required
+                    />
+                  </label>
+                </div>
+                <div class="athlete-avances-form-actions">
+                  <button type="submit" class="recommend-cta" id="athlete-avances-save" disabled>
+                    <span data-ui="athleteAvancesSave">Guardar</span>
+                  </button>
+                  <p class="athlete-avances-form-status" id="athlete-avances-form-status" role="status" hidden></p>
+                </div>
+              </form>
+            </section>
+
+            <section class="athlete-avances-history" aria-labelledby="athlete-avances-history-title">
+              <h3 class="athlete-avances-history-title" id="athlete-avances-history-title" data-ui="athleteAvancesHistoryTitle">Historial</h3>
+              <div class="progress-photos-filters-slot" id="athlete-avances-filters"></div>
+              <div class="progress-photos-results athlete-avances-results" id="athlete-avances-results"></div>
+            </section>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="recommend-view" class="recommend-view" hidden>
@@ -434,6 +512,67 @@
       </div>
     </div>
 
+    <div id="avances-view" class="avances-view" hidden>
+      <div class="avances">
+        <header class="avances-header">
+          <h2 class="avances-title" data-ui="navAvances">Avances</h2>
+          <p class="avances-lead" data-ui="avancesLead">Elige un alumno para ver sus fotos de progreso.</p>
+        </header>
+        <div class="avances-loading" id="avances-loading" hidden>
+          <div class="load-spinner visible" aria-hidden="true"></div>
+          <span data-ui="avancesLoading">Cargando alumnos…</span>
+        </div>
+        <div class="avances-empty" id="avances-empty" hidden>
+          <p class="avances-empty-title" data-ui="avancesEmptyTitle">Aún no tienes alumnos</p>
+          <p class="avances-empty-lead" data-ui="avancesEmptyLead">Cuando invites alumnos, podrás ver sus avances aquí.</p>
+        </div>
+        <div class="avances-list" id="avances-list" hidden></div>
+        <button type="button" class="students-load-more" id="avances-load-more" hidden>
+          <span data-ui="studentsLoadMore">Cargar más</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="progress-photos-view" class="progress-photos-view" hidden>
+      <div class="progress-photos">
+        <div class="progress-photos-top">
+          <div class="progress-photos-chrome">
+            <button type="button" class="session-editor-back" id="progress-photos-back">
+              <span class="session-editor-back-ico" aria-hidden="true">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10 3L5 8l5 5"/>
+                </svg>
+              </span>
+              <span data-ui="progressPhotosBack">Mis alumnos</span>
+            </button>
+            <header class="progress-photos-header">
+              <h2 class="progress-photos-title" data-ui="progressPhotosTitle">Avances</h2>
+              <div class="progress-photos-athlete-card" id="progress-photos-athlete-card" hidden>
+                <div class="progress-photos-athlete-row">
+                  <span class="progress-photos-athlete-label" data-ui="progressPhotosInfoName">Nombre</span>
+                  <span class="progress-photos-athlete-value" id="progress-photos-athlete-name">—</span>
+                </div>
+                <div class="progress-photos-athlete-row">
+                  <span class="progress-photos-athlete-label" data-ui="progressPhotosInfoEmail">Correo</span>
+                  <span class="progress-photos-athlete-value" id="progress-photos-athlete-email">—</span>
+                </div>
+                <div class="progress-photos-athlete-row">
+                  <span class="progress-photos-athlete-label" data-ui="progressPhotosInfoCurrentWeight">Peso actual</span>
+                  <span class="progress-photos-athlete-value" id="progress-photos-athlete-current-weight">—</span>
+                </div>
+                <div class="progress-photos-athlete-row is-period">
+                  <span class="progress-photos-athlete-label" data-ui="progressPhotosInfoMonthWeight">Peso del mes</span>
+                  <span class="progress-photos-athlete-value" id="progress-photos-athlete-month-weight">—</span>
+                </div>
+              </div>
+            </header>
+          </div>
+          <div class="progress-photos-filters-slot" id="progress-photos-filters"></div>
+        </div>
+        <div class="progress-photos-results" id="progress-photos-results"></div>
+      </div>
+    </div>
+
     <div id="students-view" class="students-view" hidden>
       <div class="recommend-results students-shell">
         <div class="recommend-toolbar students-toolbar">
@@ -499,9 +638,29 @@
                 </button>
               </div>
             </div>
-            <button type="button" class="recommend-again-btn" id="students-add-btn">
-              <span data-ui="addStudent">Invitar alumno</span>
-            </button>
+            <div class="students-invite-wrap" id="students-invite-wrap">
+              <button type="button" class="recommend-again-btn" id="students-add-btn">
+                <span data-ui="addStudent">Invitar alumno</span>
+              </button>
+              <button
+                type="button"
+                class="students-invite-quota-badge"
+                id="students-invite-quota-badge"
+                aria-expanded="false"
+                aria-controls="students-invite-quota-tip"
+                hidden
+              >
+                <span class="students-invite-quota-dot" aria-hidden="true"></span>
+              </button>
+              <div
+                class="students-invite-quota-tip"
+                id="students-invite-quota-tip"
+                role="status"
+                hidden
+              >
+                <p data-ui="inviteQuotaHint">Límite alcanzado. Mejora tu plan.</p>
+              </div>
+            </div>
           </div>
         </div>
         <div class="students-loading" id="students-loading" hidden>
@@ -693,6 +852,18 @@
       <button type="button" class="confirm-modal-cancel" id="remove-session-cancel" data-ui="sessionRemoveCancel">Cancelar</button>
       <button type="button" class="confirm-modal-danger" id="remove-session-confirm" data-ui="sessionRemoveConfirmBtn">Eliminar</button>
     </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL foto de progreso — js/features/progress-photos-ui.js ═══ -->
+<div class="progress-photo-lightbox" id="progress-photo-lightbox" role="dialog" aria-modal="true" aria-labelledby="progress-photo-lightbox-title" hidden>
+  <button type="button" class="progress-photo-lightbox-backdrop" id="progress-photo-lightbox-backdrop" aria-label="Close"></button>
+  <div class="progress-photo-lightbox-panel">
+    <div class="progress-photo-lightbox-bar">
+      <h2 class="progress-photo-lightbox-title" id="progress-photo-lightbox-title"></h2>
+      <button type="button" class="modal-close" id="progress-photo-lightbox-close" aria-label="Close">✕</button>
+    </div>
+    <img class="progress-photo-lightbox-img" id="progress-photo-lightbox-img" alt="" />
   </div>
 </div>
 

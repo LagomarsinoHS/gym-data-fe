@@ -81,10 +81,37 @@ Se cablean al clickear **Mi perfil** / **Configuración** en ese menú.
 
 ---
 
+## Fotos de progreso (atleta sube · coach mira)
+
+Acuerdo con BE: 2 fotos/mes (`front` + `back`), historial por `yearMonth` (`YYYY-MM`), storage en Cloudinary, URL (+ `publicId`) en `user.progressPhotos`.
+
+### Flujo UI — coach (“Avances alumnos”)
+1. Elegir alumno  
+2. Ver **años** disponibles (derivados de `years[]`)  
+3. Elegir año → ver **meses** con al menos 1 foto  
+4. Elegir mes → renderizar `front` / `back` con las `url`
+
+### Flujo UI — atleta
+- Subir foto del mes actual (lado frente o espalda); si ya existe ese lado, reemplazar
+- Ver su historial con la **misma** UI que el coach: `GET /users/:userId/progress-photos` pasando su propio id
+
+### Frontend checklist
+- [x] Componente/vista compartida de historial (años → meses → fotos) usable por coach y atleta
+- [x] Vista coach **Avances**: botón en Mis alumnos → página dedicada
+- [ ] Vista atleta: historial con su propio `userId`
+- [x] Cablear `GET /users/:userId/progress-photos` (coach; `?year=` opcional en API)
+- [x] Labels de mes localizados (`1 → Enero`, etc.) via Intl
+- [x] Empty states: sin fotos / mes incompleto (solo front o solo back)
+- [ ] Vista atleta: upload multipart (`file` + `side`) → `POST /users/me/progress-photos`
+- [ ] Preview / feedback al subir (loading, error de tipo/tamaño)
+
+> BE: POST / DELETE / GET progress-photos listos. Falta upload + vista historial del atleta en FE.
+---
+
 ## Plataforma / nice-to-have
 - [ ] Token en cookie httpOnly (opc.)
 - [ ] Historial de programas
 - [ ] Sync tema/idioma al user en API (solo si cross-device) — ver también **Configuración**
 - [ ] Favoritos separados del plan
 - [ ] Deep link más corto
-- [ ] Tracking de workouts / progreso
+- [ ] Tracking de workouts / progreso (genérico; fotos de progreso tienen sección propia arriba)

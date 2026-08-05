@@ -8,6 +8,7 @@
 import { getCoachAthletes, getCoachInvites, inviteCoachAthlete } from '../api/users.js';
 import { ui } from '../utils/labels.js';
 import { ApiErrorCode, mapApiError } from '../utils/api-errors.js';
+import { openProgressPhotos } from './progress-photos-ui.js';
 import {
   canInviteAthlete,
   getUser,
@@ -17,6 +18,7 @@ import {
 import {
   store,
   athleteDisplayName,
+  findAthlete,
   resetCoachAthletesStore,
 } from './coach-athletes-store.js';
 import {
@@ -87,6 +89,10 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
 
   document.getElementById('students-add-btn')?.addEventListener('click', openAddStudentModal);
   document.getElementById('students-empty-add-btn')?.addEventListener('click', openAddStudentModal);
+  document.getElementById('students-invite-quota-badge')?.addEventListener('click', e => {
+    e.stopPropagation();
+    toggleInviteQuotaTip();
+  });
   document.getElementById('add-student-close')?.addEventListener('click', closeAddStudentModal);
   loadMoreBtn?.addEventListener('click', () => void loadMoreAthletes());
   searchInput?.addEventListener('input', onSearchInput);
@@ -107,6 +113,10 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
   form.addEventListener('submit', onSubmit);
 
   document.addEventListener('click', e => {
+    const inviteWrap = document.getElementById('students-invite-wrap');
+    if (inviteWrap?.classList.contains('is-tip-open') && !inviteWrap.contains(e.target)) {
+      closeInviteQuotaTip();
+    }
     if (!sortWrap?.classList.contains('is-open')) return;
     if (sortWrap.contains(e.target)) return;
     closeStudentsSortMenu();
@@ -117,6 +127,11 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
     if (overlay.classList.contains('open')) {
       e.stopImmediatePropagation();
       closeAddStudentModal();
+      return;
+    }
+    if (document.getElementById('students-invite-wrap')?.classList.contains('is-tip-open')) {
+      e.stopImmediatePropagation();
+      closeInviteQuotaTip();
       return;
     }
     if (sortWrap?.classList.contains('is-open')) {
@@ -309,15 +324,51 @@ export function getStudents() {
 // ── Invite student modal ──────────────────────────────────────────────
 function syncInviteStudentButtons() {
   const allowed = canInviteAthlete(getUser());
-  const title = allowed ? '' : ui('inviteQuotaFull');
+  const badge = document.getElementById('students-invite-quota-badge');
+  const tip = document.getElementById('students-invite-quota-tip');
+  const tipText = tip?.querySelector('[data-ui="inviteQuotaHint"]');
 
   for (const id of ['students-add-btn', 'students-empty-add-btn']) {
     const btn = document.getElementById(id);
     if (!btn) continue;
     btn.disabled = !allowed;
-    btn.title = title;
+    btn.removeAttribute('title');
     btn.setAttribute('aria-disabled', allowed ? 'false' : 'true');
   }
+
+  if (badge) {
+    badge.hidden = allowed;
+    badge.setAttribute('aria-label', ui('inviteQuotaBadgeAria'));
+  }
+  if (tipText) tipText.textContent = ui('inviteQuotaHint');
+  if (allowed) closeInviteQuotaTip();
+}
+
+function toggleInviteQuotaTip() {
+  const wrap = document.getElementById('students-invite-wrap');
+  const badge = document.getElementById('students-invite-quota-badge');
+  if (!wrap || badge?.hidden) return;
+  if (wrap.classList.contains('is-tip-open')) closeInviteQuotaTip();
+  else openInviteQuotaTip();
+}
+
+function openInviteQuotaTip() {
+  const wrap = document.getElementById('students-invite-wrap');
+  const badge = document.getElementById('students-invite-quota-badge');
+  const tip = document.getElementById('students-invite-quota-tip');
+  if (!wrap || !badge || !tip || badge.hidden) return;
+  wrap.classList.add('is-tip-open');
+  tip.hidden = false;
+  badge.setAttribute('aria-expanded', 'true');
+}
+
+function closeInviteQuotaTip() {
+  const wrap = document.getElementById('students-invite-wrap');
+  const badge = document.getElementById('students-invite-quota-badge');
+  const tip = document.getElementById('students-invite-quota-tip');
+  wrap?.classList.remove('is-tip-open');
+  if (tip) tip.hidden = true;
+  badge?.setAttribute('aria-expanded', 'false');
 }
 
 export function openAddStudentModal() {
@@ -654,7 +705,11 @@ function createStudentRow(athlete) {
   const emailLine = document.createElement('div');
   emailLine.className = 'student-row-detail-line';
 
-  emailLine.append(createDetail(ui('email'), email || '—'), createAthleteDownloadMenu(id));
+  emailLine.append(
+    createDetail(ui('email'), email || '—'),
+    createAthleteProgressButton(id),
+    createAthleteDownloadMenu(id),
+  );
 
   body.append(
     createDetail(ui('firstName'), first || '—'),
@@ -669,6 +724,21 @@ function createStudentRow(athlete) {
   if (store.openAthleteId && store.openAthleteId === id) openStudentRow(row);
 
   return row;
+}
+
+function createAthleteProgressButton(athleteId) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'student-row-progress-btn';
+  btn.textContent = ui('studentsProgress');
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    openProgressPhotos(athleteId, {
+      returnTo: 'students',
+      athlete: findAthlete(athleteId),
+    });
+  });
+  return btn;
 }
 
 // ── Recent accepted invites → “Nuevo” badge ───────────────────────────

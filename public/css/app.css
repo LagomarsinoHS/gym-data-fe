@@ -2740,7 +2740,10 @@ html[data-theme="dark"] .chip.active {
 #coach-panel-view[hidden],
 #coach-templates-view[hidden],
 #students-view[hidden],
-#session-editor-view[hidden] {
+#avances-view[hidden],
+#athlete-avances-view[hidden],
+#session-editor-view[hidden],
+#progress-photos-view[hidden] {
   display: none !important;
 }
 
@@ -2749,10 +2752,18 @@ html[data-theme="dark"] .chip.active {
 .recommend-view,
 .placeholder-view,
 .students-view,
+.avances-view,
 .session-editor-view {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+}
+
+.athlete-avances-view,
+.progress-photos-view {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .training-view {
@@ -2806,6 +2817,93 @@ html[data-theme="dark"] .chip.active {
   gap: 8px;
   flex-shrink: 0;
 }
+
+.students-invite-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  --invite-quota-alert: #c0392b;
+}
+
+.students-invite-quota-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 2px solid var(--bg-surface);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--invite-quota-alert) 16%, var(--bg-surface));
+  cursor: pointer;
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--invite-quota-alert) 45%, transparent);
+  animation: students-invite-quota-pulse 1.8s ease-out infinite;
+}
+
+.students-invite-quota-badge:hover,
+.students-invite-quota-badge[aria-expanded='true'] {
+  background: color-mix(in srgb, var(--invite-quota-alert) 28%, var(--bg-surface));
+}
+
+.students-invite-quota-badge[hidden] {
+  display: none !important;
+}
+
+.students-invite-quota-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--invite-quota-alert);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--invite-quota-alert) 70%, transparent);
+}
+
+.students-invite-quota-tip {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 6;
+  min-width: 11.5rem;
+  max-width: 15rem;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--invite-quota-alert) 40%, var(--border));
+  background: color-mix(in srgb, var(--invite-quota-alert) 10%, var(--bg-surface));
+  box-shadow:
+    0 10px 24px color-mix(in srgb, var(--text-primary) 12%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--invite-quota-alert) 8%, transparent);
+}
+
+.students-invite-quota-tip[hidden] {
+  display: none !important;
+}
+
+.students-invite-quota-tip p {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  font-weight: 750;
+  color: var(--invite-quota-alert);
+  text-align: left;
+}
+
+@keyframes students-invite-quota-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--invite-quota-alert) 45%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+
 
 .students-download {
   position: relative;
@@ -3213,6 +3311,30 @@ html[data-theme="dark"] .chip.active {
 .student-row-download {
   position: relative;
   flex-shrink: 0;
+}
+
+.student-row-progress-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.student-row-progress-btn:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-surface));
 }
 
 .student-row-download-trigger {
@@ -5506,4 +5628,832 @@ html[data-theme="dark"] .coach-panel-invite-status-pill.is-cancelled {
 
 .auth-switch:hover {
   color: var(--accent);
+}
+
+.progress-photos-view {
+  width: min(720px, 100%);
+  margin: 0 auto;
+  padding: 16px 20px 20px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.progress-photos {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+}
+
+.progress-photos-top {
+  display: grid;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.progress-photos-chrome {
+  display: grid;
+  gap: 16px;
+}
+
+.progress-photos-header {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  text-align: center;
+  padding: 4px 0 0;
+}
+
+.progress-photos-title {
+  margin: 0;
+  font-size: clamp(1.75rem, 4vw, 2.15rem);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  line-height: 1.15;
+}
+
+.progress-photos-athlete-card {
+  width: min(100%, 420px);
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  text-align: left;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  box-sizing: border-box;
+}
+
+.progress-photos-athlete-card[hidden] {
+  display: none;
+}
+
+.progress-photos-athlete-row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+}
+
+.progress-photos-athlete-row.is-period {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.progress-photos-athlete-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.progress-photos-athlete-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.progress-photos-filters-slot:empty {
+  display: none;
+}
+
+.progress-photos-results {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--border) 65%, transparent) transparent;
+}
+
+.progress-photos-results::-webkit-scrollbar {
+  width: 5px;
+}
+
+.progress-photos-results::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.progress-photos-results::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 999px;
+}
+
+.progress-photos-results::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--border-hover, var(--border)) 85%, transparent);
+}
+
+.progress-photos-section {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 12px;
+}
+
+.progress-photos-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 560px) {
+  .progress-photos-filters {
+    grid-template-columns: 1fr;
+  }
+}
+
+.progress-photos-field {
+  display: grid;
+  gap: 8px;
+}
+
+.progress-photos-section-label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.progress-photos-select {
+  width: 100%;
+  box-sizing: border-box;
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.progress-photos-select:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.progress-photos-select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.progress-photos-hint,
+.progress-photos-status {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.progress-photos-status.is-error {
+  color: var(--danger, #c44);
+}
+
+.progress-photos-no-data {
+  display: grid;
+  place-items: center;
+  min-height: 140px;
+  padding: 24px 16px;
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--border);
+  background: color-mix(in srgb, var(--bg-base) 70%, var(--bg-surface));
+}
+
+.progress-photos-no-data-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.progress-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 560px) {
+  .progress-photos-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.progress-photos-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.progress-photos-card-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.progress-photos-card-img {
+  display: block;
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  border-radius: calc(var(--radius-md) - 2px);
+  background: color-mix(in srgb, var(--border) 35%, transparent);
+  cursor: zoom-in;
+}
+
+.progress-photos-card-img:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.progress-photos-card-empty {
+  display: grid;
+  place-items: center;
+  height: 220px;
+  border-radius: calc(var(--radius-md) - 2px);
+  border: 1px dashed var(--border);
+  color: var(--text-tertiary);
+  font-size: 13px;
+  background: color-mix(in srgb, var(--bg-base) 70%, var(--bg-surface));
+}
+
+.progress-photo-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.progress-photo-lightbox[hidden] {
+  display: none;
+}
+
+.progress-photo-lightbox-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  cursor: pointer;
+}
+
+.progress-photo-lightbox-panel {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 12px;
+  width: min(920px, 100%);
+  max-height: min(92dvh, 900px);
+  padding: 14px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  box-sizing: border-box;
+}
+
+.progress-photo-lightbox-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.progress-photo-lightbox-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.progress-photo-lightbox-img {
+  display: block;
+  width: 100%;
+  max-height: calc(min(92dvh, 900px) - 72px);
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--bg-base) 80%, var(--bg-surface));
+}
+
+.avances-view {
+  width: min(720px, 100%);
+  margin: 0 auto;
+  padding: 20px 20px 32px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.avances {
+  display: grid;
+  gap: 18px;
+}
+
+.avances-header {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  text-align: center;
+}
+
+.avances-title {
+  margin: 0;
+  font-size: clamp(1.75rem, 4vw, 2.15rem);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  line-height: 1.15;
+}
+
+.avances-lead {
+  margin: 0;
+  max-width: 36rem;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.avances-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px 8px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.avances-loading[hidden],
+.avances-empty[hidden],
+.avances-list[hidden] {
+  display: none !important;
+}
+
+.avances-empty {
+  display: grid;
+  gap: 6px;
+  padding: 24px 4px;
+  text-align: center;
+}
+
+.avances-empty-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.avances-empty-lead {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.avances-list {
+  display: grid;
+  gap: 10px;
+}
+
+.avances-athlete-btn {
+  appearance: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  row-gap: 2px;
+  align-items: center;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.avances-athlete-btn:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: color-mix(in srgb, var(--accent) 6%, var(--bg-surface));
+}
+
+.avances-athlete-name {
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.avances-athlete-email {
+  grid-column: 1;
+  grid-row: 2;
+  font-size: 13px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.avances-athlete-chevron {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  font-size: 1.35rem;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  line-height: 1;
+}
+
+/* ── Athlete Avances ─────────────────────────────── */
+
+.athlete-avances-view {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.athlete-avances {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.athlete-avances-header {
+  flex-shrink: 0;
+  display: grid;
+  gap: 8px;
+  text-align: center;
+  justify-items: center;
+  width: min(720px, 100%);
+  margin: 0 auto;
+  padding: 20px 20px 16px;
+  box-sizing: border-box;
+}
+
+.athlete-avances-title {
+  margin: 0;
+  font-size: clamp(1.75rem, 4vw, 2.15rem);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  line-height: 1.15;
+}
+
+.athlete-avances-month-hint {
+  margin: 0;
+  max-width: 36rem;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-surface));
+  animation: athlete-avances-hint-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes athlete-avances-hint-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .athlete-avances-month-hint {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+.athlete-avances-current-weight {
+  margin: 4px 0 0;
+  display: inline-flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.athlete-avances-current-weight strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.athlete-avances-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--border) 65%, transparent) transparent;
+}
+
+.athlete-avances-body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.athlete-avances-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.athlete-avances-body::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 999px;
+}
+
+.athlete-avances-body::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--border-hover, var(--border)) 85%, transparent);
+}
+
+.athlete-avances-body-inner {
+  width: min(720px, 100%);
+  margin: 0 auto;
+  padding: 4px 20px 32px;
+  box-sizing: border-box;
+  display: grid;
+  gap: 28px;
+}
+
+.athlete-avances-section-title {
+  margin: 0 0 12px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.athlete-avances-history {
+  display: grid;
+  gap: 16px;
+  margin-top: 12px;
+  padding-top: 28px;
+  border-top: 1px solid var(--border);
+}
+
+.athlete-avances-history-title {
+  margin: 0;
+  font-size: clamp(1.55rem, 3.5vw, 1.9rem);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--text-primary);
+}
+
+.athlete-avances-upload {
+  display: grid;
+  gap: 4px;
+}
+
+#athlete-avances-filters {
+  display: grid;
+  gap: 12px;
+}
+
+#athlete-avances-filters:empty {
+  display: none;
+}
+
+.athlete-avances-month-panel {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  box-sizing: border-box;
+}
+
+.athlete-avances-month-weight-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.athlete-avances-month-weight-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #15803d;
+  border: 1px solid color-mix(in srgb, #16a34a 55%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, #22c55e 18%, var(--bg-surface));
+}
+
+html[data-theme='dark'] .athlete-avances-month-weight-pill {
+  color: #4ade80;
+  border-color: color-mix(in srgb, #22c55e 50%, var(--border));
+  background: color-mix(in srgb, #22c55e 20%, var(--bg-surface));
+}
+
+.athlete-avances-month-panel .progress-photos-card {
+  background: color-mix(in srgb, var(--bg) 55%, var(--bg-surface));
+}
+
+.athlete-avances-month-panel .progress-photos-no-data {
+  min-height: 120px;
+}
+
+.athlete-avances-form {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  box-sizing: border-box;
+}
+
+.athlete-avances-form-grid {
+  display: grid;
+  gap: 14px;
+}
+
+@media (min-width: 640px) {
+  .athlete-avances-form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .athlete-avances-field-weight {
+    grid-column: 1 / -1;
+    max-width: 220px;
+  }
+}
+
+.athlete-avances-field {
+  display: grid;
+  gap: 6px;
+}
+
+.athlete-avances-field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.athlete-avances-field input[type='number'] {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--bg);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 14px;
+}
+
+.athlete-avances-field input[type='number']:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+}
+
+.athlete-avances-field input:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.athlete-avances-photo-slot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 140px;
+  overflow: hidden;
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--bg) 70%, var(--bg-surface));
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.athlete-avances-photo-field:hover .athlete-avances-photo-slot {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 5%, var(--bg-surface));
+}
+
+.athlete-avances-photo-slot:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  outline: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  outline-offset: 2px;
+}
+
+.athlete-avances-photo-slot.has-preview {
+  border-style: solid;
+}
+
+.athlete-avances-photo-slot.is-disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.athlete-avances-photo-slot input[type='file'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+  border: 0;
+  z-index: 2;
+}
+
+.athlete-avances-photo-plus {
+  font-size: 2.25rem;
+  font-weight: 300;
+  line-height: 1;
+  color: var(--text-tertiary);
+  pointer-events: none;
+  user-select: none;
+}
+
+.athlete-avances-photo-slot.has-preview .athlete-avances-photo-plus {
+  display: none;
+}
+
+.athlete-avances-photo-preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.athlete-avances-photo-preview[hidden] {
+  display: none !important;
+}
+
+.athlete-avances-form-actions {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+
+.athlete-avances-form-actions .recommend-cta {
+  min-width: 140px;
+}
+
+.athlete-avances-form-actions .recommend-cta:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.athlete-avances-form-status {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.athlete-avances-form-status.is-ok {
+  color: var(--text-primary);
+}
+
+.athlete-avances-form-status.is-error {
+  color: #c0392b;
+}
+
+.athlete-avances-results {
+  flex: none;
+  min-height: 0;
+  overflow: visible;
+  margin-top: 8px;
 }

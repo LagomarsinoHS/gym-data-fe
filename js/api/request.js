@@ -29,6 +29,17 @@ export async function post(path, body, { auth = false } = {}) {
   });
 }
 
+/** POST multipart/form-data (do not set Content-Type; browser adds boundary). */
+export async function postMultipart(path, formData, { auth = false } = {}) {
+  return send(new URL(path, API_BASE), {
+    method: 'POST',
+    headers: {
+      ...authHeaders(auth),
+    },
+    body: formData,
+  });
+}
+
 export async function put(path, body, { auth = false } = {}) {
   return send(new URL(path, API_BASE), {
     method: 'PUT',
