@@ -58,12 +58,12 @@ Si el boot falla → mensaje de error en el contador de resultados.
 | `training` | Plan personal (`trainingProgram`) |
 | `recommend` | Recomendar (solo si `subscription.plan === 'premium'`) |
 | `coach-plan` | Plan del coach (`coachTrainingProgram`; empty sin coach / sin plan; columna centrada ~720px) |
-| `athlete-avances` | Atleta: upload mes actual + historial año/mes |
+| `athlete-avances` | Atleta: upload mes actual + historial timeline + comparar |
 | `coach-panel` | Resumen informativo (`coach-panel-ui`): total alumnos + sin pauta + historial invites |
 | `coach-templates` | Shell placeholder |
 | `students` | Mis alumnos (`students-ui` + cupo `coachQuota.canInvite` + `coach-sessions-ui` + `students-download-ui` + store) |
 | `avances` | Coach: lista de alumnos → abrir fotos de progreso |
-| `progress-photos` | Coach: fotos de un alumno (año/mes + pesos + lightbox) |
+| `progress-photos` | Coach: timeline + comparar fotos de un alumno (lightbox) |
 | `session-editor` | Editor de una sesión del atleta (coach) |
 
 - Post-login: coach/admin → `coach-panel`; athlete → `training`.
@@ -203,19 +203,24 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 ## 10. Avances / fotos de progreso
 
+Historial y comparar viven en el módulo compartido `progress-history-ui.js` (coach + atleta).
+
 ### Coach
 - Nav **Avances** (`avances-ui`): lista paginada de alumnos → abre `progress-photos`.
-- Vista `progress-photos` (`progress-photos-ui`): back a Avances o Mis alumnos; card alumno (nombre, correo, peso actual, peso del mes); selects año/mes; grid front/back o “Sin datos”.
-- `GET /users/:userId/progress-photos` → `{ currentWeightKg, years[] }`.
+- Vista `progress-photos` (`progress-photos-ui`): back a Avances o Mis alumnos; card alumno (nombre, correo, peso actual — en comparar, chip compacto).
+- Timeline cronológico (meses con foto/peso, más reciente arriba); photos lazy (`loading="lazy"`).
+- **Comparar**: elegir ≥2 meses → **2 meses** lado a lado con tabs Frente/Espalda; **3+** doble carrusel (wrap). Δ peso entre el más viejo y el más nuevo.
+- `GET /users/:userId/progress-photos` → `{ currentWeightKg, years[] }` (un fetch; sin paginación de API).
 
 ### Atleta
 - Nav **Avances** (`athlete-avances-ui`): header fijo (título + hint mes actual + peso actual); scroll del cuerpo.
 - Upload: pickers `+` con preview, peso (20–400); Guardar enabled solo con ≥1 foto + peso; `POST /users/me/progress-photos` multipart (`weightKg` + `front`/`back`).
-- Historial: filtros año/mes; panel con pill verde **Peso: X kg** (si hay) + fotos.
+- Historial: mismo timeline + comparar que el coach (vía `progress-history-ui`).
 - Re-subir el mismo mes **reemplaza** (upsert UTC); no hay UI de delete (API DELETE existe).
 
 ### Lightbox compartido (`progress-photo-lightbox.js`)
-- Click en foto → modal; **Descargar** fetch→blob → `FirstName_LastName_Front|Back.ext` (atleta = self; coach = alumno).
+- Click en foto → modal; **Descargar** fetch→blob → `FirstName_LastName_Front|Back[_YYYY-MM].ext`.
+- En comparar: flechas / teclado recorren la galería del mismo lado (Frente↔Frente u Espalda↔Espalda).
 
 ---
 
@@ -360,6 +365,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 | Athletes store | `js/features/coach-athletes-store.js` |
 | Avances coach (lista) | `js/features/avances-ui.js` |
 | Progress photos coach | `js/features/progress-photos-ui.js` |
+| Historial/comparar (shared) | `js/features/progress-history-ui.js` |
 | Avances atleta | `js/features/athlete-avances-ui.js` |
 | Lightbox + download | `js/features/progress-photo-lightbox.js` |
 | Drawer | `js/features/nav-drawer.js` |

@@ -5664,9 +5664,9 @@ html[data-theme="dark"] .coach-panel-invite-status-pill.is-cancelled {
 }
 
 .progress-photos-view {
-  width: min(720px, 100%);
+  width: min(860px, 100%);
   margin: 0 auto;
-  padding: 16px 20px 20px;
+  padding: 12px 16px 20px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -5693,19 +5693,10 @@ html[data-theme="dark"] .coach-panel-invite-status-pill.is-cancelled {
 
 .progress-photos-header {
   display: grid;
-  gap: 14px;
+  gap: 10px;
   justify-items: center;
   text-align: center;
-  padding: 4px 0 0;
-}
-
-.progress-photos-title {
-  margin: 0;
-  font-size: clamp(1.75rem, 4vw, 2.15rem);
-  font-weight: 750;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-  line-height: 1.15;
+  padding: 0;
 }
 
 .progress-photos-athlete-card {
@@ -5724,17 +5715,19 @@ html[data-theme="dark"] .coach-panel-invite-status-pill.is-cancelled {
   display: none;
 }
 
+.progress-photos-athlete-meta {
+  display: contents;
+}
+
+.progress-photos-athlete-meta-sep {
+  display: none;
+}
+
 .progress-photos-athlete-row {
   display: grid;
   grid-template-columns: 110px minmax(0, 1fr);
   gap: 10px;
   align-items: baseline;
-}
-
-.progress-photos-athlete-row.is-period {
-  margin-top: 4px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
 }
 
 .progress-photos-athlete-label {
@@ -5750,8 +5743,574 @@ html[data-theme="dark"] .coach-panel-invite-status-pill.is-cancelled {
   overflow-wrap: anywhere;
 }
 
-.progress-photos-filters-slot:empty {
+/* Compare mode: inline chip — hugs content, no full-width empty card */
+.progress-photos-athlete-card.is-chip {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  width: fit-content;
+  max-width: 100%;
+  justify-self: start;
+  gap: 0;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-surface));
+}
+
+.progress-photos-athlete-card.is-chip .progress-photos-athlete-label {
   display: none;
+}
+
+.progress-photos-athlete-card.is-chip .progress-photos-athlete-row {
+  display: contents;
+}
+
+.progress-photos-athlete-card.is-chip .progress-photos-athlete-meta {
+  display: contents;
+}
+
+.progress-photos-athlete-card.is-chip .progress-photos-athlete-meta-sep {
+  display: inline;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0 2px;
+}
+
+.progress-photos-athlete-card.is-chip .progress-photos-athlete-row.is-name .progress-photos-athlete-value {
+  font-size: 13px;
+  font-weight: 750;
+  color: var(--text-primary);
+  margin-right: 8px;
+}
+
+.progress-photos-athlete-card.is-chip .progress-photos-athlete-row.is-name .progress-photos-athlete-value::after {
+  content: '·';
+  margin-left: 8px;
+  color: var(--text-tertiary);
+  font-weight: 600;
+}
+
+.progress-photos-athlete-card.is-chip .progress-photos-athlete-row.is-email .progress-photos-athlete-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.progress-photos-athlete-card.is-chip .progress-photos-athlete-row.is-weight .progress-photos-athlete-value {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 750;
+  color: #15803d;
+  border: 1px solid color-mix(in srgb, #16a34a 55%, var(--border));
+  background: color-mix(in srgb, #22c55e 18%, var(--bg-surface));
+}
+
+html[data-theme='dark'] .progress-photos-athlete-card.is-chip .progress-photos-athlete-row.is-weight .progress-photos-athlete-value {
+  color: #4ade80;
+  border-color: color-mix(in srgb, #22c55e 50%, var(--border));
+  background: color-mix(in srgb, #22c55e 20%, var(--bg-surface));
+}
+
+.progress-photos-header:has(.progress-photos-athlete-card.is-chip) {
+  justify-items: start;
+  text-align: left;
+}
+
+.progress-photos-compare-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.progress-photos-compare-bar[hidden] {
+  display: none;
+}
+
+.progress-photos-compare-btn {
+  margin-top: 0;
+}
+
+.progress-photos-compare-confirm-btn {
+  margin-top: 0;
+  min-width: 0;
+  padding: 8px 14px;
+}
+
+.progress-photos-compare-confirm-btn[hidden] {
+  display: none;
+}
+
+.progress-photos-compare-confirm-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.progress-photos-compare-pick {
+  display: grid;
+  gap: 16px;
+  padding: 4px 0 20px;
+}
+
+.progress-photos-compare-pick-lead {
+  margin: 0;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.progress-photos-compare-pick-list {
+  display: grid;
+  gap: 8px;
+}
+
+.progress-photos-compare-pick-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.progress-photos-compare-pick-item:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: color-mix(in srgb, var(--accent) 4%, var(--bg-surface));
+}
+
+.progress-photos-compare-pick-item.is-selected {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-surface));
+}
+
+.progress-photos-compare-pick-item-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.progress-photos-compare-pick-item-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.progress-photos-compare-pick-item-meta {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--border) 35%, var(--bg-surface));
+  border: 1px solid var(--border);
+}
+
+.progress-photos-compare-pick-item.is-selected .progress-photos-compare-pick-item-meta {
+  color: color-mix(in srgb, var(--accent) 80%, var(--text-primary));
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-surface));
+}
+
+.progress-photos-compare-pick-check {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: var(--bg-surface);
+  color: transparent;
+  box-sizing: border-box;
+}
+
+.progress-photos-compare-pick-check svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+  opacity: 0;
+}
+
+.progress-photos-compare-pick-item.is-selected .progress-photos-compare-pick-check {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.progress-photos-compare-pick-item.is-selected .progress-photos-compare-pick-check svg {
+  opacity: 1;
+}
+
+html[data-theme='dark'] .progress-photos-compare-pick-item.is-selected .progress-photos-compare-pick-check {
+  color: #0b0f14;
+}
+
+.progress-photos-compare {
+  display: grid;
+  gap: 20px;
+  padding: 4px 0 20px;
+}
+
+.progress-photos-compare-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.progress-photos-compare-delta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.progress-photos-compare-delta-value {
+  font-size: 14px;
+  font-weight: 750;
+  color: var(--text-primary);
+}
+
+.progress-photos-compare-pair {
+  display: grid;
+  gap: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+
+.progress-photos-compare-pair-stage {
+  min-width: 0;
+  padding: 14px;
+}
+
+.progress-photos-compare-sides {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 560px) {
+  .progress-photos-compare-sides {
+    grid-template-columns: 1fr;
+  }
+}
+
+.progress-photos-compare-col {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.progress-photos-compare-col-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 10px;
+}
+
+.progress-photos-compare-col-month {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 750;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.progress-photos-compare-col-weight {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 750;
+  color: #15803d;
+  border: 1px solid color-mix(in srgb, #16a34a 55%, var(--border));
+  background: color-mix(in srgb, #22c55e 18%, var(--bg-surface));
+}
+
+html[data-theme='dark'] .progress-photos-compare-col-weight {
+  color: #4ade80;
+  border-color: color-mix(in srgb, #22c55e 50%, var(--border));
+  background: color-mix(in srgb, #22c55e 20%, var(--bg-surface));
+}
+
+.progress-photos-compare-col .progress-photos-card {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.progress-photos-compare-col .progress-photos-card-img,
+.progress-photos-compare-col .progress-photos-card-empty {
+  height: min(48dvh, 360px);
+  border-radius: var(--radius-md);
+}
+
+.progress-photos-compare-tabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--bg-base) 55%, var(--bg-surface));
+  overflow: hidden;
+}
+
+.progress-photos-compare-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 14px 12px 12px;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: color-mix(in srgb, var(--text-secondary) 85%, var(--text-tertiary));
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.progress-photos-compare-tab + .progress-photos-compare-tab {
+  border-left: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+}
+
+.progress-photos-compare-tab:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.progress-photos-compare-tab.is-active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.progress-photos-compare-tab-ico {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.progress-photos-compare-tab-ico svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.progress-photos-compare-tab-label {
+  line-height: 1.2;
+}
+
+.progress-photos-compare-tab:disabled,
+.progress-photos-compare-tab[hidden] {
+  display: none;
+}
+
+.progress-photos-compare-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px 28px;
+  padding: 12px 14px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.progress-photos-compare-metric {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  text-align: center;
+}
+
+.progress-photos-compare-metric-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.progress-photos-compare-metric-value {
+  font-size: 1.15rem;
+  font-weight: 750;
+  color: #4ade80;
+}
+
+html[data-theme='light'] .progress-photos-compare-metric-value {
+  color: #15803d;
+}
+
+.progress-photos-carousel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.progress-photos-carousel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.progress-photos-carousel-title {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.2;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-surface));
+}
+
+.progress-photos-carousel-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.progress-photos-carousel-nav {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.progress-photos-carousel-nav svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.progress-photos-carousel-nav:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  color: var(--accent);
+}
+
+.progress-photos-carousel-nav:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.progress-photos-carousel-counter {
+  min-width: 3.5rem;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.progress-photos-carousel-stage {
+  min-width: 0;
+}
+
+.progress-photos-carousel-slide {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  text-align: center;
+}
+
+.progress-photos-carousel-month {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 750;
+  color: var(--text-primary);
+}
+
+.progress-photos-carousel-weight {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #15803d;
+  border: 1px solid color-mix(in srgb, #16a34a 55%, var(--border));
+  background: color-mix(in srgb, #22c55e 18%, var(--bg-surface));
+}
+
+html[data-theme='dark'] .progress-photos-carousel-weight {
+  color: #4ade80;
+  border-color: color-mix(in srgb, #22c55e 50%, var(--border));
+  background: color-mix(in srgb, #22c55e 20%, var(--bg-surface));
+}
+
+.progress-photos-carousel-slide .progress-photos-card {
+  width: min(100%, 420px);
+}
+
+.progress-photos-carousel-dots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.progress-photos-carousel-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border-radius: 50%;
+  border: none;
+  background: color-mix(in srgb, var(--border) 80%, var(--text-secondary));
+  cursor: pointer;
+}
+
+.progress-photos-carousel-dot.is-active {
+  background: var(--accent);
+  transform: scale(1.15);
 }
 
 .progress-photos-results {
@@ -5781,10 +6340,103 @@ html[data-theme="dark"] .coach-panel-invite-status-pill.is-cancelled {
   background: color-mix(in srgb, var(--border-hover, var(--border)) 85%, transparent);
 }
 
-.progress-photos-section {
+.progress-photos-timeline {
   display: grid;
+  gap: 0;
+  padding: 4px 0 20px;
+}
+
+.progress-photos-timeline-item {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  padding: 0 0 28px 22px;
+  border-left: 2px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  margin-left: 7px;
+}
+
+.progress-photos-timeline-item:last-child {
+  padding-bottom: 8px;
+  border-left-color: transparent;
+}
+
+.progress-photos-timeline-header {
+  display: flex;
+  align-items: center;
   gap: 10px;
-  padding-bottom: 12px;
+  min-height: 1.25rem;
+}
+
+.progress-photos-timeline-marker {
+  position: absolute;
+  left: -8px;
+  top: 4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: var(--bg-surface);
+  box-sizing: border-box;
+}
+
+.progress-photos-timeline-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.progress-photos-timeline-weight-row {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.progress-photos-timeline-weight-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #15803d;
+  border: 1px solid color-mix(in srgb, #16a34a 55%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, #22c55e 18%, var(--bg-surface));
+}
+
+html[data-theme='dark'] .progress-photos-timeline-weight-pill {
+  color: #4ade80;
+  border-color: color-mix(in srgb, #22c55e 50%, var(--border));
+  background: color-mix(in srgb, #22c55e 20%, var(--bg-surface));
+}
+
+.progress-photos-empty {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  text-align: center;
+  padding: 28px 16px;
+}
+
+.progress-photos-empty-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.progress-photos-empty-lead {
+  margin: 0;
+  max-width: 28rem;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.progress-photos-filters-slot:empty {
+  display: none;
 }
 
 .progress-photos-filters {
@@ -5840,6 +6492,8 @@ html[data-theme="dark"] .coach-panel-invite-status-pill.is-cancelled {
   margin: 0;
   font-size: 14px;
   color: var(--text-secondary);
+  text-align: center;
+  padding: 20px 12px;
 }
 
 .progress-photos-status.is-error {
@@ -5847,33 +6501,29 @@ html[data-theme="dark"] .coach-panel-invite-status-pill.is-cancelled {
 }
 
 .progress-photos-no-data {
-  display: grid;
-  place-items: center;
-  min-height: 140px;
-  padding: 24px 16px;
-  border-radius: var(--radius-md);
-  border: 1px dashed var(--border);
-  background: color-mix(in srgb, var(--bg-base) 70%, var(--bg-surface));
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80px;
 }
 
 .progress-photos-no-data-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 16px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--bg-surface);
-  color: var(--text-secondary);
+  padding: 8px 14px;
   font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-weight: 650;
+  color: var(--text-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-surface);
 }
 
 .progress-photos-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 12px;
 }
 
 @media (max-width: 560px) {
@@ -5963,6 +6613,55 @@ html[data-theme="dark"] .coach-panel-invite-status-pill.is-cancelled {
   border: 1px solid var(--border);
   background: var(--bg-surface);
   box-sizing: border-box;
+}
+
+.progress-photo-lightbox-nav {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, #fff 35%, transparent);
+  background: color-mix(in srgb, #000 45%, transparent);
+  color: #fff;
+  cursor: pointer;
+}
+
+.progress-photo-lightbox-nav[hidden] {
+  display: none;
+}
+
+.progress-photo-lightbox-nav:hover {
+  background: color-mix(in srgb, #000 60%, transparent);
+}
+
+.progress-photo-lightbox-nav.is-prev {
+  left: max(8px, calc(50% - min(460px, 50vw) - 56px));
+}
+
+.progress-photo-lightbox-nav.is-next {
+  right: max(8px, calc(50% - min(460px, 50vw) - 56px));
+}
+
+@media (max-width: 720px) {
+  .progress-photo-lightbox-nav.is-prev {
+    left: 8px;
+  }
+
+  .progress-photo-lightbox-nav.is-next {
+    right: 8px;
+  }
+}
+
+.progress-photo-lightbox-nav svg {
+  width: 18px;
+  height: 18px;
+  display: block;
 }
 
 .progress-photo-lightbox-bar {
@@ -6287,6 +6986,14 @@ html[data-theme="dark"] .coach-panel-invite-status-pill.is-cancelled {
   border-top: 1px solid var(--border);
 }
 
+.athlete-avances-history-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+}
+
 .athlete-avances-history-title {
   margin: 0;
   font-size: clamp(1.55rem, 3.5vw, 1.9rem);
@@ -6296,63 +7003,14 @@ html[data-theme="dark"] .coach-panel-invite-status-pill.is-cancelled {
   color: var(--text-primary);
 }
 
+.athlete-avances-history-header .progress-photos-compare-bar {
+  margin-top: 0;
+  justify-content: flex-end;
+}
+
 .athlete-avances-upload {
   display: grid;
   gap: 4px;
-}
-
-#athlete-avances-filters {
-  display: grid;
-  gap: 12px;
-}
-
-#athlete-avances-filters:empty {
-  display: none;
-}
-
-.athlete-avances-month-panel {
-  display: grid;
-  gap: 14px;
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
-  box-sizing: border-box;
-}
-
-.athlete-avances-month-weight-row {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border);
-}
-
-.athlete-avances-month-weight-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 12px;
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.2;
-  color: #15803d;
-  border: 1px solid color-mix(in srgb, #16a34a 55%, var(--border));
-  border-radius: 999px;
-  background: color-mix(in srgb, #22c55e 18%, var(--bg-surface));
-}
-
-html[data-theme='dark'] .athlete-avances-month-weight-pill {
-  color: #4ade80;
-  border-color: color-mix(in srgb, #22c55e 50%, var(--border));
-  background: color-mix(in srgb, #22c55e 20%, var(--bg-surface));
-}
-
-.athlete-avances-month-panel .progress-photos-card {
-  background: color-mix(in srgb, var(--bg) 55%, var(--bg-surface));
-}
-
-.athlete-avances-month-panel .progress-photos-no-data {
-  min-height: 120px;
 }
 
 .athlete-avances-form {

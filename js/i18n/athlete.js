@@ -58,6 +58,8 @@ export const athlete = {
     athleteAvancesSaveFail: 'Could not save progress.',
     athleteAvancesNeedPhoto: 'Choose at least one photo (front or back).',
     athleteAvancesNeedWeight: 'Enter a valid weight (20–400 kg).',
+    progressPhotosEmptyLeadAthlete:
+      'When you upload front and back photos, they will show up here.',
   },
   es: {
     myPlan: 'Mi plan',
@@ -117,5 +119,7 @@ export const athlete = {
     athleteAvancesSaveFail: 'No se pudo guardar el avance.',
     athleteAvancesNeedPhoto: 'Elige al menos una foto (frente o espalda).',
     athleteAvancesNeedWeight: 'Ingresa un peso válido (20–400 kg).',
+    progressPhotosEmptyLeadAthlete:
+      'Cuando subas fotos de frente y espalda, aparecerán aquí.',
   },
 };

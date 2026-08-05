@@ -87,29 +87,31 @@ Acuerdo con BE: 2 fotos/mes (`front` + `back`) + `weightKg`, historial por `year
 
 ### Flujo UI — coach
 - Nav **Avances** (lista de alumnos) o botón Avances en Mis alumnos → vista `progress-photos`
-- Filtros: año (2020→hoy UTC) + mes (1–12); fotos solo cuando ambos están elegidos
-- Card alumno: nombre, correo, peso actual, peso del mes
-- Lightbox + **Descargar** → `FirstName_LastName_Front.jpg` (nombre del alumno)
+- Timeline cronológico + **Comparar** (≥2 meses): 2 → lado a lado (tabs Frente/Espalda); 3+ → carruseles
+- Card alumno: nombre, correo, peso actual (chip compacto en modo comparar)
+- Lightbox + flechas en galería de comparar + **Descargar** → `FirstName_LastName_Front.jpg`
 
 ### Flujo UI — atleta
 - Nav **Avances** bajo Mi plan → vista `athlete-avances`
 - Formulario mes actual: frente / espalda (picker `+` + preview), peso; Guardar deshabilitado hasta ≥1 foto + peso válido
 - `POST /users/me/progress-photos` multipart (`weightKg` + `front`/`back`); reemplaza el mes UTC actual
-- Historial debajo: mismos filtros año/mes; panel con pill **Peso: X kg** (si hay) + fotos
+- Historial: mismo timeline + comparar que coach (`progress-history-ui`)
 - Lightbox + descargar → `FirstName_LastName_Back.jpg` (el propio atleta)
 
 ### Frontend checklist
-- [x] Historial año/mes/fotos (coach + atleta)
+- [x] Timeline historial (coach + atleta)
+- [x] Comparar 2 (lado a lado) y 3+ (carrusel) — coach + atleta
 - [x] Vista coach **Avances** + `progress-photos` (Mis alumnos / nav Avances)
 - [x] Vista atleta upload + historial (`athlete-avances-ui`)
+- [x] Módulo compartido `progress-history-ui.js`
 - [x] `GET /users/:userId/progress-photos` + `uploadProgressPhotos` (multipart)
 - [x] Labels de mes localizados via Intl
 - [x] Empty: Sin datos / mes incompleto (solo un lado)
 - [x] Preview al elegir archivo; Guardar gated; hint “mes actual”
-- [x] Lightbox compartido + descarga `Nombre_Apellido_Front|Back.ext`
+- [x] Lightbox compartido + descarga + nav de galería en comparar
 - [ ] (Opc.) UI atleta/coach para `DELETE /users/me/progress-photos` (API ya existe; hoy se reemplaza al volver a guardar)
 
-> BE: POST / DELETE / GET + weight listos. FE: upload + vistas coach/atleta listas; DELETE sin UI.
+> BE: POST / DELETE / GET + weight listos. FE: upload + timeline/comparar coach/atleta listos; DELETE sin UI.
 ---
 
 ## Plataforma / nice-to-have

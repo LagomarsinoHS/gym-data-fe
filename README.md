@@ -19,8 +19,8 @@ Consume la API desplegada en Render (o tu backend local).
 - Botón **WOD** → ejercicio random (`GET /exercises/random`)
 - Auth (login / registro) + roles atleta / coach
 - Menú de cuenta en sidebar: iniciales, nombre corto, rol; dropdown (Mi perfil / Configuración deshabilitados; Cerrar sesión)
-- **Mi entrenamiento** (agregar / quitar / pauta), **Plan del coach** (sesiones) y **Avances** (fotos + peso del mes)
-- Coach: **Panel**, **Mis alumnos**, **Avances** (ver fotos de alumnos), export Excel
+- **Mi entrenamiento** (agregar / quitar / pauta), **Plan del coach** (sesiones) y **Avances** (upload + timeline + comparar)
+- Coach: **Panel**, **Mis alumnos**, **Avances** (timeline + comparar fotos de alumnos), export Excel
 - Banner de invite pendiente (atleta) vía `GET /users/me/pending-coach-invite` (mensaje localizado si el coach no tiene cupo)
 - Planes: athlete `free`/`premium`; coach `free`/`growth`/`pro` + `coachQuota` en `/me`
 - UI bilingüe (Español / English)

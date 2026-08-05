@@ -350,8 +350,17 @@
             </section>
 
             <section class="athlete-avances-history" aria-labelledby="athlete-avances-history-title">
-              <h3 class="athlete-avances-history-title" id="athlete-avances-history-title" data-ui="athleteAvancesHistoryTitle">Historial</h3>
-              <div class="progress-photos-filters-slot" id="athlete-avances-filters"></div>
+              <div class="athlete-avances-history-header">
+                <h3 class="athlete-avances-history-title" id="athlete-avances-history-title" data-ui="athleteAvancesHistoryTitle">Historial</h3>
+                <div class="progress-photos-compare-bar" id="athlete-avances-compare-bar" hidden>
+                  <button type="button" class="recommend-cta progress-photos-compare-confirm-btn" id="athlete-avances-compare-confirm-btn" hidden disabled>
+                    <span data-ui="progressPhotosCompareView">Ver comparación</span>
+                  </button>
+                  <button type="button" class="recommend-again-btn progress-photos-compare-btn" id="athlete-avances-compare-btn">
+                    <span data-ui="progressPhotosCompare">Comparar</span>
+                  </button>
+                </div>
+              </div>
               <div class="progress-photos-results athlete-avances-results" id="athlete-avances-results"></div>
             </section>
           </div>
@@ -552,28 +561,33 @@
               <span data-ui="progressPhotosBack">Mis alumnos</span>
             </button>
             <header class="progress-photos-header">
-              <h2 class="progress-photos-title" data-ui="progressPhotosTitle">Avances</h2>
               <div class="progress-photos-athlete-card" id="progress-photos-athlete-card" hidden>
-                <div class="progress-photos-athlete-row">
+                <div class="progress-photos-athlete-row is-name">
                   <span class="progress-photos-athlete-label" data-ui="progressPhotosInfoName">Nombre</span>
                   <span class="progress-photos-athlete-value" id="progress-photos-athlete-name">—</span>
                 </div>
-                <div class="progress-photos-athlete-row">
-                  <span class="progress-photos-athlete-label" data-ui="progressPhotosInfoEmail">Correo</span>
-                  <span class="progress-photos-athlete-value" id="progress-photos-athlete-email">—</span>
+                <div class="progress-photos-athlete-meta">
+                  <div class="progress-photos-athlete-row is-email">
+                    <span class="progress-photos-athlete-label" data-ui="progressPhotosInfoEmail">Correo</span>
+                    <span class="progress-photos-athlete-value" id="progress-photos-athlete-email">—</span>
+                  </div>
+                  <span class="progress-photos-athlete-meta-sep" aria-hidden="true">·</span>
+                  <div class="progress-photos-athlete-row is-weight">
+                    <span class="progress-photos-athlete-label" data-ui="progressPhotosInfoCurrentWeight">Peso actual</span>
+                    <span class="progress-photos-athlete-value" id="progress-photos-athlete-current-weight">—</span>
+                  </div>
                 </div>
-                <div class="progress-photos-athlete-row">
-                  <span class="progress-photos-athlete-label" data-ui="progressPhotosInfoCurrentWeight">Peso actual</span>
-                  <span class="progress-photos-athlete-value" id="progress-photos-athlete-current-weight">—</span>
-                </div>
-                <div class="progress-photos-athlete-row is-period">
-                  <span class="progress-photos-athlete-label" data-ui="progressPhotosInfoMonthWeight">Peso del mes</span>
-                  <span class="progress-photos-athlete-value" id="progress-photos-athlete-month-weight">—</span>
-                </div>
+              </div>
+              <div class="progress-photos-compare-bar" id="progress-photos-compare-bar" hidden>
+                <button type="button" class="recommend-cta progress-photos-compare-confirm-btn" id="progress-photos-compare-confirm-btn" hidden disabled>
+                  <span data-ui="progressPhotosCompareView">Ver comparación</span>
+                </button>
+                <button type="button" class="recommend-again-btn progress-photos-compare-btn" id="progress-photos-compare-btn">
+                  <span data-ui="progressPhotosCompare">Comparar</span>
+                </button>
               </div>
             </header>
           </div>
-          <div class="progress-photos-filters-slot" id="progress-photos-filters"></div>
         </div>
         <div class="progress-photos-results" id="progress-photos-results"></div>
       </div>
@@ -864,6 +878,16 @@
 <!-- ═══ MODAL foto de progreso — js/features/progress-photos-ui.js ═══ -->
 <div class="progress-photo-lightbox" id="progress-photo-lightbox" role="dialog" aria-modal="true" aria-labelledby="progress-photo-lightbox-title" hidden>
   <button type="button" class="progress-photo-lightbox-backdrop" id="progress-photo-lightbox-backdrop" aria-label="Close"></button>
+  <button type="button" class="progress-photo-lightbox-nav is-prev" id="progress-photo-lightbox-prev" hidden aria-label="Anterior">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M10 3L5 8l5 5"/>
+    </svg>
+  </button>
+  <button type="button" class="progress-photo-lightbox-nav is-next" id="progress-photo-lightbox-next" hidden aria-label="Siguiente">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M6 3l5 5-5 5"/>
+    </svg>
+  </button>
   <div class="progress-photo-lightbox-panel">
     <div class="progress-photo-lightbox-bar">
       <h2 class="progress-photo-lightbox-title" id="progress-photo-lightbox-title"></h2>
