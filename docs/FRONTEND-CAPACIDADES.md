@@ -14,7 +14,7 @@ API: `localhost:3000` en local · `https://gym-data-8d3l.onrender.com` en prod.
 3. **`init()` en `main.js`:**
    - Sincroniza labels `[data-ui]` según idioma guardado
    - `GET /exercises/labels` → chips de filtros
-   - Inicia sesión, auth, tema, drawer mobile, students, coach panel, coach invite, recommend
+   - Inicia sesión, auth, tema, drawer mobile, students, avances, progress photos, athlete avances, coach panel, coach invite, recommend
    - Revela filtros (animación cascade)
    - En mobile: colapsa filtros + mueve results bar arriba
    - `restoreSession()` → si hay token, `GET /users/me` (+ `onUserSynced` → pending invite)
@@ -49,18 +49,21 @@ Si el boot falla → mensaje de error en el contador de resultados.
 
 | Rol | Nav |
 |-----|-----|
-| **Athlete** | Mi plan → Entrenamiento, Recomendar (Pro), Plan del coach · Catálogo |
-| **Coach / Admin** | Panel · Plantillas · Mis alumnos · Catálogo |
+| **Athlete** | Mi plan → Entrenamiento, Plan del coach, **Avances**, Recomendar (Pro) · Catálogo |
+| **Coach / Admin** | Panel · Plantillas · Mis alumnos · **Avances** · Catálogo |
 
 | Vista | Contenido |
 |-------|-----------|
 | `catalog` | Grid + filtros + search + WOD |
 | `training` | Plan personal (`trainingProgram`) |
 | `recommend` | Recomendar (solo si `subscription.plan === 'premium'`) |
-| `coach-plan` | Plan del coach (`coachTrainingProgram` por sesiones; empty sin coach / sin plan) |
+| `coach-plan` | Plan del coach (`coachTrainingProgram`; empty sin coach / sin plan; columna centrada ~720px) |
+| `athlete-avances` | Atleta: upload mes actual + historial año/mes |
 | `coach-panel` | Resumen informativo (`coach-panel-ui`): total alumnos + sin pauta + historial invites |
 | `coach-templates` | Shell placeholder |
 | `students` | Mis alumnos (`students-ui` + cupo `coachQuota.canInvite` + `coach-sessions-ui` + `students-download-ui` + store) |
+| `avances` | Coach: lista de alumnos → abrir fotos de progreso |
+| `progress-photos` | Coach: fotos de un alumno (año/mes + pesos + lightbox) |
 | `session-editor` | Editor de una sesión del atleta (coach) |
 
 - Post-login: coach/admin → `coach-panel`; athlete → `training`.
@@ -194,10 +197,29 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 - Vista `session-editor`: cards, Editar / ✕, Agregar ejercicios; modal confirmar quitar sesión.
 - Catálogo en modo asignar: banner + “Agregar a la sesión” + lápiz pauta (local); guardar vuelve al editor.
 - Sesiones en `athlete.coachTrainingProgram`; **Guardar plan** → `PUT /users/coach/athletes/:id/training-program` (replace; respuesta enriquecida).
+- Fila alumno: botón **Avances** → `progress-photos` (return a Mis alumnos).
 
 ---
 
-## 10. Invite atleta (pending)
+## 10. Avances / fotos de progreso
+
+### Coach
+- Nav **Avances** (`avances-ui`): lista paginada de alumnos → abre `progress-photos`.
+- Vista `progress-photos` (`progress-photos-ui`): back a Avances o Mis alumnos; card alumno (nombre, correo, peso actual, peso del mes); selects año/mes; grid front/back o “Sin datos”.
+- `GET /users/:userId/progress-photos` → `{ currentWeightKg, years[] }`.
+
+### Atleta
+- Nav **Avances** (`athlete-avances-ui`): header fijo (título + hint mes actual + peso actual); scroll del cuerpo.
+- Upload: pickers `+` con preview, peso (20–400); Guardar enabled solo con ≥1 foto + peso; `POST /users/me/progress-photos` multipart (`weightKg` + `front`/`back`).
+- Historial: filtros año/mes; panel con pill verde **Peso: X kg** (si hay) + fotos.
+- Re-subir el mismo mes **reemplaza** (upsert UTC); no hay UI de delete (API DELETE existe).
+
+### Lightbox compartido (`progress-photo-lightbox.js`)
+- Click en foto → modal; **Descargar** fetch→blob → `FirstName_LastName_Front|Back.ext` (atleta = self; coach = alumno).
+
+---
+
+## 11. Invite atleta (pending)
 
 - Colección `invites` en BE; **no** vive en el documento User ni en `GET /users/me`.
 - `GET /users/me/pending-coach-invite` → siempre `{ invite: null | { coachId, invitedAt, coach } }` (máx. 1 pendiente).
@@ -208,7 +230,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 ---
 
-## 11. Tema e idioma
+## 12. Tema e idioma
 
 | Preferencia | Key | Valores |
 |-------------|-----|---------|
@@ -220,7 +242,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 ---
 
-## 12. API — mapa completo
+## 13. API — mapa completo
 
 | Método | Path | Auth | Cuándo |
 |--------|------|------|--------|
@@ -231,11 +253,13 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 | GET | `/exercises/recommend?zone&equipment` | Sí | Submit recommend |
 | POST | `/auth/login` | No | Login |
 | POST | `/auth/register` | No | Register |
-| GET | `/users/me` | Sí | Sesión (user + programs + `subscription` + `coachQuota` si coach; **sin** invite) |
+| GET | `/users/me` | Sí | Sesión (user + programs + `subscription` + `coachQuota` + `currentWeightKg`; **sin** invite ni `progressPhotos`) |
 | GET | `/users/me/pending-coach-invite` | Sí | Atleta: `{ invite }` (null o pendiente) |
 | POST | `/users/training-program` | Sí | Agregar al plan |
 | PUT | `/users/training-program/remove` | Sí | Confirmar quitar |
 | PUT | `/users/training-program/:exerciseId` | Sí | Guardar pauta |
+| POST | `/users/me/progress-photos` | Sí | Atleta: upload avance (multipart weight + fotos) |
+| GET | `/users/:userId/progress-photos` | Sí | Atleta self o coach asignado: historial |
 | POST | `/users/coach/invites` | Sí | Coach invita atleta por email |
 | POST | `/users/me/pending-coach-invite/respond` | Sí | Atleta accept / reject |
 | GET | `/users/coach/athletes` | Sí | Lista paginada Mis alumnos / stats Panel |
@@ -243,9 +267,11 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 | PUT | `/users/coach/athletes/:athleteId/training-program` | Sí | Guardar plan (replace sesiones) |
 | POST | `/users/coach/training-program/export` | Sí | Export Excel/zip (binary) |
 
+> BE también expone `DELETE /users/me/progress-photos` (sin UI FE aún).
+
 ---
 
-## 13. Animaciones y microinteracciones
+## 14. Animaciones y microinteracciones
 
 | Qué | Cuándo |
 |-----|--------|
@@ -273,11 +299,13 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 | Nav drawer slide + backdrop | Mobile menú |
 | Auth / recommend overlay | Abrir esos modales |
 
+| Hint Avances pulse | Vista atleta Avances |
+
 `prefers-reduced-motion: reduce` apaga o simplifica casi todo lo anterior.
 
 ---
 
-## 14. Utils
+## 15. Utils
 
 | Archivo | Rol |
 |---------|-----|
@@ -293,7 +321,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 ---
 
-## 15. Storage
+## 16. Storage
 
 | Key | Dónde | Contenido |
 |-----|-------|-----------|
@@ -304,7 +332,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 ---
 
-## 16. Mobile (≤768px)
+## 17. Mobile (≤768px)
 
 - Topbar + hamburger; sidebar drawer off-canvas.
 - Cierre: ✕, backdrop, item de nav, Escape, resize a desktop.
@@ -315,7 +343,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 ---
 
-## 17. Mapa de archivos
+## 18. Mapa de archivos
 
 | Área | Archivos |
 |------|----------|
@@ -330,16 +358,20 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 | Students download | `js/features/students-download-ui.js` |
 | Coach sessions / editor | `js/features/coach-sessions-ui.js` |
 | Athletes store | `js/features/coach-athletes-store.js` |
+| Avances coach (lista) | `js/features/avances-ui.js` |
+| Progress photos coach | `js/features/progress-photos-ui.js` |
+| Avances atleta | `js/features/athlete-avances-ui.js` |
+| Lightbox + download | `js/features/progress-photo-lightbox.js` |
 | Drawer | `js/features/nav-drawer.js` |
 | Tema | `theme-boot.js`, `theme-ui.js` |
 | Footer / eggs | `footer.js`, `easter-egg.js` |
-| API | `js/api/request.js` (expone `err.code`), `auth.js`, `users.js`, `exercises.js`, `token.js` |
+| API | `js/api/request.js` (`postMultipart`, `err.code`), `auth.js`, `users.js`, `exercises.js`, `token.js` |
 | Copy / i18n errors | `js/i18n/`, `js/utils/api-errors.js`, `js/utils/auth-errors.js` |
 | Estilos | `public/css/base.css`, `app.css` |
 
 ---
 
-## 18. Stubs / aún no cableado
+## 19. Stubs / aún no cableado
 
 - Plantillas (`coach-templates`) placeholder.
 - Export PDF (UI disabled “Pronto”).
@@ -347,6 +379,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 - Sin refresh token; si `/me` falla, sesión guest.
 - Recommend exige `subscription.plan === 'premium'` del back (athletes).
 - Coach tiers (`growth` / `pro`) e invite quotas: ver `coachQuota` en `/me`.
+- Delete de progress photos: API lista, sin botón en FE.
 
 ---
 

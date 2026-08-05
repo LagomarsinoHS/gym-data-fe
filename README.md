@@ -19,12 +19,12 @@ Consume la API desplegada en Render (o tu backend local).
 - Botón **WOD** → ejercicio random (`GET /exercises/random`)
 - Auth (login / registro) + roles atleta / coach
 - Menú de cuenta en sidebar: iniciales, nombre corto, rol; dropdown (Mi perfil / Configuración deshabilitados; Cerrar sesión)
-- **Mi entrenamiento** (agregar / quitar / pauta) y **Plan del coach** (sesiones)
-- Coach: **Panel** (métricas + historial de invites filtrable), **Mis alumnos** (invitar con cupo, ordenar, editar plan, export Excel)
+- **Mi entrenamiento** (agregar / quitar / pauta), **Plan del coach** (sesiones) y **Avances** (fotos + peso del mes)
+- Coach: **Panel**, **Mis alumnos**, **Avances** (ver fotos de alumnos), export Excel
 - Banner de invite pendiente (atleta) vía `GET /users/me/pending-coach-invite` (mensaje localizado si el coach no tiene cupo)
 - Planes: athlete `free`/`premium`; coach `free`/`growth`/`pro` + `coachQuota` en `/me`
 - UI bilingüe (Español / English)
-- Media local (`public/images`, `public/videos`)
+- Media local (`public/images`, `public/videos`); fotos de progreso vía Cloudinary (URLs del API)
 
 ---
 
@@ -46,7 +46,7 @@ gym-data-fe/
 │   ├── constants.js        # constantes no-i18n (ej. EQUIP_INITIAL)
 │   ├── i18n/               # copy EN/ES por dominio (common, auth, athlete, coach)
 │   ├── api/                # request, auth, users, exercises, token
-│   ├── features/           # auth, session, training, students, panel, invite…
+│   ├── features/           # auth, session, training, students, panel, invite, avances…
 │   └── utils/              # assets, cards, helpers, labels
 ├── public/
 │   ├── css/                # base.css, app.css

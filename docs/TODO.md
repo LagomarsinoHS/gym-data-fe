@@ -83,29 +83,33 @@ Se cablean al clickear **Mi perfil** / **Configuración** en ese menú.
 
 ## Fotos de progreso (atleta sube · coach mira)
 
-Acuerdo con BE: 2 fotos/mes (`front` + `back`), historial por `yearMonth` (`YYYY-MM`), storage en Cloudinary, URL (+ `publicId`) en `user.progressPhotos`.
+Acuerdo con BE: 2 fotos/mes (`front` + `back`) + `weightKg`, historial por `yearMonth` (`YYYY-MM`), storage Cloudinary, URL en `user.progressPhotos`; `currentWeightKg` denormalizado.
 
-### Flujo UI — coach (“Avances alumnos”)
-1. Elegir alumno  
-2. Ver **años** disponibles (derivados de `years[]`)  
-3. Elegir año → ver **meses** con al menos 1 foto  
-4. Elegir mes → renderizar `front` / `back` con las `url`
+### Flujo UI — coach
+- Nav **Avances** (lista de alumnos) o botón Avances en Mis alumnos → vista `progress-photos`
+- Filtros: año (2020→hoy UTC) + mes (1–12); fotos solo cuando ambos están elegidos
+- Card alumno: nombre, correo, peso actual, peso del mes
+- Lightbox + **Descargar** → `FirstName_LastName_Front.jpg` (nombre del alumno)
 
 ### Flujo UI — atleta
-- Subir foto del mes actual (lado frente o espalda); si ya existe ese lado, reemplazar
-- Ver su historial con la **misma** UI que el coach: `GET /users/:userId/progress-photos` pasando su propio id
+- Nav **Avances** bajo Mi plan → vista `athlete-avances`
+- Formulario mes actual: frente / espalda (picker `+` + preview), peso; Guardar deshabilitado hasta ≥1 foto + peso válido
+- `POST /users/me/progress-photos` multipart (`weightKg` + `front`/`back`); reemplaza el mes UTC actual
+- Historial debajo: mismos filtros año/mes; panel con pill **Peso: X kg** (si hay) + fotos
+- Lightbox + descargar → `FirstName_LastName_Back.jpg` (el propio atleta)
 
 ### Frontend checklist
-- [x] Componente/vista compartida de historial (años → meses → fotos) usable por coach y atleta
-- [x] Vista coach **Avances**: botón en Mis alumnos → página dedicada
-- [ ] Vista atleta: historial con su propio `userId`
-- [x] Cablear `GET /users/:userId/progress-photos` (coach; `?year=` opcional en API)
-- [x] Labels de mes localizados (`1 → Enero`, etc.) via Intl
-- [x] Empty states: sin fotos / mes incompleto (solo front o solo back)
-- [ ] Vista atleta: upload multipart (`file` + `side`) → `POST /users/me/progress-photos`
-- [ ] Preview / feedback al subir (loading, error de tipo/tamaño)
+- [x] Historial año/mes/fotos (coach + atleta)
+- [x] Vista coach **Avances** + `progress-photos` (Mis alumnos / nav Avances)
+- [x] Vista atleta upload + historial (`athlete-avances-ui`)
+- [x] `GET /users/:userId/progress-photos` + `uploadProgressPhotos` (multipart)
+- [x] Labels de mes localizados via Intl
+- [x] Empty: Sin datos / mes incompleto (solo un lado)
+- [x] Preview al elegir archivo; Guardar gated; hint “mes actual”
+- [x] Lightbox compartido + descarga `Nombre_Apellido_Front|Back.ext`
+- [ ] (Opc.) UI atleta/coach para `DELETE /users/me/progress-photos` (API ya existe; hoy se reemplaza al volver a guardar)
 
-> BE: POST / DELETE / GET progress-photos listos. Falta upload + vista historial del atleta en FE.
+> BE: POST / DELETE / GET + weight listos. FE: upload + vistas coach/atleta listas; DELETE sin UI.
 ---
 
 ## Plataforma / nice-to-have
