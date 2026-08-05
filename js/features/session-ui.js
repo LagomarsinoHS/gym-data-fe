@@ -1,7 +1,7 @@
 /**
  * Session shell: guest vs logged-in sidebar; role-based nav (athlete | coach).
  * Markup: #sidebar-guest, #sidebar-auth, #nav-athlete, #nav-coach,
- * views: catalog | training | recommend | coach-plan | coach-panel | coach-templates | students | avances | athlete-avances | session-editor | progress-photos
+ * views: catalog | training | recommend | coach-plan | coach-panel | coach-templates | students | avances | athlete-avances | session-editor | progress-photos | profile
  */
 import { getMe } from '../api/users.js';
 import { clearToken, isLoggedIn } from '../api/token.js';
@@ -15,6 +15,7 @@ import {
 import { syncProgressPhotosView } from './progress-photos-ui.js';
 import { syncAvancesView } from './avances-ui.js';
 import { syncAthleteAvancesView } from './athlete-avances-ui.js';
+import { syncProfileView } from './profile-ui.js';
 
 const VIEWS = new Set([
   'catalog',
@@ -28,6 +29,7 @@ const VIEWS = new Set([
   'athlete-avances',
   'session-editor',
   'progress-photos',
+  'profile',
 ]);
 const ATHLETE_VIEWS = new Set(['training', 'recommend', 'coach-plan', 'athlete-avances']);
 const COACH_VIEWS = new Set([
@@ -159,7 +161,8 @@ function initUserMenu() {
     if (!item || !menu.contains(item) || item.disabled) return;
     const action = item.dataset.action;
     setUserMenuOpen(false);
-    if (action === 'logout') logout();
+    if (action === 'profile') setView('profile');
+    else if (action === 'logout') logout();
   });
 
   document.addEventListener('click', (e) => {
@@ -276,7 +279,7 @@ export function logout() {
 
 export function syncSessionLabels() {
   document.querySelectorAll(
-    '#sidebar-guest [data-ui], #sidebar-auth [data-ui], #recommend-view [data-ui], #coach-plan-view [data-ui], #coach-panel-view [data-ui], #coach-templates-view [data-ui], #students-view [data-ui], #avances-view [data-ui], #athlete-avances-view [data-ui], #session-editor-view [data-ui], #progress-photos-view [data-ui], #session-assign-banner [data-ui]',
+    '#sidebar-guest [data-ui], #sidebar-auth [data-ui], #recommend-view [data-ui], #coach-plan-view [data-ui], #coach-panel-view [data-ui], #coach-templates-view [data-ui], #students-view [data-ui], #avances-view [data-ui], #athlete-avances-view [data-ui], #session-editor-view [data-ui], #progress-photos-view [data-ui], #profile-view [data-ui], #session-assign-banner [data-ui]',
   ).forEach(el => {
     el.textContent = ui(el.dataset.ui);
   });
@@ -287,9 +290,8 @@ export function syncSessionLabels() {
   const trigger = document.getElementById('sidebar-user-trigger');
   if (trigger) trigger.setAttribute('aria-label', ui('accountMenu'));
 
-  const soonTitle = ui('comingSoon');
-  document.getElementById('sidebar-user-profile')?.setAttribute('title', soonTitle);
-  document.getElementById('sidebar-user-settings')?.setAttribute('title', soonTitle);
+  document.getElementById('sidebar-user-profile')?.removeAttribute('title');
+  document.getElementById('sidebar-user-settings')?.setAttribute('title', ui('comingSoon'));
 
   renderUserName();
   syncNavActive();
@@ -459,6 +461,7 @@ function renderSessionChrome() {
   const athleteAvancesView = document.getElementById('athlete-avances-view');
   const sessionEditorView = document.getElementById('session-editor-view');
   const progressPhotosView = document.getElementById('progress-photos-view');
+  const profileView = document.getElementById('profile-view');
   const catalogBar = document.getElementById('catalog-bar-extras');
   const catalogFilters = document.getElementById('sidebar-catalog-filters');
   const wodBtn = document.getElementById('wod-btn');
@@ -482,6 +485,7 @@ function renderSessionChrome() {
   const showAthleteAvances = loggedIn && view === 'athlete-avances';
   const showSessionEditor = loggedIn && view === 'session-editor';
   const showProgressPhotos = loggedIn && view === 'progress-photos';
+  const showProfile = loggedIn && view === 'profile';
   const hideCatalogChrome = showTraining
     || showRecommend
     || showCoachPlan
@@ -491,7 +495,8 @@ function renderSessionChrome() {
     || showAvances
     || showAthleteAvances
     || showSessionEditor
-    || showProgressPhotos;
+    || showProgressPhotos
+    || showProfile;
   const hideSearch = showRecommend
     || showCoachPlan
     || showCoachPanel
@@ -500,7 +505,8 @@ function renderSessionChrome() {
     || showAvances
     || showAthleteAvances
     || showSessionEditor
-    || showProgressPhotos;
+    || showProgressPhotos
+    || showProfile;
 
   if (catalogView) catalogView.hidden = hideCatalogChrome;
   if (trainingView) trainingView.hidden = !showTraining;
@@ -513,6 +519,7 @@ function renderSessionChrome() {
   if (athleteAvancesView) athleteAvancesView.hidden = !showAthleteAvances;
   if (sessionEditorView) sessionEditorView.hidden = !showSessionEditor;
   if (progressPhotosView) progressPhotosView.hidden = !showProgressPhotos;
+  if (profileView) profileView.hidden = !showProfile;
   if (catalogBar) catalogBar.hidden = hideCatalogChrome;
   if (wodBtn) wodBtn.hidden = hideCatalogChrome;
   if (catalogFilters) catalogFilters.hidden = hideCatalogChrome;
@@ -531,6 +538,7 @@ function renderSessionChrome() {
   void syncAvancesView();
   syncProgressPhotosView();
   syncAthleteAvancesView();
+  syncProfileView();
 
   for (const fn of chromeListeners) fn();
 }

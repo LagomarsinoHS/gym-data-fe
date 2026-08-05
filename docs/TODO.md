@@ -65,9 +65,11 @@ coachTrainingProgram: {
 Menú de usuario en sidebar ya existe (iniciales + nombre corto + dropdown). Ítems deshabilitados por ahora.
 Se cablean al clickear **Mi perfil** / **Configuración** en ese menú.
 
-- [ ] **Mi perfil** — vista/edición de datos (nombre, email, …); habilitar ítem del menú
+- [x] **Mi perfil** — V1 lectura (hero + datos de `/users/me` + acciones “Pronto”); ítem de menú habilitado
+- [x] **Mi perfil → darse de baja** — acción habilitada; modal pide email → `DELETE /users/me` → cierra sesión
+- [ ] **Mi perfil → acciones** — cablear: editar, avatar, contraseña, email, notificaciones, privacidad, unidades, sesiones, vínculo coach, billing, export, etc.
 - [ ] **Configuración** — preferencias (tema/idioma sync a user, notificaciones, …); habilitar ítem del menú
-- [ ] **Configuración → darse de baja** — opción en Configuración (no en Mi perfil) que llama al soft-delete BE (`deletedAt`); confirmar + cerrar sesión
+- [ ] **Configuración → darse de baja** — (movido a Mi perfil; opcional reubicar cuando exista Configuración)
 - [ ] (BE) Endpoints de update de perfil / preferencias / deactivate si hacen falta más allá de `GET /users/me`
 
 ---
@@ -110,8 +112,9 @@ Acuerdo con BE: 2 fotos/mes (`front` + `back`) + `weightKg`, historial por `year
 - [x] Preview al elegir archivo; Guardar gated; hint “mes actual”
 - [x] Lightbox compartido + descarga + nav de galería en comparar
 - [ ] (Opc.) UI atleta/coach para `DELETE /users/me/progress-photos` (API ya existe; hoy se reemplaza al volver a guardar)
+- [ ] **Analizar progreso** (IA): en la comparación de **2 meses**, botón “Analizar progreso” que envía las 2 fotos (frente y/o espalda del par) a un endpoint/IA y muestra un resumen de diferencias visuales (grasa, postura, tamaño, etc.). Requiere diseño BE (quién llama al modelo, auth, costos) + UI de loading/resultado en FE.
 
-> BE: POST / DELETE / GET + weight listos. FE: upload + timeline/comparar coach/atleta listos; DELETE sin UI.
+> BE: POST / DELETE / GET + weight listos. FE: upload + timeline/comparar coach/atleta listos; DELETE sin UI; Analizar progreso pendiente.
 ---
 
 ## Plataforma / nice-to-have

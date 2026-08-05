@@ -39,7 +39,8 @@ Si el boot falla → mensaje de error en el contador de resultados.
 - Overlay auth: backdrop / Escape cierran; errores mapeados (401, 409, etc.).
 - Password min 6; autocomplete distinto login vs register.
 - **Menú de cuenta** (`session-ui.js` / `#sidebar-user`): avatar con iniciales, nombre corto (`Humberto L`), badge de rol, chevron → dropdown.
-  - **Mi perfil** y **Configuración**: visibles pero `disabled` (tooltip “Próximamente”).
+  - **Mi perfil**: activo → vista `#profile-view` (lectura: identidad, plan, fechas, peso/coach o cupo; acciones futuras deshabilitadas + **Darse de baja** habilitado). Al entrar, `refreshUser()` → `GET /users/me`. Baja: modal pide el email exacto → `DELETE /users/me` → logout.
+  - **Configuración**: visible pero `disabled` (tooltip “Próximamente”).
   - **Cerrar sesión**: activo (rojo).
   - Cierra con click afuera o Escape.
 
@@ -65,6 +66,7 @@ Si el boot falla → mensaje de error en el contador de resultados.
 | `avances` | Coach: lista de alumnos → abrir fotos de progreso |
 | `progress-photos` | Coach: timeline + comparar fotos de un alumno (lightbox) |
 | `session-editor` | Editor de una sesión del atleta (coach) |
+| `profile` | Mi perfil (lectura + darse de baja; resto de acciones “Pronto”) |
 
 - Post-login: coach/admin → `coach-panel`; athlete → `training`.
 - Recomendar: nav locked + tooltip si no es Pro.
@@ -259,7 +261,7 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 | GET | `/exercises/recommend?zone&equipment` | Sí | Submit recommend |
 | POST | `/auth/login` | No | Login |
 | POST | `/auth/register` | No | Register |
-| GET | `/users/me` | Sí | Sesión (user + programs + `subscription` + `coachQuota` + `currentWeightKg`; **sin** invite ni `progressPhotos`) |
+| GET | `/users/me` | Sí | Sesión (user + programs + `subscription` + `coach` + `coachQuota` + `currentWeightKg`; **sin** invite ni `progressPhotos`) |
 | GET | `/users/me/pending-coach-invite` | Sí | Atleta: `{ invite }` (null o pendiente) |
 | POST | `/users/training-program` | Sí | Agregar al plan |
 | PUT | `/users/training-program/remove` | Sí | Confirmar quitar |
@@ -355,6 +357,7 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 |------|----------|
 | Entry / catálogo / modal / pauta | `js/main.js` |
 | Sesión / vistas / roles | `js/features/session-ui.js` |
+| Mi perfil | `js/features/profile-ui.js` |
 | Auth UI | `js/features/auth-ui.js` |
 | Entrenamiento | `js/features/training-ui.js` |
 | Recommend | `js/features/recommend-ui.js` |

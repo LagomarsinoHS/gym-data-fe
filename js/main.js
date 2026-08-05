@@ -21,6 +21,7 @@ import {
   initAthleteAvancesUi,
   syncAthleteAvancesLabels,
 } from './features/athlete-avances-ui.js';
+import { initProfileUi, syncProfileView } from './features/profile-ui.js';
 import {
   initCoachPanelUi,
   refreshCoachPanel,
@@ -141,6 +142,9 @@ async function init() {
       else if (view === 'students') {
         void refreshUser().finally(() => void loadCoachAthletes());
       }
+      else if (view === 'profile') {
+        void refreshUser().catch(() => {});
+      }
       else if (view === 'catalog') reloadExercises();
     },
   });
@@ -162,6 +166,7 @@ async function init() {
   initAvancesUi();
   initProgressPhotosUi();
   initAthleteAvancesUi({ getUser, refreshUser });
+  initProfileUi();
   initCoachPanelUi();
   initCoachInviteUi();
   initRecommendUi({
@@ -327,6 +332,7 @@ function syncChromeLabels() {
   syncStudentsLabels();
   syncAvancesLabels();
   syncAthleteAvancesLabels();
+  syncProfileView();
   syncCoachPanelLabels();
   syncCoachInviteBanner();
 }

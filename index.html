@@ -15,12 +15,13 @@
     · #theme-toggle-btn                            → js/features/theme-ui.js
     · theme early (head, sin defer)                → js/theme-boot.js
     · #nav-drawer-toggle / #app-sidebar (móvil)    → js/features/nav-drawer.js
-    · #sidebar-auth / vistas catalog|training|recommend|coach-plan|coach-panel|coach-templates|students|avances|athlete-avances|session-editor|progress-photos → js/features/session-ui.js
+    · #sidebar-auth / vistas catalog|training|recommend|coach-plan|coach-panel|coach-templates|students|avances|athlete-avances|session-editor|progress-photos|profile → js/features/session-ui.js
     · #recommend-overlay                               → js/features/recommend-ui.js
     · #students-view / overlays → js/features/students-ui.js · download → students-download-ui.js
     · #avances-view → js/features/avances-ui.js
     · #athlete-avances-view → js/features/athlete-avances-ui.js
     · #progress-photos-view → js/features/progress-photos-ui.js
+    · #profile-view → js/features/profile-ui.js
     · #coach-panel-view → js/features/coach-panel-ui.js
     · #session-editor-view / session overlays → js/features/coach-sessions-ui.js
     · #coach-invite-banner                             → js/features/coach-invite-ui.js
@@ -88,7 +89,7 @@
             </span>
           </button>
           <div class="sidebar-user-menu" id="sidebar-user-menu" role="menu" hidden>
-            <button type="button" class="sidebar-user-menu-item" role="menuitem" id="sidebar-user-profile" data-action="profile" disabled>
+            <button type="button" class="sidebar-user-menu-item" role="menuitem" id="sidebar-user-profile" data-action="profile">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="8" cy="5.5" r="2.5"/>
                 <path d="M3.5 13.5c.7-2.2 2.3-3.3 4.5-3.3s3.8 1.1 4.5 3.3"/>
@@ -365,6 +366,39 @@
             </section>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div id="profile-view" class="profile-view" hidden>
+      <div class="profile">
+        <header class="profile-header">
+          <p class="profile-kicker" data-ui="profileIdentity">Identidad</p>
+          <h2 class="profile-title" data-ui="profileTitle">Mi perfil</h2>
+        </header>
+
+        <section class="profile-hero-row" id="profile-hero" aria-live="polite"></section>
+
+        <section class="profile-facts" id="profile-facts" aria-label="Account details"></section>
+
+        <section class="profile-actions profile-actions--available" aria-labelledby="profile-available-title">
+          <div class="profile-actions-head">
+            <h3 class="profile-actions-title" id="profile-available-title" data-ui="profileAvailableTitle">Cuenta</h3>
+            <p class="profile-actions-lead" data-ui="profileAvailableLead">
+              Acciones disponibles para tu cuenta.
+            </p>
+          </div>
+          <div class="profile-actions-list" id="profile-available-list"></div>
+        </section>
+
+        <section class="profile-actions profile-actions--soon" aria-labelledby="profile-soon-title">
+          <div class="profile-actions-head">
+            <h3 class="profile-actions-title" id="profile-soon-title" data-ui="profileActionsTitle">Próximamente</h3>
+            <p class="profile-actions-lead" data-ui="profileActionsLead">
+              Estas acciones se habilitarán cuando expandamos la cuenta.
+            </p>
+          </div>
+          <div class="profile-actions-list" id="profile-soon-list"></div>
+        </section>
       </div>
     </div>
 
@@ -872,6 +906,30 @@
       <button type="button" class="confirm-modal-cancel" id="remove-session-cancel" data-ui="sessionRemoveCancel">Cancelar</button>
       <button type="button" class="confirm-modal-danger" id="remove-session-confirm" data-ui="sessionRemoveConfirmBtn">Eliminar</button>
     </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL confirmar darse de baja — js/features/profile-ui.js ═══ -->
+<div class="recommend-overlay" id="deactivate-account-overlay" role="dialog" aria-modal="true" aria-labelledby="deactivate-account-title">
+  <div class="recommend-modal confirm-modal">
+    <div class="recommend-modal-header">
+      <h2 class="recommend-modal-title" id="deactivate-account-title" data-ui="profileDeactivateTitle">¿Darse de baja?</h2>
+      <button type="button" class="modal-close" id="deactivate-account-close" aria-label="Close">✕</button>
+    </div>
+    <p class="confirm-modal-lead" id="deactivate-account-lead" data-ui="profileDeactivateLead">
+      Esta acción desactiva tu cuenta. Para confirmar, escribe tu correo.
+    </p>
+    <form class="recommend-form confirm-modal-form" id="deactivate-account-form">
+      <label class="recommend-field">
+        <span class="recommend-label" data-ui="email">Email</span>
+        <input type="email" id="deactivate-account-email" name="email" required autocomplete="off" />
+      </label>
+      <p class="recommend-status" id="deactivate-account-status" hidden></p>
+      <div class="confirm-modal-actions">
+        <button type="button" class="confirm-modal-cancel" id="deactivate-account-cancel" data-ui="profileDeactivateCancel">Cancelar</button>
+        <button type="submit" class="confirm-modal-danger" id="deactivate-account-confirm" disabled data-ui="profileDeactivateConfirm">Darme de baja</button>
+      </div>
+    </form>
   </div>
 </div>
 

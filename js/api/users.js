@@ -1,10 +1,19 @@
-import { get, post, postBinary, postMultipart, put } from './request.js';
+import { get, post, postBinary, postMultipart, put, del } from './request.js';
 
 const USERS = '/users';
 
 /** GET /users/me — requires Bearer token */
 export function getMe() {
   return get(`${USERS}/me`, {}, { auth: true });
+}
+
+/**
+ * DELETE /users/me
+ * Soft-delete the authenticated account. Body: { email }
+ * Email must belong to the JWT user.
+ */
+export function deleteAccount(email) {
+  return del(`${USERS}/me`, { email }, { auth: true });
 }
 
 /**
