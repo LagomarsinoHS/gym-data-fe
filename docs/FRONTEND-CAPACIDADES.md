@@ -208,7 +208,7 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 ### Coach
 - Nav **Avances** (`avances-ui`): lista paginada de alumnos → abre `progress-photos`.
 - Vista `progress-photos` (`progress-photos-ui`): back a Avances o Mis alumnos; card alumno (nombre, correo, peso actual — en comparar, chip compacto).
-- Timeline cronológico (meses con foto/peso, más reciente arriba); photos lazy (`loading="lazy"`).
+- Timeline cronológico (meses con foto/peso, más reciente arriba); cards usan thumb Cloudinary (`c_fill,w_480,h_640,q_auto,f_auto`); lightbox/descarga usan la URL original de Mongo.
 - **Comparar**: elegir ≥2 meses → **2 meses** lado a lado con tabs Frente/Espalda; **3+** doble carrusel (wrap). Δ peso entre el más viejo y el más nuevo.
 - `GET /users/:userId/progress-photos` → `{ currentWeightKg, years[] }` (un fetch; sin paginación de API).
 
@@ -219,8 +219,9 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 - Re-subir el mismo mes **reemplaza** (upsert UTC); no hay UI de delete (API DELETE existe).
 
 ### Lightbox compartido (`progress-photo-lightbox.js`)
-- Click en foto → modal; **Descargar** fetch→blob → `FirstName_LastName_Front|Back[_YYYY-MM].ext`.
+- Click en foto → modal con **URL original** (calidad completa); **Descargar** fetch→blob → `FirstName_LastName_Front|Back[_YYYY-MM].ext`.
 - En comparar: flechas / teclado recorren la galería del mismo lado (Frente↔Frente u Espalda↔Espalda).
+- Thumbs FE: `js/utils/cloudinary.js` (`progressPhotoThumbUrl`) — solo en cards; Mongo/BE sin cambios.
 
 ---
 

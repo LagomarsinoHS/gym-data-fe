@@ -3,6 +3,7 @@
  * (2 months side-by-side, 3+ dual carousels).
  * Used by coach progress-photos view and athlete Avances history.
  */
+import { progressPhotoThumbUrl } from '../utils/cloudinary.js';
 import { getLang, ui } from '../utils/labels.js';
 import { openProgressPhotoLightbox } from './progress-photo-lightbox.js';
 
@@ -738,7 +739,8 @@ export function createProgressHistoryRenderer(opts = {}) {
     if (photo?.url) {
       const img = document.createElement('img');
       img.className = 'progress-photos-card-img';
-      img.src = photo.url;
+      // List/grid: Cloudinary thumb. Lightbox/download keep the original `photo.url`.
+      img.src = progressPhotoThumbUrl(photo.url);
       img.alt = title;
       img.loading = 'lazy';
       img.tabIndex = 0;
