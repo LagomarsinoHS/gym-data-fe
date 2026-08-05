@@ -390,7 +390,13 @@
           <span data-ui="goToCatalog">Ir a Catálogo</span>
         </button>
       </div>
-      <div class="recommend-results" id="coach-plan-results" hidden>
+      <div class="recommend-results coach-plan-results" id="coach-plan-results" hidden>
+        <header class="coach-plan-results-header">
+          <h2 class="coach-plan-results-title" data-ui="coachPlan">Plan del coach</h2>
+          <p class="coach-plan-results-lead" data-ui="coachPlanLead">
+            Sesiones que tu coach armó para ti.
+          </p>
+        </header>
         <div class="coach-plan-sessions" id="coach-plan-grid"></div>
       </div>
     </div>
@@ -861,7 +867,12 @@
   <div class="progress-photo-lightbox-panel">
     <div class="progress-photo-lightbox-bar">
       <h2 class="progress-photo-lightbox-title" id="progress-photo-lightbox-title"></h2>
-      <button type="button" class="modal-close" id="progress-photo-lightbox-close" aria-label="Close">✕</button>
+      <div class="progress-photo-lightbox-actions">
+        <button type="button" class="progress-photo-lightbox-download" id="progress-photo-lightbox-download">
+          <span data-ui="progressPhotosDownload">Descargar</span>
+        </button>
+        <button type="button" class="modal-close" id="progress-photo-lightbox-close" aria-label="Close">✕</button>
+      </div>
     </div>
     <img class="progress-photo-lightbox-img" id="progress-photo-lightbox-img" alt="" />
   </div>

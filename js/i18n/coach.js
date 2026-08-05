@@ -118,6 +118,7 @@ export const coach = {
     progressPhotosPickMonth: 'Choose a month',
     progressPhotosNoPhoto: 'No photo',
     progressPhotosNoData: 'No data',
+    progressPhotosDownload: 'Download',
   },
   es: {
     navGroupCoach: 'Coach',
@@ -237,5 +238,6 @@ export const coach = {
     progressPhotosPickMonth: 'Elige un mes',
     progressPhotosNoPhoto: 'Sin foto',
     progressPhotosNoData: 'Sin datos',
+    progressPhotosDownload: 'Descargar',
   },
 };
