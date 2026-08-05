@@ -4,6 +4,11 @@
  */
 import { getProgressPhotos, uploadProgressPhotos } from '../api/users.js';
 import { getLang, ui } from '../utils/labels.js';
+import {
+  closeProgressPhotoLightbox,
+  initProgressPhotoLightbox,
+  openProgressPhotoLightbox,
+} from './progress-photo-lightbox.js';
 
 const YEAR_RANGE_START = 2020;
 const WEIGHT_MIN = 20;
@@ -38,11 +43,6 @@ let currentWeightWrap;
 let currentWeightValueEl;
 let filtersEl;
 let resultsEl;
-let lightboxEl;
-let lightboxImgEl;
-let lightboxTitleEl;
-let lightboxCloseBtn;
-let lightboxBackdrop;
 
 /** @type {string | null} */
 let frontPreviewUrl = null;
@@ -93,6 +93,7 @@ export function initAthleteAvancesUi(opts = {}) {
   if (typeof opts.getUser === 'function') getUser = opts.getUser;
   if (typeof opts.refreshUser === 'function') refreshUser = opts.refreshUser;
 
+  initProgressPhotoLightbox();
   formEl = document.getElementById('athlete-avances-form');
   frontInput = document.getElementById('athlete-avances-front');
   backInput = document.getElementById('athlete-avances-back');
@@ -105,11 +106,6 @@ export function initAthleteAvancesUi(opts = {}) {
   currentWeightValueEl = document.getElementById('athlete-avances-current-weight-value');
   filtersEl = document.getElementById('athlete-avances-filters');
   resultsEl = document.getElementById('athlete-avances-results');
-  lightboxEl = document.getElementById('progress-photo-lightbox');
-  lightboxImgEl = document.getElementById('progress-photo-lightbox-img');
-  lightboxTitleEl = document.getElementById('progress-photo-lightbox-title');
-  lightboxCloseBtn = document.getElementById('progress-photo-lightbox-close');
-  lightboxBackdrop = document.getElementById('progress-photo-lightbox-backdrop');
 
   formEl?.addEventListener('submit', event => {
     event.preventDefault();
@@ -127,14 +123,6 @@ export function initAthleteAvancesUi(opts = {}) {
   weightInput?.addEventListener('input', syncSaveEnabled);
   weightInput?.addEventListener('change', syncSaveEnabled);
   syncSaveEnabled();
-
-  lightboxCloseBtn?.addEventListener('click', closePhotoLightbox);
-  lightboxBackdrop?.addEventListener('click', closePhotoLightbox);
-  document.addEventListener('keydown', event => {
-    if (event.key !== 'Escape') return;
-    if (!lightboxEl || lightboxEl.hidden) return;
-    closePhotoLightbox();
-  });
 }
 
 export function syncAthleteAvancesLabels() {
@@ -150,7 +138,7 @@ export function syncAthleteAvancesLabels() {
 export function syncAthleteAvancesView() {
   const viewEl = document.getElementById('athlete-avances-view');
   if (!viewEl || viewEl.hidden) {
-    closePhotoLightbox();
+    closeProgressPhotoLightbox();
     return;
   }
 
@@ -480,8 +468,8 @@ function createPhotosSection() {
   const grid = document.createElement('div');
   grid.className = 'progress-photos-grid';
   grid.append(
-    createPhotoCard(ui('progressPhotosFront'), monthEntry?.front),
-    createPhotoCard(ui('progressPhotosBackSide'), monthEntry?.back),
+    createPhotoCard(ui('progressPhotosFront'), monthEntry?.front, 'front'),
+    createPhotoCard(ui('progressPhotosBackSide'), monthEntry?.back, 'back'),
   );
   panel.append(grid);
   return panel;
@@ -499,7 +487,7 @@ function createNoDataState() {
   return wrap;
 }
 
-function createPhotoCard(title, photo) {
+function createPhotoCard(title, photo, side) {
   const card = document.createElement('article');
   card.className = 'progress-photos-card';
 
@@ -517,7 +505,16 @@ function createPhotoCard(title, photo) {
     img.tabIndex = 0;
     img.setAttribute('role', 'button');
     img.setAttribute('aria-label', title);
-    const open = () => openPhotoLightbox(photo.url, title);
+    const open = () => {
+      const user = getUser();
+      openProgressPhotoLightbox({
+        url: photo.url,
+        title,
+        side,
+        firstName: user?.firstName,
+        lastName: user?.lastName,
+      });
+    };
     img.addEventListener('click', open);
     img.addEventListener('keydown', event => {
       if (event.key === 'Enter' || event.key === ' ') {
@@ -534,25 +531,6 @@ function createPhotoCard(title, photo) {
   }
 
   return card;
-}
-
-function openPhotoLightbox(url, title) {
-  if (!lightboxEl || !lightboxImgEl || !lightboxTitleEl || !url) return;
-  lightboxTitleEl.textContent = title || '';
-  lightboxImgEl.src = url;
-  lightboxImgEl.alt = title || '';
-  lightboxEl.hidden = false;
-  lightboxCloseBtn?.focus();
-}
-
-function closePhotoLightbox() {
-  if (!lightboxEl || lightboxEl.hidden) return;
-  lightboxEl.hidden = true;
-  if (lightboxImgEl) {
-    lightboxImgEl.removeAttribute('src');
-    lightboxImgEl.alt = '';
-  }
-  if (lightboxTitleEl) lightboxTitleEl.textContent = '';
 }
 
 function monthLabel(monthNumber) {
