@@ -380,6 +380,49 @@
 
         <section class="profile-facts" id="profile-facts" aria-label="Account details"></section>
 
+        <section class="profile-edit" id="profile-edit-panel" hidden aria-labelledby="profile-edit-title">
+          <div class="profile-edit-head">
+            <h3 class="profile-edit-title" id="profile-edit-title" data-ui="profileEditTitle">Editar perfil</h3>
+            <p class="profile-edit-lead" data-ui="profileEditLead">
+              Cambia nombre, apellido y/ o contraseña. Guarda con al menos un cambio.
+            </p>
+          </div>
+          <form class="profile-edit-form" id="profile-edit-form">
+            <div class="profile-edit-grid">
+              <label class="profile-edit-field">
+                <span class="profile-edit-label" data-ui="profileEditFirstName">Nombre</span>
+                <input type="text" id="profile-edit-first-name" name="firstName" autocomplete="given-name" />
+              </label>
+              <label class="profile-edit-field">
+                <span class="profile-edit-label" data-ui="profileEditLastName">Apellido</span>
+                <input type="text" id="profile-edit-last-name" name="lastName" autocomplete="family-name" />
+              </label>
+            </div>
+            <div class="profile-edit-password">
+              <p class="profile-edit-subtitle" data-ui="profileEditPasswordTitle">Cambiar contraseña</p>
+              <div class="profile-edit-grid profile-edit-grid--password">
+                <label class="profile-edit-field" id="profile-edit-current-password-field">
+                  <span class="profile-edit-label" data-ui="profileEditCurrentPassword">Contraseña actual</span>
+                  <input type="password" id="profile-edit-current-password" name="currentPassword" autocomplete="current-password" />
+                </label>
+                <label class="profile-edit-field">
+                  <span class="profile-edit-label" data-ui="profileEditNewPassword">Nueva contraseña</span>
+                  <input type="password" id="profile-edit-new-password" name="newPassword" autocomplete="new-password" minlength="4" />
+                </label>
+                <label class="profile-edit-field">
+                  <span class="profile-edit-label" data-ui="profileEditConfirmPassword">Confirmar nueva</span>
+                  <input type="password" id="profile-edit-confirm-password" name="confirmNewPassword" autocomplete="new-password" minlength="4" />
+                </label>
+              </div>
+            </div>
+            <p class="profile-edit-status" id="profile-edit-status" hidden></p>
+            <div class="profile-edit-actions">
+              <button type="button" class="profile-edit-cancel" id="profile-edit-cancel" data-ui="profileEditCancel">Cancelar</button>
+              <button type="submit" class="profile-edit-save" id="profile-edit-save" disabled data-ui="profileEditSave">Guardar</button>
+            </div>
+          </form>
+        </section>
+
         <section class="profile-actions profile-actions--available" aria-labelledby="profile-available-title">
           <div class="profile-actions-head">
             <h3 class="profile-actions-title" id="profile-available-title" data-ui="profileAvailableTitle">Cuenta</h3>

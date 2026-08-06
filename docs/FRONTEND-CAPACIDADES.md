@@ -39,7 +39,7 @@ Si el boot falla → mensaje de error en el contador de resultados.
 - Overlay auth: backdrop / Escape cierran; errores mapeados (401, 409, etc.).
 - Password min 6; autocomplete distinto login vs register.
 - **Menú de cuenta** (`session-ui.js` / `#sidebar-user`): avatar con iniciales, nombre corto (`Humberto L`), badge de rol, chevron → dropdown.
-  - **Mi perfil**: activo → vista `#profile-view` (lectura: identidad, plan, fechas, peso/coach o cupo; acciones futuras deshabilitadas + **Darse de baja** habilitado). Al entrar, `refreshUser()` → `GET /users/me`. Baja: modal pide el email exacto → `DELETE /users/me` → logout.
+  - **Mi perfil**: activo → vista `#profile-view`. Avatar clickeable → Ver/Subir foto. **Editar perfil** abre sección inline (nombre, apellido, contraseña) + Guardar → `PATCH /users/me`. **Darse de baja** modal email → `DELETE /users/me`. Al entrar, `refreshUser()`.
   - **Configuración**: visible pero `disabled` (tooltip “Próximamente”).
   - **Cerrar sesión**: activo (rojo).
   - Cierra con click afuera o Escape.
@@ -66,7 +66,7 @@ Si el boot falla → mensaje de error en el contador de resultados.
 | `avances` | Coach: lista de alumnos → abrir fotos de progreso |
 | `progress-photos` | Coach: timeline + comparar fotos de un alumno (lightbox) |
 | `session-editor` | Editor de una sesión del atleta (coach) |
-| `profile` | Mi perfil (lectura + darse de baja; resto de acciones “Pronto”) |
+| `profile` | Mi perfil (foto, editar inline, darse de baja; resto “Pronto”) |
 
 - Post-login: coach/admin → `coach-panel`; athlete → `training`.
 - Recomendar: nav locked + tooltip si no es Pro.

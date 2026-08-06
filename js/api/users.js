@@ -1,4 +1,4 @@
-import { get, post, postBinary, postMultipart, put, del } from './request.js';
+import { get, post, postBinary, postMultipart, put, patch, del } from './request.js';
 
 const USERS = '/users';
 
@@ -8,12 +8,30 @@ export function getMe() {
 }
 
 /**
+ * PATCH /users/me
+ * Partial update: firstName and/or lastName and/or password change.
+ */
+export function updateProfile(body) {
+  return patch(`${USERS}/me`, body, { auth: true });
+}
+
+/**
  * DELETE /users/me
  * Soft-delete the authenticated account. Body: { email }
  * Email must belong to the JWT user.
  */
 export function deleteAccount(email) {
   return del(`${USERS}/me`, { email }, { auth: true });
+}
+
+/**
+ * POST /users/me/profile-photo (multipart)
+ * Field: profilePhoto (jpeg/png/webp). Returns MeResponseDto.
+ */
+export function uploadProfilePhoto(file) {
+  const form = new FormData();
+  form.append('profilePhoto', file);
+  return postMultipart(`${USERS}/me/profile-photo`, form, { auth: true });
 }
 
 /**

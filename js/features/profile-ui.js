@@ -1,11 +1,13 @@
 /**
  * Profile view: identity + facts, then available actions, then coming-soon.
- * Active: darse de baja via email confirmation modal.
+ * Active: profile photo (avatar menu) + darse de baja.
  * Markup: #profile-view, #deactivate-account-overlay
  */
-import { deleteAccount } from '../api/users.js';
+import { deleteAccount, uploadProfilePhoto, updateProfile } from '../api/users.js';
 import { formatDate } from '../utils/dates.js';
+import { ApiErrorCode, mapApiError } from '../utils/api-errors.js';
 import { ui } from '../utils/labels.js';
+import { openProgressPhotoLightbox } from './progress-photo-lightbox.js';
 import {
   canInviteAthlete,
   getUser,
@@ -13,7 +15,14 @@ import {
   isAthlete,
   isCoach,
   logout,
+  setUser,
 } from './session-ui.js';
+
+const ALLOWED_PROFILE_PHOTO_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]);
 
 const PROFILE_ACTIONS = [
   {
@@ -21,30 +30,7 @@ const PROFILE_ACTIONS = [
     titleKey: 'profileActionEdit',
     hintKey: 'profileActionEditHint',
     icon: 'edit',
-  },
-  {
-    id: 'avatar',
-    titleKey: 'profileActionAvatar',
-    hintKey: 'profileActionAvatarHint',
-    icon: 'avatar',
-  },
-  {
-    id: 'password',
-    titleKey: 'profileActionPassword',
-    hintKey: 'profileActionPasswordHint',
-    icon: 'lock',
-  },
-  {
-    id: 'email',
-    titleKey: 'profileActionEmail',
-    hintKey: 'profileActionEmailHint',
-    icon: 'mail',
-  },
-  {
-    id: 'settings',
-    titleKey: 'profileActionSettings',
-    hintKey: 'profileActionSettingsHint',
-    icon: 'settings',
+    enabled: true,
   },
   {
     id: 'notifications',
@@ -57,18 +43,6 @@ const PROFILE_ACTIONS = [
     titleKey: 'profileActionPrivacy',
     hintKey: 'profileActionPrivacyHint',
     icon: 'privacy',
-  },
-  {
-    id: 'units',
-    titleKey: 'profileActionUnits',
-    hintKey: 'profileActionUnitsHint',
-    icon: 'units',
-  },
-  {
-    id: 'sessions',
-    titleKey: 'profileActionSessions',
-    hintKey: 'profileActionSessionsHint',
-    icon: 'devices',
   },
   {
     id: 'coach-link',
@@ -105,6 +79,22 @@ let emailInput;
 let statusEl;
 let confirmBtn;
 let busy = false;
+let avatarUploading = false;
+let editBusy = false;
+/** @type {HTMLElement | null} */
+let openAvatarMenu = null;
+
+let editPanel;
+let editForm;
+let editFirstName;
+let editLastName;
+let editCurrentPassword;
+let editCurrentPasswordField;
+let editNewPassword;
+let editConfirmPassword;
+let editStatusEl;
+let editSaveBtn;
+let currentPasswordDefaultPlaceholder = '';
 
 export function initProfileUi() {
   overlay = document.getElementById('deactivate-account-overlay');
@@ -112,6 +102,21 @@ export function initProfileUi() {
   emailInput = document.getElementById('deactivate-account-email');
   statusEl = document.getElementById('deactivate-account-status');
   confirmBtn = document.getElementById('deactivate-account-confirm');
+
+  editPanel = document.getElementById('profile-edit-panel');
+  editForm = document.getElementById('profile-edit-form');
+  editFirstName = document.getElementById('profile-edit-first-name');
+  editLastName = document.getElementById('profile-edit-last-name');
+  editCurrentPassword = document.getElementById('profile-edit-current-password');
+  editCurrentPasswordField = document.getElementById(
+    'profile-edit-current-password-field',
+  );
+  editNewPassword = document.getElementById('profile-edit-new-password');
+  editConfirmPassword = document.getElementById('profile-edit-confirm-password');
+  editStatusEl = document.getElementById('profile-edit-status');
+  editSaveBtn = document.getElementById('profile-edit-save');
+  currentPasswordDefaultPlaceholder =
+    editCurrentPassword?.getAttribute('placeholder') || '';
 
   document
     .getElementById('deactivate-account-close')
@@ -124,11 +129,34 @@ export function initProfileUi() {
   });
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
+    if (openAvatarMenu) {
+      closeAvatarMenu();
+      return;
+    }
     if (!overlay?.classList.contains('open')) return;
     closeDeactivateModal();
   });
+  document.addEventListener('click', (e) => {
+    if (!openAvatarMenu) return;
+    if (openAvatarMenu.contains(/** @type {Node} */ (e.target))) return;
+    closeAvatarMenu();
+  });
   emailInput?.addEventListener('input', syncConfirmEnabled);
   form?.addEventListener('submit', onDeactivateSubmit);
+
+  document
+    .getElementById('profile-edit-cancel')
+    ?.addEventListener('click', closeEditPanel);
+  editForm?.addEventListener('input', () => {
+    if (
+      editCurrentPassword &&
+      document.activeElement === editCurrentPassword
+    ) {
+      clearCurrentPasswordError();
+    }
+    syncEditSaveEnabled();
+  });
+  editForm?.addEventListener('submit', onEditSubmit);
 }
 
 export function syncProfileLabels() {
@@ -143,8 +171,13 @@ export function syncProfileView() {
   const viewEl = document.getElementById('profile-view');
   if (!viewEl || viewEl.hidden) return;
 
+  closeAvatarMenu();
   syncProfileLabels();
   renderProfileBody();
+  if (editPanel && !editPanel.hidden) {
+    fillEditFormFromUser();
+    syncEditSaveEnabled();
+  }
 }
 
 function renderProfileBody() {
@@ -192,10 +225,7 @@ function createHero(user) {
   const wrap = document.createElement('div');
   wrap.className = 'profile-hero-inner';
 
-  const avatar = document.createElement('div');
-  avatar.className = 'profile-avatar';
-  avatar.setAttribute('aria-hidden', 'true');
-  avatar.textContent = initialsFor(user);
+  wrap.append(createAvatarControl(user));
 
   const text = document.createElement('div');
   text.className = 'profile-hero-text';
@@ -219,8 +249,150 @@ function createHero(user) {
   );
 
   text.append(name, email, badges);
-  wrap.append(avatar, text);
+  wrap.append(text);
   return wrap;
+}
+
+function createAvatarControl(user) {
+  const wrap = document.createElement('div');
+  wrap.className = 'profile-avatar-wrap';
+  wrap.dataset.profileAvatar = '1';
+
+  const photoUrl = profilePhotoUrl(user);
+
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = 'image/jpeg,image/png,image/webp';
+  fileInput.hidden = true;
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'profile-avatar is-interactive';
+  if (photoUrl) btn.classList.add('has-photo');
+  btn.setAttribute('aria-haspopup', 'menu');
+  btn.setAttribute('aria-expanded', 'false');
+  btn.setAttribute('aria-label', ui('profileAvatarMenu'));
+  fillAvatarButton(btn, user, photoUrl);
+
+  const menu = document.createElement('div');
+  menu.className = 'profile-avatar-menu';
+  menu.hidden = true;
+  menu.setAttribute('role', 'menu');
+
+  if (photoUrl) {
+    menu.append(
+      createAvatarMenuItem('view', ui('profileAvatarView'), () => {
+        closeAvatarMenu();
+        openProgressPhotoLightbox({
+          url: photoUrl,
+          title: ui('profileAvatarViewTitle'),
+          firstName: user.firstName,
+          lastName: user.lastName,
+          side: 'front',
+        });
+      }),
+    );
+  }
+
+  menu.append(
+    createAvatarMenuItem('upload', ui('profileAvatarUpload'), () => {
+      closeAvatarMenu();
+      fileInput.click();
+    }),
+  );
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files?.[0] || null;
+    fileInput.value = '';
+    if (file) void handleProfilePhotoUpload(file, btn);
+  });
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleAvatarMenu(wrap, btn, menu);
+  });
+
+  wrap.append(btn, menu, fileInput);
+  return wrap;
+}
+
+function createAvatarMenuItem(action, label, onClick) {
+  const item = document.createElement('button');
+  item.type = 'button';
+  item.className = 'profile-avatar-menu-item';
+  item.setAttribute('role', 'menuitem');
+  item.dataset.action = action;
+  item.textContent = label;
+  item.addEventListener('click', (e) => {
+    e.stopPropagation();
+    onClick();
+  });
+  return item;
+}
+
+function fillAvatarButton(btn, user, photoUrl) {
+  btn.replaceChildren();
+  if (photoUrl) {
+    const img = document.createElement('img');
+    img.className = 'profile-avatar-img';
+    img.src = photoUrl;
+    img.alt = '';
+    btn.append(img);
+    return;
+  }
+  btn.textContent = initialsFor(user);
+}
+
+function profilePhotoUrl(user) {
+  return String(user?.profilePhoto?.url || '').trim();
+}
+
+function toggleAvatarMenu(wrap, btn, menu) {
+  if (openAvatarMenu === wrap) {
+    closeAvatarMenu();
+    return;
+  }
+  closeAvatarMenu();
+  openAvatarMenu = wrap;
+  wrap.classList.add('is-menu-open');
+  menu.hidden = false;
+  btn.setAttribute('aria-expanded', 'true');
+}
+
+function closeAvatarMenu() {
+  if (!openAvatarMenu) return;
+  const wrap = openAvatarMenu;
+  const btn = wrap.querySelector('.profile-avatar');
+  const menu = wrap.querySelector('.profile-avatar-menu');
+  wrap.classList.remove('is-menu-open');
+  if (menu) menu.hidden = true;
+  btn?.setAttribute('aria-expanded', 'false');
+  openAvatarMenu = null;
+}
+
+async function handleProfilePhotoUpload(file, avatarBtn) {
+  if (avatarUploading) return;
+  if (!ALLOWED_PROFILE_PHOTO_TYPES.has(file.type)) {
+    window.alert(ui('profileAvatarUploadError'));
+    return;
+  }
+
+  avatarUploading = true;
+  avatarBtn?.classList.add('is-busy');
+  avatarBtn?.setAttribute('aria-busy', 'true');
+
+  try {
+    const updated = await uploadProfilePhoto(file);
+    setUser(updated);
+    syncProfileView();
+  } catch (err) {
+    console.error(err);
+    window.alert(ui('profileAvatarUploadError'));
+  } finally {
+    avatarUploading = false;
+    avatarBtn?.classList.remove('is-busy');
+    avatarBtn?.removeAttribute('aria-busy');
+  }
 }
 
 function createCoachSideCard(user) {
@@ -353,6 +525,8 @@ function createActionButton(action) {
     btn.classList.add('is-enabled');
     if (action.id === 'deactivate') {
       btn.addEventListener('click', openDeactivateModal);
+    } else if (action.id === 'edit') {
+      btn.addEventListener('click', toggleEditPanel);
     }
     return btn;
   }
@@ -379,6 +553,191 @@ function openDeactivateModal() {
   syncProfileLabels();
   overlay.classList.add('open');
   emailInput?.focus();
+}
+
+function toggleEditPanel() {
+  if (!editPanel) return;
+  if (editPanel.hidden) openEditPanel();
+  else closeEditPanel();
+}
+
+function openEditPanel() {
+  if (!editPanel || editBusy) return;
+  const user = getUser();
+  if (!user) return;
+
+  setEditStatus('');
+  fillEditFormFromUser();
+  syncEditSaveEnabled();
+  syncProfileLabels();
+  editPanel.hidden = false;
+  editFirstName?.focus();
+  editPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function closeEditPanel() {
+  if (editBusy) return;
+  if (editPanel) editPanel.hidden = true;
+  setEditStatus('');
+  clearCurrentPasswordError();
+  clearPasswordFields();
+  syncEditSaveEnabled();
+}
+
+function fillEditFormFromUser() {
+  const user = getUser();
+  if (!user) return;
+  if (editFirstName) editFirstName.value = String(user.firstName || '').trim();
+  if (editLastName) editLastName.value = String(user.lastName || '').trim();
+  clearCurrentPasswordError();
+  clearPasswordFields();
+}
+
+function clearPasswordFields() {
+  if (editCurrentPassword) editCurrentPassword.value = '';
+  if (editNewPassword) editNewPassword.value = '';
+  if (editConfirmPassword) editConfirmPassword.value = '';
+}
+
+function buildEditPayload() {
+  const user = getUser();
+  if (!user) return { error: ui('profileEditError') };
+
+  /** @type {Record<string, string>} */
+  const body = {};
+  const firstName = String(editFirstName?.value || '').trim();
+  const lastName = String(editLastName?.value || '').trim();
+  const currentName = String(user.firstName || '').trim();
+  const currentLast = String(user.lastName || '').trim();
+
+  if (firstName && firstName !== currentName) body.firstName = firstName;
+  if (lastName && lastName !== currentLast) body.lastName = lastName;
+
+  const currentPassword = String(editCurrentPassword?.value || '');
+  const newPassword = String(editNewPassword?.value || '');
+  const confirmNewPassword = String(editConfirmPassword?.value || '');
+  const passwordTouched =
+    Boolean(currentPassword) || Boolean(newPassword) || Boolean(confirmNewPassword);
+
+  if (passwordTouched) {
+    if (!currentPassword || !newPassword || !confirmNewPassword) {
+      return { error: ui('profileEditPasswordIncomplete') };
+    }
+    if (newPassword.length < 4) {
+      return { error: ui('profileEditPasswordShort') };
+    }
+    if (newPassword !== confirmNewPassword) {
+      return { error: ui('profileEditPasswordMismatch') };
+    }
+    body.currentPassword = currentPassword;
+    body.newPassword = newPassword;
+    body.confirmNewPassword = confirmNewPassword;
+  }
+
+  if (!body.firstName && !body.lastName && !body.newPassword) {
+    return { error: ui('profileEditNothing') };
+  }
+
+  return { body };
+}
+
+function syncEditSaveEnabled() {
+  if (!editSaveBtn) return;
+  if (editBusy) {
+    editSaveBtn.disabled = true;
+    return;
+  }
+  const user = getUser();
+  const firstName = String(editFirstName?.value || '').trim();
+  const lastName = String(editLastName?.value || '').trim();
+  const nameChanged =
+    Boolean(user) &&
+    ((firstName && firstName !== String(user.firstName || '').trim()) ||
+      (lastName && lastName !== String(user.lastName || '').trim()));
+  const passwordAny =
+    Boolean(editCurrentPassword?.value) ||
+    Boolean(editNewPassword?.value) ||
+    Boolean(editConfirmPassword?.value);
+
+  editSaveBtn.disabled = !(nameChanged || passwordAny);
+}
+
+function setEditStatus(message, kind = '') {
+  if (!editStatusEl) return;
+  if (!message) {
+    editStatusEl.hidden = true;
+    editStatusEl.textContent = '';
+    editStatusEl.classList.remove('is-error', 'is-ok');
+    return;
+  }
+  editStatusEl.hidden = false;
+  editStatusEl.textContent = message;
+  editStatusEl.classList.toggle('is-error', kind === 'error');
+  editStatusEl.classList.toggle('is-ok', kind === 'ok');
+}
+
+function setCurrentPasswordError(message) {
+  editCurrentPasswordField?.classList.add('is-invalid');
+  editCurrentPassword?.setAttribute('aria-invalid', 'true');
+  if (editCurrentPassword) {
+    editCurrentPassword.value = '';
+    editCurrentPassword.placeholder = message;
+    editCurrentPassword.classList.remove('is-shake');
+    // restart shake animation
+    void editCurrentPassword.offsetWidth;
+    editCurrentPassword.classList.add('is-shake');
+    editCurrentPassword.focus();
+  }
+}
+
+function clearCurrentPasswordError() {
+  editCurrentPasswordField?.classList.remove('is-invalid');
+  editCurrentPassword?.removeAttribute('aria-invalid');
+  editCurrentPassword?.classList.remove('is-shake');
+  if (editCurrentPassword) {
+    editCurrentPassword.placeholder = currentPasswordDefaultPlaceholder;
+  }
+}
+
+async function onEditSubmit(e) {
+  e.preventDefault();
+  if (editBusy) return;
+
+  clearCurrentPasswordError();
+  const { body, error } = buildEditPayload();
+  if (error || !body) {
+    setEditStatus(error || ui('profileEditNothing'), 'error');
+    return;
+  }
+
+  editBusy = true;
+  syncEditSaveEnabled();
+  setEditStatus('');
+  if (editSaveBtn) editSaveBtn.textContent = ui('profileEditSaving');
+
+  try {
+    const updated = await updateProfile(body);
+    setUser(updated);
+    clearPasswordFields();
+    clearCurrentPasswordError();
+    setEditStatus('');
+    editBusy = false;
+    closeEditPanel();
+    syncProfileView();
+  } catch (err) {
+    console.error(err);
+    if (err?.code === ApiErrorCode.CurrentPasswordIncorrect) {
+      setCurrentPasswordError(ui('profileEditCurrentPasswordWrong'));
+      setEditStatus('');
+    } else {
+      const message = mapApiError(err, { fallback: 'profileEditError' });
+      setEditStatus(message, 'error');
+    }
+  } finally {
+    editBusy = false;
+    if (editSaveBtn) editSaveBtn.textContent = ui('profileEditSave');
+    syncEditSaveEnabled();
+  }
 }
 
 function closeDeactivateModal() {

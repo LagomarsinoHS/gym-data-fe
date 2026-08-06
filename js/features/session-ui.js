@@ -319,9 +319,21 @@ function renderUserName() {
   }
 
   if (avatarEl) {
-    const initials = `${first.charAt(0)}${last.charAt(0)}`.toUpperCase()
-      || String(user.email || '?').charAt(0).toUpperCase();
-    avatarEl.textContent = initials;
+    const photoUrl = String(user.profilePhoto?.url || '').trim();
+    if (photoUrl) {
+      avatarEl.replaceChildren();
+      avatarEl.classList.add('has-photo');
+      const img = document.createElement('img');
+      img.src = photoUrl;
+      img.alt = '';
+      img.className = 'sidebar-user-avatar-img';
+      avatarEl.append(img);
+    } else {
+      avatarEl.classList.remove('has-photo');
+      const initials = `${first.charAt(0)}${last.charAt(0)}`.toUpperCase()
+        || String(user.email || '?').charAt(0).toUpperCase();
+      avatarEl.textContent = initials;
+    }
   }
 
   if (roleEl) {

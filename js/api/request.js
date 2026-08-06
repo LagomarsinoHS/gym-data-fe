@@ -51,6 +51,17 @@ export async function put(path, body, { auth = false } = {}) {
   });
 }
 
+export async function patch(path, body, { auth = false } = {}) {
+  return send(new URL(path, API_BASE), {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders(auth),
+    },
+    body: JSON.stringify(body),
+  });
+}
+
 export async function del(path, body, { auth = false } = {}) {
   return send(new URL(path, API_BASE), {
     method: 'DELETE',

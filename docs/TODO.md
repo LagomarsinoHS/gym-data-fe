@@ -62,15 +62,17 @@ coachTrainingProgram: {
 
 ## Cuenta — perfil / configuración
 
-Menú de usuario en sidebar ya existe (iniciales + nombre corto + dropdown). Ítems deshabilitados por ahora.
-Se cablean al clickear **Mi perfil** / **Configuración** en ese menú.
+Menú de usuario en sidebar (iniciales o foto + nombre corto + dropdown).
+**Mi perfil** habilitado. **Configuración** sigue deshabilitada (tooltip “Próximamente”).
 
-- [x] **Mi perfil** — V1 lectura (hero + datos de `/users/me` + acciones “Pronto”); ítem de menú habilitado
-- [x] **Mi perfil → darse de baja** — acción habilitada; modal pide email → `DELETE /users/me` → cierra sesión
-- [ ] **Mi perfil → acciones** — cablear: editar, avatar, contraseña, email, notificaciones, privacidad, unidades, sesiones, vínculo coach, billing, export, etc.
+- [x] **Mi perfil** — lectura (`/users/me`) + acciones “Pronto”; ítem de menú habilitado
+- [x] **Mi perfil → editar perfil** — sección inline (nombre/apellido/contraseña) → `PATCH /users/me`; sin modal; cierra al guardar OK
+- [x] **Mi perfil → darse de baja** — modal pide email → `DELETE /users/me` → cierra sesión
+- [x] **Mi perfil → foto de perfil** — click en avatar → Ver foto / Subir foto (`POST /users/me/profile-photo`); Cloudinary `gym-app/profiles/{userId}/profilePhoto`
+- [ ] **Mi perfil → acciones** — cablear: notificaciones, privacidad, vínculo coach, billing, export, etc.
 - [ ] **Configuración** — preferencias (tema/idioma sync a user, notificaciones, …); habilitar ítem del menú
-- [ ] **Configuración → darse de baja** — (movido a Mi perfil; opcional reubicar cuando exista Configuración)
-- [ ] (BE) Endpoints de update de perfil / preferencias / deactivate si hacen falta más allá de `GET /users/me`
+- [x] ~~**Configuración → darse de baja**~~ — hecho en Mi perfil (`DELETE /users/me`)
+- [x] ~~(BE) update perfil / deactivate~~ — `PATCH /users/me` + `DELETE /users/me` + `POST /users/me/profile-photo`
 
 ---
 
