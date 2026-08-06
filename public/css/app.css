@@ -6008,6 +6008,131 @@ html[data-theme='dark'] .progress-photos-compare-pick-item.is-selected .progress
   flex-wrap: wrap;
   gap: 8px;
   justify-content: center;
+  align-items: center;
+}
+
+.progress-photos-compare-toolbar .recommend-again-btn,
+.progress-photos-compare-toolbar .progress-photos-analyze-ai-btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 8px 14px;
+  min-height: 34px;
+  border-radius: var(--radius-md);
+  border-width: 1px;
+  border-style: solid;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  line-height: 1.2;
+  cursor: pointer;
+  box-shadow: none;
+  transform: none;
+}
+
+.progress-photos-analyze-ai-btn {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: var(--accent);
+  color: #fff;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+}
+
+.progress-photos-analyze-ai-btn:hover {
+  background: color-mix(in srgb, var(--accent) 92%, #000);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.progress-photos-analyze-ai-btn:disabled,
+.progress-photos-analyze-ai-btn.is-locked {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.progress-photos-analyze-ai-btn:disabled:hover,
+.progress-photos-analyze-ai-btn.is-locked:hover {
+  background: var(--accent);
+}
+
+.progress-photos-analyze-slot {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 0.32s ease,
+    opacity 0.28s ease;
+}
+
+.progress-photos-analyze-slot.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.progress-photos-analyze-slot-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.progress-photos-analyze-result {
+  display: grid;
+  gap: 10px;
+  max-width: 40rem;
+  margin: 4px auto 0;
+  padding: 12px 14px;
+  text-align: left;
+  border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--bg-surface) 88%, var(--accent) 4%);
+}
+
+.progress-photos-analyze-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.progress-photos-analyze-status {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.progress-photos-analyze-status.is-error {
+  color: var(--danger, #c0392b);
+}
+
+.progress-photos-analyze-body {
+  display: grid;
+  gap: 10px;
+}
+
+.progress-photos-analyze-body p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.progress-photos-analyze-list {
+  margin: 0;
+  padding: 0 0 0 1.1rem;
+  display: grid;
+  gap: 8px;
+}
+
+.progress-photos-analyze-list li {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.progress-photos-analyze-list li::marker {
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-secondary));
 }
 
 .progress-photos-compare-delta {

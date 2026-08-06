@@ -98,6 +98,11 @@ export function updateProgressCompareBar({
  *   getPerson?: () => { firstName?: string, lastName?: string } | null | undefined,
  *   emptyLead?: string,
  *   getEmptyLead?: () => string,
+ *   analyzeWithAi?: {
+ *     canAccess?: () => boolean,
+ *     getState?: () => { loading: boolean, text: string | null, error: string | null },
+ *     onAnalyze?: (yearMonths: [string, string]) => void | Promise<void>,
+ *   },
  * }} [opts]
  */
 export function createProgressHistoryRenderer(opts = {}) {
@@ -344,7 +349,55 @@ export function createProgressHistoryRenderer(opts = {}) {
     back.textContent = ui('progressPhotosCompareBack');
     back.addEventListener('click', () => exitToTimeline());
     toolbar.append(back);
+
+    if (opts.analyzeWithAi) {
+      const allowed =
+        typeof opts.analyzeWithAi.canAccess === 'function'
+          ? Boolean(opts.analyzeWithAi.canAccess())
+          : false;
+      const aiState =
+        typeof opts.analyzeWithAi.getState === 'function'
+          ? opts.analyzeWithAi.getState()
+          : null;
+      const analyzing = Boolean(aiState?.loading);
+
+      const analyzeBtn = document.createElement('button');
+      analyzeBtn.type = 'button';
+      analyzeBtn.className = 'progress-photos-analyze-ai-btn';
+      analyzeBtn.textContent = analyzing
+        ? ui('progressPhotosAnalyzeAiLoading')
+        : ui('progressPhotosAnalyzeAi');
+      analyzeBtn.disabled = !allowed || analyzing || months.length < 2;
+      analyzeBtn.setAttribute(
+        'aria-disabled',
+        analyzeBtn.disabled ? 'true' : 'false',
+      );
+      analyzeBtn.classList.toggle('is-locked', !allowed);
+      analyzeBtn.title = allowed ? '' : ui('progressPhotosAnalyzeAiLocked');
+      analyzeBtn.addEventListener('click', () => {
+        if (!allowed || analyzing || months.length < 2) return;
+        const newest = months[0];
+        const oldest = months[months.length - 1];
+        const yearMonths = /** @type {[string, string]} */ ([
+          String(oldest.yearMonth),
+          String(newest.yearMonth),
+        ]);
+        void opts.analyzeWithAi.onAnalyze?.(yearMonths);
+      });
+      toolbar.append(analyzeBtn);
+    }
+
     panel.append(toolbar);
+
+    if (opts.analyzeWithAi) {
+      const aiState =
+        typeof opts.analyzeWithAi.getState === 'function'
+          ? opts.analyzeWithAi.getState()
+          : null;
+      if (aiState?.loading || aiState?.text || aiState?.error) {
+        panel.append(createAnalyzeAiResult(aiState));
+      }
+    }
 
     if (months.length === 2) {
       panel.append(createComparePair(months[0], months[1]));
@@ -370,6 +423,66 @@ export function createProgressHistoryRenderer(opts = {}) {
     }
 
     return panel;
+  }
+
+  function createAnalyzeAiResult(state) {
+    const slot = document.createElement('div');
+    slot.className = 'progress-photos-analyze-slot';
+
+    const inner = document.createElement('div');
+    inner.className = 'progress-photos-analyze-slot-inner';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'progress-photos-analyze-result';
+
+    if (state.loading) {
+      const status = document.createElement('p');
+      status.className = 'progress-photos-analyze-status';
+      status.textContent = ui('progressPhotosAnalyzeAiLoading');
+      wrap.append(status);
+    } else if (state.error) {
+      const status = document.createElement('p');
+      status.className = 'progress-photos-analyze-status is-error';
+      status.textContent = state.error;
+      wrap.append(status);
+    } else if (state.text) {
+      const title = document.createElement('h3');
+      title.className = 'progress-photos-analyze-title';
+      title.textContent = ui('progressPhotosAnalyzeAiTitle');
+      wrap.append(title);
+
+      const formatted = formatAnalyzeAiText(state.text);
+      if (formatted.type === 'list') {
+        const list = document.createElement('ul');
+        list.className = 'progress-photos-analyze-list';
+        for (const item of formatted.items) {
+          const li = document.createElement('li');
+          li.textContent = item;
+          list.append(li);
+        }
+        wrap.append(list);
+      } else {
+        const body = document.createElement('div');
+        body.className = 'progress-photos-analyze-body';
+        for (const paragraph of formatted.items) {
+          const p = document.createElement('p');
+          p.textContent = paragraph;
+          body.append(p);
+        }
+        wrap.append(body);
+      }
+    }
+
+    inner.append(wrap);
+    slot.append(inner);
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        slot.classList.add('is-open');
+      });
+    });
+
+    return slot;
   }
 
   /**
@@ -826,6 +939,50 @@ function formatWeightDelta(fromWeight, toWeight) {
   const rounded = Math.round(delta * 10) / 10;
   const sign = rounded > 0 ? '+' : '';
   return `${sign}${rounded} kg`;
+}
+
+/**
+ * Normalize AI analysis text for readable UI (paragraphs or bullets).
+ * @returns {{ type: 'list' | 'paragraphs', items: string[] }}
+ */
+function formatAnalyzeAiText(raw) {
+  const text = String(raw || '').trim();
+  if (!text) return { type: 'paragraphs', items: [] };
+
+  const paragraphs = text
+    .split(/\n\s*\n/)
+    .map(part => part.trim())
+    .filter(Boolean);
+
+  if (paragraphs.length > 1) {
+    return { type: 'paragraphs', items: paragraphs };
+  }
+
+  const lines = text
+    .split(/\n/)
+    .map(line => line.trim())
+    .filter(Boolean);
+
+  if (lines.length > 1) {
+    const items = lines.map(line =>
+      line.replace(/^[-•*]\s+/, '').replace(/^\d+[.)]\s+/, ''),
+    );
+    const mostlyShort = items.filter(item => item.length <= 180).length >= items.length * 0.6;
+    return mostlyShort
+      ? { type: 'list', items }
+      : { type: 'paragraphs', items };
+  }
+
+  const sentences = text
+    .split(/(?<=[.!?…])\s+(?=[A-ZÁÉÍÓÚÑ¿¡0-9])/)
+    .map(part => part.trim())
+    .filter(Boolean);
+
+  if (sentences.length >= 3) {
+    return { type: 'list', items: sentences };
+  }
+
+  return { type: 'paragraphs', items: [text] };
 }
 
 function compareSideIconSvg(side) {

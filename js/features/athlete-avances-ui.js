@@ -218,6 +218,12 @@ function clearPhotoInputs() {
   updatePhotoPreview('back');
 }
 
+function clearFormInputs() {
+  clearPhotoInputs();
+  if (weightInput) weightInput.value = '';
+  syncSaveEnabled();
+}
+
 function hasPhotoSelected() {
   return Boolean(frontInput?.files?.[0] || backInput?.files?.[0]);
 }
@@ -277,7 +283,7 @@ async function onSave() {
 
   try {
     await uploadProgressPhotos({ weightKg, frontFile, backFile });
-    clearPhotoInputs();
+    clearFormInputs();
     setFormStatus(ui('athleteAvancesSaveOk'));
     await refreshUser().catch(() => {});
     resetHistoryCache();

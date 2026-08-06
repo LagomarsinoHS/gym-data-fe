@@ -4,8 +4,8 @@
  * Opened from Mis alumnos / Avances via openProgressPhotos(athleteId).
  * Data: GET /users/:userId/progress-photos (single fetch; images lazy-load).
  */
-import { getProgressPhotos } from '../api/users.js';
-import { ui } from '../utils/labels.js';
+import { analyzeProgressPhotos, getProgressPhotos } from '../api/users.js';
+import { getLang, ui } from '../utils/labels.js';
 import {
   athleteDisplayName,
   findAthlete,
@@ -20,12 +20,17 @@ import {
   closeProgressPhotoLightbox,
   initProgressPhotoLightbox,
 } from './progress-photo-lightbox.js';
+import { canAccessProgressAiAnalysis } from './session-ui.js';
 
 /** @type {{ years: Array<{ year: number, months: any[] }>, currentWeightKg?: number | null } | null} */
 let photosPayload = null;
 let loadSeq = 0;
 let loading = false;
 let loadError = null;
+
+/** @type {{ loading: boolean, text: string | null, error: string | null }} */
+let analyzeAiState = { loading: false, text: null, error: null };
+let analyzeSeq = 0;
 
 let backBtn;
 let compareBar;
@@ -39,6 +44,13 @@ let resultsEl;
 
 const history = createProgressHistoryRenderer({
   getPerson: () => findAthlete(store.progressAthleteId),
+  analyzeWithAi: {
+    canAccess: () => canAccessProgressAiAnalysis(),
+    getState: () => analyzeAiState,
+    onAnalyze: yearMonths => {
+      void runAnalyzeWithAi(yearMonths);
+    },
+  },
 });
 
 export function initProgressPhotosUi() {
@@ -61,6 +73,7 @@ export function initProgressPhotosUi() {
     store.progressAthleteSnapshot = null;
     store.progressReturnView = 'students';
     history.resetCompareState();
+    clearAnalyzeAiState();
     photosPayload = null;
     loadError = null;
     store.navigateTo(returnTo);
@@ -68,17 +81,20 @@ export function initProgressPhotosUi() {
 
   compareBtn?.addEventListener('click', () => {
     if (history.getViewMode() === 'timeline') {
+      clearAnalyzeAiState();
       history.enterPickMode();
       renderProgressPhotosBody();
       return;
     }
     if (history.getViewMode() === 'pick') {
+      clearAnalyzeAiState();
       history.exitToTimeline();
     }
   });
 
   compareConfirmBtn?.addEventListener('click', () => {
     if (!history.enterCompareMode()) return;
+    clearAnalyzeAiState();
     renderProgressPhotosBody();
   });
 }
@@ -92,6 +108,7 @@ export function openProgressPhotos(athleteId, opts = {}) {
   store.progressAthleteSnapshot = opts.athlete || findAthlete(id);
   photosPayload = null;
   loadError = null;
+  clearAnalyzeAiState();
   history.resetCompareState();
   closeProgressPhotoLightbox();
   store.navigateTo('progress-photos');
@@ -120,6 +137,47 @@ export function syncProgressPhotosLabels() {
     }
     el.textContent = ui(el.dataset.ui);
   });
+}
+
+function clearAnalyzeAiState() {
+  analyzeSeq += 1;
+  analyzeAiState = { loading: false, text: null, error: null };
+}
+
+async function runAnalyzeWithAi(yearMonths) {
+  const athleteId = store.progressAthleteId;
+  if (!athleteId || !canAccessProgressAiAnalysis()) return;
+  if (!Array.isArray(yearMonths) || yearMonths.length !== 2) return;
+
+  const seq = ++analyzeSeq;
+  analyzeAiState = { loading: true, text: null, error: null };
+  renderProgressPhotosBody();
+
+  try {
+    const res = await analyzeProgressPhotos(athleteId, {
+      yearMonths,
+      locale: getLang() === 'en' ? 'en' : 'es',
+    });
+    if (seq !== analyzeSeq) return;
+    analyzeAiState = {
+      loading: false,
+      text: String(res?.analysis || '').trim() || null,
+      error: String(res?.analysis || '').trim()
+        ? null
+        : ui('progressPhotosAnalyzeAiFail'),
+    };
+  } catch (err) {
+    if (seq !== analyzeSeq) return;
+    analyzeAiState = {
+      loading: false,
+      text: null,
+      error:
+        (typeof err?.message === 'string' && err.message.trim()) ||
+        ui('progressPhotosAnalyzeAiFail'),
+    };
+  }
+
+  renderProgressPhotosBody();
 }
 
 function updateAthleteCard() {

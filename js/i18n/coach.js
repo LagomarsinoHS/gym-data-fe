@@ -127,6 +127,11 @@ export const coach = {
     progressPhotosCompareWeightChange: 'Weight change',
     progressPhotosComparePrev: 'Previous',
     progressPhotosCompareNext: 'Next',
+    progressPhotosAnalyzeAi: 'Analyze with AI',
+    progressPhotosAnalyzeAiLocked: 'Available on Growth or Pro — upgrade to unlock',
+    progressPhotosAnalyzeAiLoading: 'Analyzing with AI…',
+    progressPhotosAnalyzeAiFail: 'Could not analyze progress photos.',
+    progressPhotosAnalyzeAiTitle: 'AI analysis',
   },
   es: {
     navGroupCoach: 'Coach',
@@ -255,5 +260,10 @@ export const coach = {
     progressPhotosCompareWeightChange: 'Cambio de peso',
     progressPhotosComparePrev: 'Anterior',
     progressPhotosCompareNext: 'Siguiente',
+    progressPhotosAnalyzeAi: 'Analizar con IA',
+    progressPhotosAnalyzeAiLocked: 'Disponible en Growth o Pro — mejora tu plan para desbloquearlo',
+    progressPhotosAnalyzeAiLoading: 'Analizando con IA…',
+    progressPhotosAnalyzeAiFail: 'No se pudo analizar las fotos de progreso.',
+    progressPhotosAnalyzeAiTitle: 'Análisis con IA',
   },
 };

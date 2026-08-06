@@ -92,6 +92,21 @@ export function isPremium(u = user) {
   return u?.subscription?.plan === 'premium';
 }
 
+/** True when subscription.plan is a paid tier (not free). */
+export function isPaidPlan(u = user) {
+  const plan = String(u?.subscription?.plan || 'free');
+  return plan === 'premium' || plan === 'growth' || plan === 'pro';
+}
+
+/**
+ * Coach access to “Analizar con IA” on athlete progress photos.
+ * Gate: coach + subscription.plan !== 'free'.
+ */
+export function canAccessProgressAiAnalysis(u = user) {
+  if (!u || !isCoach(u)) return false;
+  return isPaidPlan(u);
+}
+
 /** Coach can open/send athlete invites (coachQuota.canInvite from GET /users/me). */
 export function canInviteAthlete(u = user) {
   if (!u || !isCoach(u)) return false;
