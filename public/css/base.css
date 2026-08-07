@@ -23,6 +23,7 @@ html[data-theme="light"] {
   --radius-xl:      18px;
   --code-bg:        #1a1a1a;
   --mono:           'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  --plan-paid:      #b45309;
 }
 
 html[data-theme="dark"] {
@@ -39,6 +40,7 @@ html[data-theme="dark"] {
   --text-secondary: #b7ccee;
   --text-tertiary:  #93a9cc;
   --code-bg:        #060b16;
+  --plan-paid:      #fbbf24;
 }
 
 /* Solo mientras se togglea el tema (no en cada hover) */

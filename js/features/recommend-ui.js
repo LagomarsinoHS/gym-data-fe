@@ -1,14 +1,17 @@
 /**
- * Recommend training: modal (zone + equipment) + result cards.
+ * Recommend training: inline composer (zone + equipment) + result cards.
  * Labels from GET /exercises/labels via getFilterLabels().
- * Markup: #recommend-overlay, #recommend-open-btn, #recommend-grid
+ * Markup: #recommend-view, #recommend-composer, #recommend-grid, #recommend-note
+ * Plan shape: { exercises: [{ id, name, …, sets, reps, rest }], note? }
  */
 import { fillCardMedia } from '../utils/cards.js';
 import { label, titleCase, ui } from '../utils/labels.js';
+import { prescriptionLines } from '../utils/prescription.js';
 
 const EQUIP_MAX = 2;
 
-let overlay;
+let openBtn;
+let composer;
 let form;
 let zoneSelect;
 let equipChips;
@@ -19,6 +22,9 @@ let onSubmitPlan = async () => {};
 let selectedEquipment = new Set();
 /** @type {object|null} last successful recommend response */
 let lastPlan = null;
+let loading = false;
+let noteStreamTimer = null;
+let noteStreamToken = 0;
 
 export function initRecommendUi({
   getFilterLabels: getLabelsFn,
@@ -27,28 +33,24 @@ export function initRecommendUi({
   if (getLabelsFn) getFilterLabels = getLabelsFn;
   if (onSubmitFn) onSubmitPlan = onSubmitFn;
 
-  overlay = document.getElementById('recommend-overlay');
+  openBtn = document.getElementById('recommend-open-btn');
+  composer = document.getElementById('recommend-composer');
   form = document.getElementById('recommend-form');
   zoneSelect = document.getElementById('recommend-zone');
   equipChips = document.getElementById('recommend-equip-chips');
   submitBtn = document.getElementById('recommend-submit');
   statusEl = document.getElementById('recommend-status');
-  if (!overlay || !form) return;
+  if (!composer || !form) return;
 
-  document.getElementById('recommend-open-btn')?.addEventListener('click', openRecommendModal);
-  document.getElementById('recommend-again-btn')?.addEventListener('click', openRecommendModal);
-  document.getElementById('recommend-modal-close')?.addEventListener('click', closeRecommendModal);
-  overlay.addEventListener('click', e => {
-    if (e.target === overlay) closeRecommendModal();
-  });
+  openBtn?.addEventListener('click', toggleRecommendComposer);
 
   zoneSelect?.addEventListener('change', syncSubmitEnabled);
   form.addEventListener('submit', onSubmit);
 
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && overlay.classList.contains('open')) {
+    if (e.key === 'Escape' && isComposerOpen() && !loading) {
       e.stopImmediatePropagation();
-      closeRecommendModal();
+      closeRecommendComposer();
     }
   });
 
@@ -56,44 +58,65 @@ export function initRecommendUi({
   syncRecommendChrome();
 }
 
-export function openRecommendModal() {
-  if (!overlay) return;
+export function openRecommendComposer() {
+  if (!composer || loading) return;
   selectedEquipment = new Set();
   setStatus('');
   populateOptions();
   syncSubmitEnabled();
-  overlay.classList.add('open');
-  zoneSelect?.focus();
+  composer.classList.add('is-open');
+  composer.setAttribute('aria-hidden', 'false');
+  composer.inert = false;
+  openBtn?.setAttribute('aria-expanded', 'true');
+  requestAnimationFrame(() => {
+    zoneSelect?.focus();
+    composer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
 }
 
-export function closeRecommendModal() {
-  overlay?.classList.remove('open');
+export function closeRecommendComposer() {
+  if (!composer || loading) return;
+  composer.classList.remove('is-open');
+  composer.setAttribute('aria-hidden', 'true');
+  composer.inert = true;
+  openBtn?.setAttribute('aria-expanded', 'false');
   setStatus('');
+}
+
+function toggleRecommendComposer() {
+  if (isComposerOpen()) closeRecommendComposer();
+  else openRecommendComposer();
+}
+
+function isComposerOpen() {
+  return Boolean(composer?.classList.contains('is-open'));
 }
 
 /** Clears in-memory recommend results (e.g. on logout). */
 export function clearRecommendPlan() {
   lastPlan = null;
-  closeRecommendModal();
+  setLoading(false);
+  closeRecommendComposer();
   const grid = document.getElementById('recommend-grid');
   if (grid) grid.innerHTML = '';
+  renderRecommendNote('');
   syncRecommendChrome();
 }
 
 export function syncRecommendLabels() {
-  document.querySelectorAll('#recommend-view [data-ui], #recommend-overlay [data-ui]')
-    .forEach(el => {
-      el.textContent = ui(el.dataset.ui);
-    });
+  document.querySelectorAll('#recommend-view [data-ui]').forEach(el => {
+    el.textContent = ui(el.dataset.ui);
+  });
 
-  if (overlay?.classList.contains('open')) populateOptions();
+  if (loading) syncSubmitLabel();
+  if (isComposerOpen()) populateOptions();
   if (lastPlan) renderRecommendPlan(lastPlan);
   else syncRecommendChrome();
 }
 
 /**
- * Paint recommend results. Expects { exercises: [{ role?, exercise }] }
- * or items with exercise fields inlined + role.
+ * Paint recommend results.
+ * Expects { exercises: [{ id, name, sets, reps, rest }], note }.
  */
 export function renderRecommendPlan(plan) {
   const grid = document.getElementById('recommend-grid');
@@ -102,6 +125,7 @@ export function renderRecommendPlan(plan) {
   lastPlan = plan;
   const items = normalizeRecommendItems(plan);
   grid.innerHTML = '';
+  renderRecommendNote(plan?.note);
 
   if (!items.length) {
     const empty = document.createElement('div');
@@ -123,8 +147,71 @@ function syncRecommendChrome() {
   const results = document.getElementById('recommend-results');
   const hasPlan = Boolean(lastPlan) && normalizeRecommendItems(lastPlan).length > 0;
 
-  if (empty) empty.hidden = hasPlan;
+  if (empty) empty.hidden = false;
   if (results) results.hidden = !hasPlan;
+}
+
+function renderRecommendNote(note) {
+  const section = document.getElementById('recommend-note');
+  const body = document.getElementById('recommend-note-body');
+  if (!section || !body) return;
+
+  stopNoteStream();
+
+  const text = String(note || '').trim();
+  if (!text) {
+    section.hidden = true;
+    body.value = '';
+    return;
+  }
+
+  const title = section.querySelector('[data-ui="recommendNoteTitle"]');
+  if (title) title.textContent = ui('recommendNoteTitle');
+  section.hidden = false;
+  body.value = '';
+  body.scrollTop = 0;
+
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    body.value = text;
+    return;
+  }
+
+  streamNoteChunks(body, text);
+}
+
+function stopNoteStream() {
+  if (noteStreamTimer != null) {
+    clearTimeout(noteStreamTimer);
+    noteStreamTimer = null;
+  }
+  noteStreamToken += 1;
+}
+
+/** Reveal note in short word chunks (stream-style). */
+function streamNoteChunks(body, text) {
+  const words = text.match(/\S+\s*/g) || [text];
+  const chunkSize = 2;
+  const chunks = [];
+  for (let i = 0; i < words.length; i += chunkSize) {
+    chunks.push(words.slice(i, i + chunkSize).join(''));
+  }
+
+  const token = noteStreamToken;
+  let index = 0;
+
+  const tick = () => {
+    if (token !== noteStreamToken) return;
+    if (index >= chunks.length) {
+      noteStreamTimer = null;
+      return;
+    }
+    body.value += chunks[index];
+    index += 1;
+    body.scrollTop = body.scrollHeight;
+    noteStreamTimer = setTimeout(tick, 90);
+  };
+
+  tick();
 }
 
 function normalizeRecommendItems(plan) {
@@ -133,11 +220,23 @@ function normalizeRecommendItems(plan) {
     .map(item => {
       if (!item) return null;
       if (item.exercise) {
-        return { role: item.role, exercise: item.exercise };
+        return {
+          role: item.role,
+          exercise: item.exercise,
+          sets: item.sets ?? item.exercise.sets,
+          reps: item.reps ?? item.exercise.reps,
+          rest: item.rest ?? item.exercise.rest,
+        };
       }
       if (item.id || item.name) {
-        const { role, ...exercise } = item;
-        return { role, exercise };
+        const { role, sets, reps, rest, ...exercise } = item;
+        return {
+          role,
+          exercise,
+          sets: sets ?? exercise.sets,
+          reps: reps ?? exercise.reps,
+          rest: rest ?? exercise.rest,
+        };
       }
       return null;
     })
@@ -148,6 +247,7 @@ function createRecommendCard(item) {
   const ex = item.exercise;
   const id = String(ex.id || '');
   const role = item.role ? titleCase(item.role) : '';
+  const lines = prescriptionLines(item);
 
   const article = document.createElement('article');
   article.className = 'training-card recommend-card';
@@ -164,6 +264,9 @@ function createRecommendCard(item) {
         <span class="tag tag-equip"></span>
       </div>
       <p class="recommend-card-role" hidden></p>
+      <div class="training-rx-slot">
+        <ul class="training-rx" hidden></ul>
+      </div>
     </div>`;
 
   fillCardMedia(article, ex, { nameSelector: '.training-card-name' });
@@ -172,6 +275,22 @@ function createRecommendCard(item) {
     const roleEl = article.querySelector('.recommend-card-role');
     roleEl.hidden = false;
     roleEl.textContent = role;
+  }
+
+  if (lines.length) {
+    const rx = article.querySelector('.training-rx');
+    rx.hidden = false;
+    lines.forEach(({ ico, text }) => {
+      const li = document.createElement('li');
+      const icoEl = document.createElement('span');
+      icoEl.className = 'training-rx-ico';
+      icoEl.setAttribute('aria-hidden', 'true');
+      icoEl.textContent = ico;
+      const textEl = document.createElement('span');
+      textEl.textContent = text;
+      li.append(icoEl, textEl);
+      rx.appendChild(li);
+    });
   }
 
   return article;
@@ -237,10 +356,30 @@ function toggleEquipment(value, btn) {
 }
 
 function syncSubmitEnabled() {
-  if (!submitBtn) return;
+  if (!submitBtn || loading) return;
   const zoneOk = Boolean(zoneSelect?.value);
   const equipOk = selectedEquipment.size >= 1 && selectedEquipment.size <= EQUIP_MAX;
   submitBtn.disabled = !(zoneOk && equipOk);
+}
+
+function syncSubmitLabel() {
+  const labelEl = submitBtn?.querySelector('.recommend-submit-label');
+  if (!labelEl) return;
+  labelEl.textContent = ui(loading ? 'recommendGenerating' : 'recommendSubmit');
+}
+
+function setLoading(show) {
+  loading = show;
+  form?.classList.toggle('is-loading', show);
+  submitBtn?.classList.toggle('is-loading', show);
+  if (openBtn) openBtn.disabled = show;
+  if (zoneSelect) zoneSelect.disabled = show;
+  syncSubmitLabel();
+  if (show) {
+    if (submitBtn) submitBtn.disabled = true;
+  } else {
+    syncSubmitEnabled();
+  }
 }
 
 function setStatus(message, kind = '') {
@@ -259,6 +398,7 @@ function setStatus(message, kind = '') {
 
 async function onSubmit(e) {
   e.preventDefault();
+  if (loading) return;
   const zone = zoneSelect?.value;
   const equipment = [...selectedEquipment];
   if (!zone || equipment.length < 1 || equipment.length > EQUIP_MAX) {
@@ -266,14 +406,15 @@ async function onSubmit(e) {
     return;
   }
 
-  submitBtn.disabled = true;
   setStatus('');
+  setLoading(true);
   try {
     await onSubmitPlan({ zone, equipment });
-    closeRecommendModal();
+    setLoading(false);
+    closeRecommendComposer();
   } catch (err) {
     console.error(err);
+    setLoading(false);
     setStatus(err.message || ui('recommendFail'), 'error');
-    syncSubmitEnabled();
   }
 }

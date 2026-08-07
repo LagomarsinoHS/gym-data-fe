@@ -62,13 +62,17 @@ coachTrainingProgram: {
 
 ## Cuenta — perfil / configuración
 
-Menú de usuario en sidebar ya existe (iniciales + nombre corto + dropdown). Ítems deshabilitados por ahora.
-Se cablean al clickear **Mi perfil** / **Configuración** en ese menú.
+Menú de usuario en sidebar (iniciales o foto + nombre corto + dropdown).
+**Mi perfil** habilitado. **Configuración** sigue deshabilitada (tooltip “Próximamente”).
 
-- [ ] **Mi perfil** — vista/edición de datos (nombre, email, …); habilitar ítem del menú
+- [x] **Mi perfil** — lectura (`/users/me`) + acciones “Pronto”; ítem de menú habilitado
+- [x] **Mi perfil → editar perfil** — sección inline (nombre/apellido/contraseña) → `PATCH /users/me`; sin modal; cierra al guardar OK
+- [x] **Mi perfil → darse de baja** — modal pide email → `DELETE /users/me` → cierra sesión
+- [x] **Mi perfil → foto de perfil** — click en avatar → Ver foto / Subir foto (`POST /users/me/profile-photo`); Cloudinary `gym-app/profiles/{userId}/profilePhoto`
+- [ ] **Mi perfil → acciones** — cablear: notificaciones, privacidad, vínculo coach, billing, export, etc.
 - [ ] **Configuración** — preferencias (tema/idioma sync a user, notificaciones, …); habilitar ítem del menú
-- [ ] **Configuración → darse de baja** — opción en Configuración (no en Mi perfil) que llama al soft-delete BE (`deletedAt`); confirmar + cerrar sesión
-- [ ] (BE) Endpoints de update de perfil / preferencias / deactivate si hacen falta más allá de `GET /users/me`
+- [x] ~~**Configuración → darse de baja**~~ — hecho en Mi perfil (`DELETE /users/me`)
+- [x] ~~(BE) update perfil / deactivate~~ — `PATCH /users/me` + `DELETE /users/me` + `POST /users/me/profile-photo`
 
 ---
 
@@ -87,29 +91,32 @@ Acuerdo con BE: 2 fotos/mes (`front` + `back`) + `weightKg`, historial por `year
 
 ### Flujo UI — coach
 - Nav **Avances** (lista de alumnos) o botón Avances en Mis alumnos → vista `progress-photos`
-- Filtros: año (2020→hoy UTC) + mes (1–12); fotos solo cuando ambos están elegidos
-- Card alumno: nombre, correo, peso actual, peso del mes
-- Lightbox + **Descargar** → `FirstName_LastName_Front.jpg` (nombre del alumno)
+- Timeline cronológico + **Comparar** (≥2 meses): 2 → lado a lado (tabs Frente/Espalda); 3+ → carruseles
+- Card alumno: nombre, correo, peso actual (chip compacto en modo comparar)
+- Lightbox + flechas en galería de comparar + **Descargar** → `FirstName_LastName_Front.jpg`
 
 ### Flujo UI — atleta
 - Nav **Avances** bajo Mi plan → vista `athlete-avances`
 - Formulario mes actual: frente / espalda (picker `+` + preview), peso; Guardar deshabilitado hasta ≥1 foto + peso válido
 - `POST /users/me/progress-photos` multipart (`weightKg` + `front`/`back`); reemplaza el mes UTC actual
-- Historial debajo: mismos filtros año/mes; panel con pill **Peso: X kg** (si hay) + fotos
+- Historial: mismo timeline + comparar que coach (`progress-history-ui`)
 - Lightbox + descargar → `FirstName_LastName_Back.jpg` (el propio atleta)
 
 ### Frontend checklist
-- [x] Historial año/mes/fotos (coach + atleta)
+- [x] Timeline historial (coach + atleta)
+- [x] Comparar 2 (lado a lado) y 3+ (carrusel) — coach + atleta
 - [x] Vista coach **Avances** + `progress-photos` (Mis alumnos / nav Avances)
 - [x] Vista atleta upload + historial (`athlete-avances-ui`)
+- [x] Módulo compartido `progress-history-ui.js`
 - [x] `GET /users/:userId/progress-photos` + `uploadProgressPhotos` (multipart)
 - [x] Labels de mes localizados via Intl
 - [x] Empty: Sin datos / mes incompleto (solo un lado)
 - [x] Preview al elegir archivo; Guardar gated; hint “mes actual”
-- [x] Lightbox compartido + descarga `Nombre_Apellido_Front|Back.ext`
+- [x] Lightbox compartido + descarga + nav de galería en comparar
 - [ ] (Opc.) UI atleta/coach para `DELETE /users/me/progress-photos` (API ya existe; hoy se reemplaza al volver a guardar)
+- [ ] **Analizar progreso** (IA): en la comparación de **2 meses**, botón “Analizar progreso” que envía las 2 fotos (frente y/o espalda del par) a un endpoint/IA y muestra un resumen de diferencias visuales (grasa, postura, tamaño, etc.). Requiere diseño BE (quién llama al modelo, auth, costos) + UI de loading/resultado en FE.
 
-> BE: POST / DELETE / GET + weight listos. FE: upload + vistas coach/atleta listas; DELETE sin UI.
+> BE: POST / DELETE / GET + weight listos. FE: upload + timeline/comparar coach/atleta listos; DELETE sin UI; Analizar progreso pendiente.
 ---
 
 ## Plataforma / nice-to-have

@@ -1,10 +1,37 @@
-import { get, post, postBinary, postMultipart, put } from './request.js';
+import { get, post, postBinary, postMultipart, put, patch, del } from './request.js';
 
 const USERS = '/users';
 
 /** GET /users/me — requires Bearer token */
 export function getMe() {
   return get(`${USERS}/me`, {}, { auth: true });
+}
+
+/**
+ * PATCH /users/me
+ * Partial update: firstName and/or lastName and/or password change.
+ */
+export function updateProfile(body) {
+  return patch(`${USERS}/me`, body, { auth: true });
+}
+
+/**
+ * DELETE /users/me
+ * Soft-delete the authenticated account. Body: { email }
+ * Email must belong to the JWT user.
+ */
+export function deleteAccount(email) {
+  return del(`${USERS}/me`, { email }, { auth: true });
+}
+
+/**
+ * POST /users/me/profile-photo (multipart)
+ * Field: profilePhoto (jpeg/png/webp). Returns MeResponseDto.
+ */
+export function uploadProfilePhoto(file) {
+  const form = new FormData();
+  form.append('profilePhoto', file);
+  return postMultipart(`${USERS}/me/profile-photo`, form, { auth: true });
 }
 
 /**
@@ -120,12 +147,30 @@ export function getProgressPhotos(userId, { year } = {}) {
 }
 
 /**
+ * POST /users/:userId/progress-photos/analyze
+ * Coach + paid plan. Body: { yearMonths: [YYYY-MM, YYYY-MM], locale? }
+ * Returns { sections: Array<{ title, blocks }> }
+ */
+export function analyzeProgressPhotos(userId, { yearMonths, locale } = {}) {
+  return post(
+    `${USERS}/${userId}/progress-photos/analyze`,
+    {
+      yearMonths,
+      locale: locale || undefined,
+    },
+    { auth: true },
+  );
+}
+
+/**
  * POST /users/me/progress-photos (multipart)
  * Fields: weightKg (required) + front? and/or back? image files.
+ * Optional yearMonth (YYYY-MM); omitted → current month on the API.
  */
-export function uploadProgressPhotos({ weightKg, frontFile, backFile }) {
+export function uploadProgressPhotos({ weightKg, frontFile, backFile, yearMonth } = {}) {
   const form = new FormData();
   form.append('weightKg', String(weightKg));
+  if (yearMonth) form.append('yearMonth', String(yearMonth));
   if (frontFile) form.append('front', frontFile);
   if (backFile) form.append('back', backFile);
   return postMultipart(`${USERS}/me/progress-photos`, form, { auth: true });

@@ -21,6 +21,7 @@ import {
   initAthleteAvancesUi,
   syncAthleteAvancesLabels,
 } from './features/athlete-avances-ui.js';
+import { initProfileUi, syncProfileView } from './features/profile-ui.js';
 import {
   initCoachPanelUi,
   refreshCoachPanel,
@@ -55,7 +56,7 @@ import { EQUIP_INITIAL } from './constants.js';
 import { debounce, dedupeById } from './utils/helpers.js';
 import { assetUrl } from './utils/assets.js';
 import { fillCardMedia, wireCardGrid } from './utils/cards.js';
-import { setLang, ui, label, exerciseName } from './utils/labels.js';
+import { setLang, ui, label, exerciseName, getLang } from './utils/labels.js';
 import { getStoredLang, setStoredLang } from './utils/prefs.js';
 import { cleanReps, formatReps } from './utils/reps.js';
 import { exerciseShareUrl, readExerciseFromUrl, syncExerciseInUrl } from './utils/url.js';
@@ -141,6 +142,9 @@ async function init() {
       else if (view === 'students') {
         void refreshUser().finally(() => void loadCoachAthletes());
       }
+      else if (view === 'profile') {
+        void refreshUser().catch(() => {});
+      }
       else if (view === 'catalog') reloadExercises();
     },
   });
@@ -162,12 +166,17 @@ async function init() {
   initAvancesUi();
   initProgressPhotosUi();
   initAthleteAvancesUi({ getUser, refreshUser });
+  initProfileUi();
   initCoachPanelUi();
   initCoachInviteUi();
   initRecommendUi({
     getFilterLabels: () => state.labels,
     onSubmit: async ({ zone, equipment }) => {
-      const plan = await getRecommendedExercises({ zone, equipment });
+      const plan = await getRecommendedExercises({
+        zone,
+        equipment,
+        locale: getLang(),
+      });
       for (const item of plan?.exercises || []) {
         const ex = item.exercise || item;
         if (ex?.id) upsertExercise(ex);
@@ -327,6 +336,7 @@ function syncChromeLabels() {
   syncStudentsLabels();
   syncAvancesLabels();
   syncAthleteAvancesLabels();
+  syncProfileView();
   syncCoachPanelLabels();
   syncCoachInviteBanner();
 }

@@ -15,12 +15,13 @@
     · #theme-toggle-btn                            → js/features/theme-ui.js
     · theme early (head, sin defer)                → js/theme-boot.js
     · #nav-drawer-toggle / #app-sidebar (móvil)    → js/features/nav-drawer.js
-    · #sidebar-auth / vistas catalog|training|recommend|coach-plan|coach-panel|coach-templates|students|avances|athlete-avances|session-editor|progress-photos → js/features/session-ui.js
-    · #recommend-overlay                               → js/features/recommend-ui.js
+    · #sidebar-auth / vistas catalog|training|recommend|coach-plan|coach-panel|coach-templates|students|avances|athlete-avances|session-editor|progress-photos|profile → js/features/session-ui.js
+    · #recommend-view / #recommend-composer         → js/features/recommend-ui.js
     · #students-view / overlays → js/features/students-ui.js · download → students-download-ui.js
     · #avances-view → js/features/avances-ui.js
     · #athlete-avances-view → js/features/athlete-avances-ui.js
     · #progress-photos-view → js/features/progress-photos-ui.js
+    · #profile-view → js/features/profile-ui.js
     · #coach-panel-view → js/features/coach-panel-ui.js
     · #session-editor-view / session overlays → js/features/coach-sessions-ui.js
     · #coach-invite-banner                             → js/features/coach-invite-ui.js
@@ -88,7 +89,7 @@
             </span>
           </button>
           <div class="sidebar-user-menu" id="sidebar-user-menu" role="menu" hidden>
-            <button type="button" class="sidebar-user-menu-item" role="menuitem" id="sidebar-user-profile" data-action="profile" disabled>
+            <button type="button" class="sidebar-user-menu-item" role="menuitem" id="sidebar-user-profile" data-action="profile">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="8" cy="5.5" r="2.5"/>
                 <path d="M3.5 13.5c.7-2.2 2.3-3.3 4.5-3.3s3.8 1.1 4.5 3.3"/>
@@ -296,7 +297,7 @@
       <div class="athlete-avances">
         <header class="athlete-avances-header">
           <h2 class="athlete-avances-title" data-ui="athleteAvances">Avances</h2>
-          <p class="athlete-avances-month-hint" data-ui="athleteAvancesMonthHint">
+          <p class="athlete-avances-month-hint" id="athlete-avances-month-hint" data-ui="athleteAvancesMonthHint">
             Se guarda como avance del mes actual.
           </p>
           <p class="athlete-avances-current-weight" id="athlete-avances-current-weight" hidden>
@@ -308,54 +309,203 @@
         <div class="athlete-avances-body">
           <div class="athlete-avances-body-inner">
             <section class="athlete-avances-upload">
-              <form class="athlete-avances-form" id="athlete-avances-form">
-                <div class="athlete-avances-form-grid">
-                  <label class="athlete-avances-field athlete-avances-photo-field">
-                    <span class="athlete-avances-field-label" data-ui="progressPhotosFront">Frente</span>
-                    <span class="athlete-avances-photo-slot">
-                      <input type="file" id="athlete-avances-front" name="front" accept="image/jpeg,image/png,image/webp" />
-                      <span class="athlete-avances-photo-plus" aria-hidden="true">+</span>
-                      <img class="athlete-avances-photo-preview" id="athlete-avances-front-preview" alt="" hidden />
-                    </span>
-                  </label>
-                  <label class="athlete-avances-field athlete-avances-photo-field">
-                    <span class="athlete-avances-field-label" data-ui="progressPhotosBackSide">Espalda</span>
-                    <span class="athlete-avances-photo-slot">
-                      <input type="file" id="athlete-avances-back" name="back" accept="image/jpeg,image/png,image/webp" />
-                      <span class="athlete-avances-photo-plus" aria-hidden="true">+</span>
-                      <img class="athlete-avances-photo-preview" id="athlete-avances-back-preview" alt="" hidden />
-                    </span>
-                  </label>
-                  <label class="athlete-avances-field athlete-avances-field-weight">
-                    <span class="athlete-avances-field-label" data-ui="athleteAvancesWeight">Peso (kg)</span>
-                    <input
-                      type="number"
-                      id="athlete-avances-weight"
-                      name="weightKg"
-                      inputmode="decimal"
-                      step="0.1"
-                      min="20"
-                      max="400"
-                      required
+              <div
+                class="athlete-avances-toast"
+                id="athlete-avances-toast"
+                hidden
+                role="status"
+                aria-live="polite"
+              >
+                <span class="athlete-avances-toast-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.75" />
+                    <path
+                      d="M8 12.5l2.5 2.5L16.5 9"
+                      stroke="currentColor"
+                      stroke-width="1.75"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
                     />
-                  </label>
+                  </svg>
+                </span>
+                <div class="athlete-avances-toast-copy">
+                  <p class="athlete-avances-toast-title" id="athlete-avances-toast-title"></p>
+                  <p class="athlete-avances-toast-detail" id="athlete-avances-toast-detail"></p>
                 </div>
-                <div class="athlete-avances-form-actions">
-                  <button type="submit" class="recommend-cta" id="athlete-avances-save" disabled>
-                    <span data-ui="athleteAvancesSave">Guardar</span>
-                  </button>
-                  <p class="athlete-avances-form-status" id="athlete-avances-form-status" role="status" hidden></p>
+              </div>
+              <form class="athlete-avances-form" id="athlete-avances-form">
+                <div class="athlete-avances-pair">
+                  <p class="athlete-avances-pair-title" data-ui="athleteAvancesPairTitle">Tu avance</p>
+                  <div class="athlete-avances-pair-frame">
+                    <label class="athlete-avances-field athlete-avances-photo-field athlete-avances-photo-field--pair">
+                      <span class="athlete-avances-photo-slot">
+                        <input type="file" id="athlete-avances-front" name="front" accept="image/jpeg,image/png,image/webp" />
+                        <span class="athlete-avances-photo-plus" aria-hidden="true">+</span>
+                        <img class="athlete-avances-photo-preview" id="athlete-avances-front-preview" alt="" hidden />
+                        <span class="athlete-avances-photo-badge" data-ui="progressPhotosFront">Frente</span>
+                      </span>
+                    </label>
+                    <div class="athlete-avances-pair-divider" aria-hidden="true"></div>
+                    <label class="athlete-avances-field athlete-avances-photo-field athlete-avances-photo-field--pair">
+                      <span class="athlete-avances-photo-slot">
+                        <input type="file" id="athlete-avances-back" name="back" accept="image/jpeg,image/png,image/webp" />
+                        <span class="athlete-avances-photo-plus" aria-hidden="true">+</span>
+                        <img class="athlete-avances-photo-preview" id="athlete-avances-back-preview" alt="" hidden />
+                        <span class="athlete-avances-photo-badge" data-ui="progressPhotosBackSide">Espalda</span>
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="athlete-avances-form-footer">
+                  <div class="athlete-avances-weight-block">
+                    <label class="athlete-avances-field athlete-avances-field-weight">
+                      <span class="athlete-avances-field-label" data-ui="athleteAvancesWeight">Peso (kg)</span>
+                      <input
+                        type="number"
+                        id="athlete-avances-weight"
+                        name="weightKg"
+                        inputmode="decimal"
+                        step="0.1"
+                        min="20"
+                        max="400"
+                        required
+                      />
+                    </label>
+
+                    <div class="month-picker athlete-avances-month-caption" id="athlete-avances-month-picker-ui">
+                      <input type="hidden" id="athlete-avances-year-month" name="yearMonth" value="" />
+                      <button
+                        type="button"
+                        class="athlete-avances-month-caption-btn"
+                        id="athlete-avances-month-trigger"
+                        aria-haspopup="dialog"
+                        aria-expanded="false"
+                        aria-controls="athlete-avances-month-panel"
+                      >
+                        <span class="athlete-avances-month-caption-value" id="athlete-avances-month-trigger-label">Mes actual</span>
+                        <span class="athlete-avances-month-caption-sep" aria-hidden="true">·</span>
+                        <span class="athlete-avances-month-caption-action" data-ui="athleteAvancesChangeMonth">cambiar</span>
+                      </button>
+                      <div
+                        class="month-picker-panel"
+                        id="athlete-avances-month-panel"
+                        role="dialog"
+                        aria-label="Month"
+                        hidden
+                      >
+                        <div class="month-picker-year">
+                          <button type="button" class="month-picker-year-btn" id="athlete-avances-month-prev-year" aria-label="Previous year">‹</button>
+                          <span class="month-picker-year-label" id="athlete-avances-month-year-label"></span>
+                          <button type="button" class="month-picker-year-btn" id="athlete-avances-month-next-year" aria-label="Next year">›</button>
+                        </div>
+                        <div class="month-picker-grid" id="athlete-avances-month-grid"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="athlete-avances-form-actions">
+                    <button type="submit" class="recommend-cta" id="athlete-avances-save" disabled>
+                      <span data-ui="athleteAvancesSave">Guardar</span>
+                    </button>
+                    <p class="athlete-avances-form-status" id="athlete-avances-form-status" role="status" hidden></p>
+                  </div>
                 </div>
               </form>
             </section>
 
             <section class="athlete-avances-history" aria-labelledby="athlete-avances-history-title">
-              <h3 class="athlete-avances-history-title" id="athlete-avances-history-title" data-ui="athleteAvancesHistoryTitle">Historial</h3>
-              <div class="progress-photos-filters-slot" id="athlete-avances-filters"></div>
+              <div class="athlete-avances-history-header">
+                <h3 class="athlete-avances-history-title" id="athlete-avances-history-title" data-ui="athleteAvancesHistoryTitle">Historial</h3>
+                <div class="progress-photos-compare-bar" id="athlete-avances-compare-bar" hidden>
+                  <button type="button" class="recommend-cta progress-photos-compare-confirm-btn" id="athlete-avances-compare-confirm-btn" hidden disabled>
+                    <span data-ui="progressPhotosCompareView">Ver comparación</span>
+                  </button>
+                  <button type="button" class="recommend-again-btn progress-photos-compare-btn" id="athlete-avances-compare-btn">
+                    <span data-ui="progressPhotosCompare">Comparar</span>
+                  </button>
+                </div>
+              </div>
               <div class="progress-photos-results athlete-avances-results" id="athlete-avances-results"></div>
             </section>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div id="profile-view" class="profile-view" hidden>
+      <div class="profile">
+        <header class="profile-header">
+          <p class="profile-kicker" data-ui="profileIdentity">Identidad</p>
+          <h2 class="profile-title" data-ui="profileTitle">Mi perfil</h2>
+        </header>
+
+        <section class="profile-hero-row" id="profile-hero" aria-live="polite"></section>
+
+        <section class="profile-facts" id="profile-facts" aria-label="Account details"></section>
+
+        <section class="profile-edit" id="profile-edit-panel" hidden aria-labelledby="profile-edit-title">
+          <div class="profile-edit-head">
+            <h3 class="profile-edit-title" id="profile-edit-title" data-ui="profileEditTitle">Editar perfil</h3>
+            <p class="profile-edit-lead" data-ui="profileEditLead">
+              Cambia nombre, apellido y/ o contraseña. Guarda con al menos un cambio.
+            </p>
+          </div>
+          <form class="profile-edit-form" id="profile-edit-form">
+            <div class="profile-edit-grid">
+              <label class="profile-edit-field">
+                <span class="profile-edit-label" data-ui="profileEditFirstName">Nombre</span>
+                <input type="text" id="profile-edit-first-name" name="firstName" autocomplete="given-name" />
+              </label>
+              <label class="profile-edit-field">
+                <span class="profile-edit-label" data-ui="profileEditLastName">Apellido</span>
+                <input type="text" id="profile-edit-last-name" name="lastName" autocomplete="family-name" />
+              </label>
+            </div>
+            <div class="profile-edit-password">
+              <p class="profile-edit-subtitle" data-ui="profileEditPasswordTitle">Cambiar contraseña</p>
+              <div class="profile-edit-grid profile-edit-grid--password">
+                <label class="profile-edit-field" id="profile-edit-current-password-field">
+                  <span class="profile-edit-label" data-ui="profileEditCurrentPassword">Contraseña actual</span>
+                  <input type="password" id="profile-edit-current-password" name="currentPassword" autocomplete="current-password" />
+                </label>
+                <label class="profile-edit-field">
+                  <span class="profile-edit-label" data-ui="profileEditNewPassword">Nueva contraseña</span>
+                  <input type="password" id="profile-edit-new-password" name="newPassword" autocomplete="new-password" minlength="4" />
+                </label>
+                <label class="profile-edit-field">
+                  <span class="profile-edit-label" data-ui="profileEditConfirmPassword">Confirmar nueva</span>
+                  <input type="password" id="profile-edit-confirm-password" name="confirmNewPassword" autocomplete="new-password" minlength="4" />
+                </label>
+              </div>
+            </div>
+            <p class="profile-edit-status" id="profile-edit-status" hidden></p>
+            <div class="profile-edit-actions">
+              <button type="button" class="profile-edit-cancel" id="profile-edit-cancel" data-ui="profileEditCancel">Cancelar</button>
+              <button type="submit" class="profile-edit-save" id="profile-edit-save" disabled data-ui="profileEditSave">Guardar</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="profile-actions profile-actions--available" aria-labelledby="profile-available-title">
+          <div class="profile-actions-head">
+            <h3 class="profile-actions-title" id="profile-available-title" data-ui="profileAvailableTitle">Cuenta</h3>
+            <p class="profile-actions-lead" data-ui="profileAvailableLead">
+              Acciones disponibles para tu cuenta.
+            </p>
+          </div>
+          <div class="profile-actions-list" id="profile-available-list"></div>
+        </section>
+
+        <section class="profile-actions profile-actions--soon" aria-labelledby="profile-soon-title">
+          <div class="profile-actions-head">
+            <h3 class="profile-actions-title" id="profile-soon-title" data-ui="profileActionsTitle">Próximamente</h3>
+            <p class="profile-actions-lead" data-ui="profileActionsLead">
+              Estas acciones se habilitarán cuando expandamos la cuenta.
+            </p>
+          </div>
+          <div class="profile-actions-list" id="profile-soon-list"></div>
+        </section>
       </div>
     </div>
 
@@ -365,17 +515,56 @@
         <p class="recommend-lead" data-ui="recommendPlanLead">
           Elige la zona muscular y te armamos un plan de entrenamiento a medida.
         </p>
-        <button type="button" class="recommend-cta" id="recommend-open-btn">
-          <span data-ui="recommendGetPlan">Conseguir entrenamiento</span>
+        <button
+          type="button"
+          class="recommend-cta"
+          id="recommend-open-btn"
+          aria-expanded="false"
+          aria-controls="recommend-composer"
+        >
+          <span data-ui="recommendGetPlan">Conseguir plan</span>
         </button>
+        <div class="recommend-composer" id="recommend-composer" aria-hidden="true" inert>
+          <div class="recommend-composer-inner">
+            <form class="recommend-form" id="recommend-form">
+              <label class="recommend-field">
+                <span class="recommend-label" data-ui="recommendZone">Zona</span>
+                <select id="recommend-zone" name="zone" required>
+                  <option value="" data-ui="recommendZonePlaceholder">Elige una zona…</option>
+                </select>
+              </label>
+
+              <div class="recommend-field">
+                <span class="recommend-label" data-ui="recommendEquipment">Equipamiento</span>
+                <p class="recommend-hint" data-ui="recommendEquipmentHint">Elige 1 o 2</p>
+                <div class="recommend-equip-chips" id="recommend-equip-chips" role="group" aria-label="Equipamiento"></div>
+              </div>
+
+              <p class="recommend-status" id="recommend-status" hidden></p>
+              <button type="submit" class="recommend-submit" id="recommend-submit" disabled>
+                <span class="recommend-submit-spinner load-spinner" aria-hidden="true"></span>
+                <span class="recommend-submit-label" data-ui="recommendSubmit">Generar plan</span>
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
       <div class="recommend-results" id="recommend-results" hidden>
         <div class="recommend-toolbar">
           <h2 class="recommend-toolbar-title" data-ui="recommendPlan">Recomendar Entrenamiento</h2>
-          <button type="button" class="recommend-again-btn" id="recommend-again-btn">
-            <span data-ui="recommendAgain">Generar otro</span>
-          </button>
         </div>
+        <section class="recommend-note" id="recommend-note" hidden>
+          <label class="recommend-note-label" for="recommend-note-body" data-ui="recommendNoteTitle">
+            Por qué este plan
+          </label>
+          <textarea
+            id="recommend-note-body"
+            class="recommend-note-body"
+            readonly
+            rows="5"
+            aria-live="polite"
+          ></textarea>
+        </section>
         <div class="recommend-grid" id="recommend-grid"></div>
       </div>
     </div>
@@ -552,28 +741,33 @@
               <span data-ui="progressPhotosBack">Mis alumnos</span>
             </button>
             <header class="progress-photos-header">
-              <h2 class="progress-photos-title" data-ui="progressPhotosTitle">Avances</h2>
               <div class="progress-photos-athlete-card" id="progress-photos-athlete-card" hidden>
-                <div class="progress-photos-athlete-row">
+                <div class="progress-photos-athlete-row is-name">
                   <span class="progress-photos-athlete-label" data-ui="progressPhotosInfoName">Nombre</span>
                   <span class="progress-photos-athlete-value" id="progress-photos-athlete-name">—</span>
                 </div>
-                <div class="progress-photos-athlete-row">
-                  <span class="progress-photos-athlete-label" data-ui="progressPhotosInfoEmail">Correo</span>
-                  <span class="progress-photos-athlete-value" id="progress-photos-athlete-email">—</span>
+                <div class="progress-photos-athlete-meta">
+                  <div class="progress-photos-athlete-row is-email">
+                    <span class="progress-photos-athlete-label" data-ui="progressPhotosInfoEmail">Correo</span>
+                    <span class="progress-photos-athlete-value" id="progress-photos-athlete-email">—</span>
+                  </div>
+                  <span class="progress-photos-athlete-meta-sep" aria-hidden="true">·</span>
+                  <div class="progress-photos-athlete-row is-weight">
+                    <span class="progress-photos-athlete-label" data-ui="progressPhotosInfoCurrentWeight">Peso actual</span>
+                    <span class="progress-photos-athlete-value" id="progress-photos-athlete-current-weight">—</span>
+                  </div>
                 </div>
-                <div class="progress-photos-athlete-row">
-                  <span class="progress-photos-athlete-label" data-ui="progressPhotosInfoCurrentWeight">Peso actual</span>
-                  <span class="progress-photos-athlete-value" id="progress-photos-athlete-current-weight">—</span>
-                </div>
-                <div class="progress-photos-athlete-row is-period">
-                  <span class="progress-photos-athlete-label" data-ui="progressPhotosInfoMonthWeight">Peso del mes</span>
-                  <span class="progress-photos-athlete-value" id="progress-photos-athlete-month-weight">—</span>
-                </div>
+              </div>
+              <div class="progress-photos-compare-bar" id="progress-photos-compare-bar" hidden>
+                <button type="button" class="recommend-cta progress-photos-compare-confirm-btn" id="progress-photos-compare-confirm-btn" hidden disabled>
+                  <span data-ui="progressPhotosCompareView">Ver comparación</span>
+                </button>
+                <button type="button" class="recommend-again-btn progress-photos-compare-btn" id="progress-photos-compare-btn">
+                  <span data-ui="progressPhotosCompare">Comparar</span>
+                </button>
               </div>
             </header>
           </div>
-          <div class="progress-photos-filters-slot" id="progress-photos-filters"></div>
         </div>
         <div class="progress-photos-results" id="progress-photos-results"></div>
       </div>
@@ -768,35 +962,6 @@
   </div>
 </div>
 
-<!-- ═══ MODAL recomendar entrenamiento — js/features/recommend-ui.js ═══ -->
-<div class="recommend-overlay" id="recommend-overlay" role="dialog" aria-modal="true" aria-labelledby="recommend-modal-title">
-  <div class="recommend-modal">
-    <div class="recommend-modal-header">
-      <h2 class="recommend-modal-title" id="recommend-modal-title" data-ui="recommendGetPlan">Conseguir entrenamiento</h2>
-      <button type="button" class="modal-close" id="recommend-modal-close" aria-label="Close">✕</button>
-    </div>
-    <form class="recommend-form" id="recommend-form">
-      <label class="recommend-field">
-        <span class="recommend-label" data-ui="recommendZone">Zona</span>
-        <select id="recommend-zone" name="zone" required>
-          <option value="" data-ui="recommendZonePlaceholder">Elige una zona…</option>
-        </select>
-      </label>
-
-      <div class="recommend-field">
-        <span class="recommend-label" data-ui="recommendEquipment">Equipamiento</span>
-        <p class="recommend-hint" data-ui="recommendEquipmentHint">Elige 1 o 2</p>
-        <div class="recommend-equip-chips" id="recommend-equip-chips" role="group" aria-label="Equipamiento"></div>
-      </div>
-
-      <p class="recommend-status" id="recommend-status" hidden></p>
-      <button type="submit" class="recommend-submit" id="recommend-submit" disabled>
-        <span data-ui="recommendSubmit">Generar plan</span>
-      </button>
-    </form>
-  </div>
-</div>
-
 <!-- ═══ MODAL agregar alumno — js/features/students-ui.js ═══ -->
 <div class="recommend-overlay" id="add-student-overlay" role="dialog" aria-modal="true" aria-labelledby="add-student-title">
   <div class="recommend-modal">
@@ -861,9 +1026,43 @@
   </div>
 </div>
 
+<!-- ═══ MODAL confirmar darse de baja — js/features/profile-ui.js ═══ -->
+<div class="recommend-overlay" id="deactivate-account-overlay" role="dialog" aria-modal="true" aria-labelledby="deactivate-account-title">
+  <div class="recommend-modal confirm-modal">
+    <div class="recommend-modal-header">
+      <h2 class="recommend-modal-title" id="deactivate-account-title" data-ui="profileDeactivateTitle">¿Darse de baja?</h2>
+      <button type="button" class="modal-close" id="deactivate-account-close" aria-label="Close">✕</button>
+    </div>
+    <p class="confirm-modal-lead" id="deactivate-account-lead" data-ui="profileDeactivateLead">
+      Esta acción desactiva tu cuenta. Para confirmar, escribe tu correo.
+    </p>
+    <form class="recommend-form confirm-modal-form" id="deactivate-account-form">
+      <label class="recommend-field">
+        <span class="recommend-label" data-ui="email">Email</span>
+        <input type="email" id="deactivate-account-email" name="email" required autocomplete="off" />
+      </label>
+      <p class="recommend-status" id="deactivate-account-status" hidden></p>
+      <div class="confirm-modal-actions">
+        <button type="button" class="confirm-modal-cancel" id="deactivate-account-cancel" data-ui="profileDeactivateCancel">Cancelar</button>
+        <button type="submit" class="confirm-modal-danger" id="deactivate-account-confirm" disabled data-ui="profileDeactivateConfirm">Darme de baja</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- ═══ MODAL foto de progreso — js/features/progress-photos-ui.js ═══ -->
 <div class="progress-photo-lightbox" id="progress-photo-lightbox" role="dialog" aria-modal="true" aria-labelledby="progress-photo-lightbox-title" hidden>
   <button type="button" class="progress-photo-lightbox-backdrop" id="progress-photo-lightbox-backdrop" aria-label="Close"></button>
+  <button type="button" class="progress-photo-lightbox-nav is-prev" id="progress-photo-lightbox-prev" hidden aria-label="Anterior">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M10 3L5 8l5 5"/>
+    </svg>
+  </button>
+  <button type="button" class="progress-photo-lightbox-nav is-next" id="progress-photo-lightbox-next" hidden aria-label="Siguiente">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M6 3l5 5-5 5"/>
+    </svg>
+  </button>
   <div class="progress-photo-lightbox-panel">
     <div class="progress-photo-lightbox-bar">
       <h2 class="progress-photo-lightbox-title" id="progress-photo-lightbox-title"></h2>

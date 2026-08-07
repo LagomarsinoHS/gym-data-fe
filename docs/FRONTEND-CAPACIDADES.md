@@ -39,7 +39,8 @@ Si el boot falla → mensaje de error en el contador de resultados.
 - Overlay auth: backdrop / Escape cierran; errores mapeados (401, 409, etc.).
 - Password min 6; autocomplete distinto login vs register.
 - **Menú de cuenta** (`session-ui.js` / `#sidebar-user`): avatar con iniciales, nombre corto (`Humberto L`), badge de rol, chevron → dropdown.
-  - **Mi perfil** y **Configuración**: visibles pero `disabled` (tooltip “Próximamente”).
+  - **Mi perfil**: activo → vista `#profile-view`. Avatar clickeable → Ver/Subir foto. **Editar perfil** abre sección inline (nombre, apellido, contraseña) + Guardar → `PATCH /users/me`. **Darse de baja** modal email → `DELETE /users/me`. Al entrar, `refreshUser()`.
+  - **Configuración**: visible pero `disabled` (tooltip “Próximamente”).
   - **Cerrar sesión**: activo (rojo).
   - Cierra con click afuera o Escape.
 
@@ -58,13 +59,14 @@ Si el boot falla → mensaje de error en el contador de resultados.
 | `training` | Plan personal (`trainingProgram`) |
 | `recommend` | Recomendar (solo si `subscription.plan === 'premium'`) |
 | `coach-plan` | Plan del coach (`coachTrainingProgram`; empty sin coach / sin plan; columna centrada ~720px) |
-| `athlete-avances` | Atleta: upload mes actual + historial año/mes |
+| `athlete-avances` | Atleta: upload mes actual + historial timeline + comparar |
 | `coach-panel` | Resumen informativo (`coach-panel-ui`): total alumnos + sin pauta + historial invites |
 | `coach-templates` | Shell placeholder |
 | `students` | Mis alumnos (`students-ui` + cupo `coachQuota.canInvite` + `coach-sessions-ui` + `students-download-ui` + store) |
 | `avances` | Coach: lista de alumnos → abrir fotos de progreso |
-| `progress-photos` | Coach: fotos de un alumno (año/mes + pesos + lightbox) |
+| `progress-photos` | Coach: timeline + comparar fotos de un alumno (lightbox) |
 | `session-editor` | Editor de una sesión del atleta (coach) |
+| `profile` | Mi perfil (foto, editar inline, darse de baja; resto “Pronto”) |
 
 - Post-login: coach/admin → `coach-panel`; athlete → `training`.
 - Recomendar: nav locked + tooltip si no es Pro.
@@ -161,7 +163,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 ## 7. Recomendar (Pro)
 
 - Modal: zona (select) + 1–2 equipos (chips).
-- `GET /exercises/recommend?zone=&equipment=` (auth).
+- `GET /exercises/recommend?zone=&equipment=&locale=` (auth).
 - Resultados: toolbar + “Generar otro”; cards con rol opcional; click → modal ejercicio.
 - Logout limpia el plan recomendado en memoria.
 
@@ -203,19 +205,25 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 ## 10. Avances / fotos de progreso
 
+Historial y comparar viven en el módulo compartido `progress-history-ui.js` (coach + atleta).
+
 ### Coach
 - Nav **Avances** (`avances-ui`): lista paginada de alumnos → abre `progress-photos`.
-- Vista `progress-photos` (`progress-photos-ui`): back a Avances o Mis alumnos; card alumno (nombre, correo, peso actual, peso del mes); selects año/mes; grid front/back o “Sin datos”.
-- `GET /users/:userId/progress-photos` → `{ currentWeightKg, years[] }`.
+- Vista `progress-photos` (`progress-photos-ui`): back a Avances o Mis alumnos; card alumno (nombre, correo, peso actual — en comparar, chip compacto).
+- Timeline cronológico (meses con foto/peso, más reciente arriba); cards usan thumb Cloudinary (`c_fill,w_480,h_640,q_auto,f_auto`); lightbox/descarga usan la URL original de Mongo.
+- **Comparar**: elegir ≥2 meses → **2 meses** lado a lado con tabs Frente/Espalda; **3+** doble carrusel (wrap). Δ peso entre el más viejo y el más nuevo.
+- `GET /users/:userId/progress-photos` → `{ currentWeightKg, years[] }` (un fetch; sin paginación de API).
 
 ### Atleta
 - Nav **Avances** (`athlete-avances-ui`): header fijo (título + hint mes actual + peso actual); scroll del cuerpo.
 - Upload: pickers `+` con preview, peso (20–400); Guardar enabled solo con ≥1 foto + peso; `POST /users/me/progress-photos` multipart (`weightKg` + `front`/`back`).
-- Historial: filtros año/mes; panel con pill verde **Peso: X kg** (si hay) + fotos.
+- Historial: mismo timeline + comparar que el coach (vía `progress-history-ui`).
 - Re-subir el mismo mes **reemplaza** (upsert UTC); no hay UI de delete (API DELETE existe).
 
 ### Lightbox compartido (`progress-photo-lightbox.js`)
-- Click en foto → modal; **Descargar** fetch→blob → `FirstName_LastName_Front|Back.ext` (atleta = self; coach = alumno).
+- Click en foto → modal con **URL original** (calidad completa); **Descargar** fetch→blob → `FirstName_LastName_Front|Back[_YYYY-MM].ext`.
+- En comparar: flechas / teclado recorren la galería del mismo lado (Frente↔Frente u Espalda↔Espalda).
+- Thumbs FE: `js/utils/cloudinary.js` (`progressPhotoThumbUrl`) — solo en cards; Mongo/BE sin cambios.
 
 ---
 
@@ -250,10 +258,10 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 | GET | `/exercises?…` | No | Catálogo / filtros / search / páginas |
 | GET | `/exercises/:id` | No | Modal, search numérico, deep link |
 | GET | `/exercises/random` | No | WOD |
-| GET | `/exercises/recommend?zone&equipment` | Sí | Submit recommend |
+| GET | `/exercises/recommend?zone&equipment&locale` | Sí | Submit recommend |
 | POST | `/auth/login` | No | Login |
 | POST | `/auth/register` | No | Register |
-| GET | `/users/me` | Sí | Sesión (user + programs + `subscription` + `coachQuota` + `currentWeightKg`; **sin** invite ni `progressPhotos`) |
+| GET | `/users/me` | Sí | Sesión (user + programs + `subscription` + `coach` + `coachQuota` + `currentWeightKg`; **sin** invite ni `progressPhotos`) |
 | GET | `/users/me/pending-coach-invite` | Sí | Atleta: `{ invite }` (null o pendiente) |
 | POST | `/users/training-program` | Sí | Agregar al plan |
 | PUT | `/users/training-program/remove` | Sí | Confirmar quitar |
@@ -349,6 +357,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 |------|----------|
 | Entry / catálogo / modal / pauta | `js/main.js` |
 | Sesión / vistas / roles | `js/features/session-ui.js` |
+| Mi perfil | `js/features/profile-ui.js` |
 | Auth UI | `js/features/auth-ui.js` |
 | Entrenamiento | `js/features/training-ui.js` |
 | Recommend | `js/features/recommend-ui.js` |
@@ -360,6 +369,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 | Athletes store | `js/features/coach-athletes-store.js` |
 | Avances coach (lista) | `js/features/avances-ui.js` |
 | Progress photos coach | `js/features/progress-photos-ui.js` |
+| Historial/comparar (shared) | `js/features/progress-history-ui.js` |
 | Avances atleta | `js/features/athlete-avances-ui.js` |
 | Lightbox + download | `js/features/progress-photo-lightbox.js` |
 | Drawer | `js/features/nav-drawer.js` |

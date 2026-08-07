@@ -19,8 +19,8 @@ Consume la API desplegada en Render (o tu backend local).
 - Botón **WOD** → ejercicio random (`GET /exercises/random`)
 - Auth (login / registro) + roles atleta / coach
 - Menú de cuenta en sidebar: iniciales, nombre corto, rol; dropdown (Mi perfil / Configuración deshabilitados; Cerrar sesión)
-- **Mi entrenamiento** (agregar / quitar / pauta), **Plan del coach** (sesiones) y **Avances** (fotos + peso del mes)
-- Coach: **Panel**, **Mis alumnos**, **Avances** (ver fotos de alumnos), export Excel
+- **Mi entrenamiento** (agregar / quitar / pauta), **Plan del coach** (sesiones) y **Avances** (upload + timeline + comparar)
+- Coach: **Panel**, **Mis alumnos**, **Avances** (timeline + comparar fotos de alumnos), export Excel
 - Banner de invite pendiente (atleta) vía `GET /users/me/pending-coach-invite` (mensaje localizado si el coach no tiene cupo)
 - Planes: athlete `free`/`premium`; coach `free`/`growth`/`pro` + `coachQuota` en `/me`
 - UI bilingüe (Español / English)
@@ -94,7 +94,7 @@ Para desarrollar contra tu API local, levantá el backend en el puerto **3000** 
 | `GET` | `/exercises/:id` | Detalle / búsqueda por id |
 | `GET` | `/exercises/random` | Botón WOD |
 | `GET` | `/exercises/labels` | Chips de filtros |
-| `GET` | `/exercises/recommend?zone=&equipment=` | Recomendar (Pro) |
+| `GET` | `/exercises/recommend?zone=&equipment=&locale=` | Recomendar (Pro, IA) |
 | `POST` | `/auth/login` · `/auth/register` | Sesión |
 | `GET` | `/users/me` | Perfil + programs + `subscription` + `coachQuota` (coach) |
 | `GET` | `/users/me/pending-coach-invite` | Invite pendiente atleta `{ invite }` |

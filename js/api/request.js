@@ -51,6 +51,28 @@ export async function put(path, body, { auth = false } = {}) {
   });
 }
 
+export async function patch(path, body, { auth = false } = {}) {
+  return send(new URL(path, API_BASE), {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders(auth),
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function del(path, body, { auth = false } = {}) {
+  return send(new URL(path, API_BASE), {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders(auth),
+    },
+    body: body == null ? undefined : JSON.stringify(body),
+  });
+}
+
 /**
  * POST JSON and return { blob, filename?, contentType } for file downloads.
  * filename comes from Content-Disposition when the API sends it.
