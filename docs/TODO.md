@@ -97,8 +97,9 @@ Acuerdo con BE: 2 fotos/mes (`front` + `back`) + `weightKg`, historial por `year
 
 ### Flujo UI — atleta
 - Nav **Avances** bajo Mi plan → vista `athlete-avances`
-- Formulario mes actual: frente / espalda (picker `+` + preview), peso; Guardar deshabilitado hasta ≥1 foto + peso válido
-- `POST /users/me/progress-photos` multipart (`weightKg` + `front`/`back`); reemplaza el mes UTC actual
+- Formulario: frente / espalda (picker `+` + preview), peso; caption debajo del peso (“Mes actual · cambiar” o el mes elegido) abre month-picker para backfill
+- Guardar deshabilitado hasta ≥1 foto + peso válido
+- `POST /users/me/progress-photos` multipart (`weightKg` + `front`/`back` + `yearMonth` opcional); upsert del mes elegido (default = UTC actual)
 - Historial: mismo timeline + comparar que coach (`progress-history-ui`)
 - Lightbox + descargar → `FirstName_LastName_Back.jpg` (el propio atleta)
 
@@ -108,15 +109,15 @@ Acuerdo con BE: 2 fotos/mes (`front` + `back`) + `weightKg`, historial por `year
 - [x] Vista coach **Avances** + `progress-photos` (Mis alumnos / nav Avances)
 - [x] Vista atleta upload + historial (`athlete-avances-ui`)
 - [x] Módulo compartido `progress-history-ui.js`
-- [x] `GET /users/:userId/progress-photos` + `uploadProgressPhotos` (multipart)
+- [x] `GET /users/:userId/progress-photos` + `uploadProgressPhotos` (multipart, `yearMonth?`)
 - [x] Labels de mes localizados via Intl
 - [x] Empty: Sin datos / mes incompleto (solo un lado)
-- [x] Preview al elegir archivo; Guardar gated; hint “mes actual”
+- [x] Preview al elegir archivo; Guardar gated; caption mes + month-picker (backfill)
 - [x] Lightbox compartido + descarga + nav de galería en comparar
 - [ ] (Opc.) UI atleta/coach para `DELETE /users/me/progress-photos` (API ya existe; hoy se reemplaza al volver a guardar)
 - [ ] **Analizar progreso** (IA): en la comparación de **2 meses**, botón “Analizar progreso” que envía las 2 fotos (frente y/o espalda del par) a un endpoint/IA y muestra un resumen de diferencias visuales (grasa, postura, tamaño, etc.). Requiere diseño BE (quién llama al modelo, auth, costos) + UI de loading/resultado en FE.
 
-> BE: POST / DELETE / GET + weight listos. FE: upload + timeline/comparar coach/atleta listos; DELETE sin UI; Analizar progreso pendiente.
+> BE: POST (`yearMonth?`) / DELETE / GET + weight listos. FE: upload + backfill + timeline/comparar coach/atleta listos; DELETE sin UI; Analizar progreso pendiente.
 ---
 
 ## Plataforma / nice-to-have

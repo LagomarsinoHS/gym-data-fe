@@ -59,7 +59,7 @@ Si el boot falla → mensaje de error en el contador de resultados.
 | `training` | Plan personal (`trainingProgram`) |
 | `recommend` | Recomendar (solo si `subscription.plan === 'premium'`) |
 | `coach-plan` | Plan del coach (`coachTrainingProgram`; empty sin coach / sin plan; columna centrada ~720px) |
-| `athlete-avances` | Atleta: upload mes actual + historial timeline + comparar |
+| `athlete-avances` | Atleta: upload (mes actual o backfill) + historial timeline + comparar |
 | `coach-panel` | Resumen informativo (`coach-panel-ui`): total alumnos + sin pauta + historial invites |
 | `coach-templates` | Shell placeholder |
 | `students` | Mis alumnos (`students-ui` + cupo `coachQuota.canInvite` + `coach-sessions-ui` + `students-download-ui` + store) |
@@ -210,15 +210,16 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 ### Coach
 - Nav **Avances** (`avances-ui`): lista paginada de alumnos → abre `progress-photos`.
 - Vista `progress-photos` (`progress-photos-ui`): back a Avances o Mis alumnos; card alumno (nombre, correo, peso actual — en comparar, chip compacto).
-- Timeline cronológico (meses con foto/peso, más reciente arriba); cards usan thumb Cloudinary (`c_fill,w_480,h_640,q_auto,f_auto`); lightbox/descarga usan la URL original de Mongo.
+- Timeline cronológico (meses con foto/peso, más reciente arriba); cards usan thumb Cloudinary (`c_fit,w_480,h_640,q_auto,f_auto`); lightbox/descarga usan la URL original de Mongo.
 - **Comparar**: elegir ≥2 meses → **2 meses** lado a lado con tabs Frente/Espalda; **3+** doble carrusel (wrap). Δ peso entre el más viejo y el más nuevo.
 - `GET /users/:userId/progress-photos` → `{ currentWeightKg, years[] }` (un fetch; sin paginación de API).
 
 ### Atleta
-- Nav **Avances** (`athlete-avances-ui`): header fijo (título + hint mes actual + peso actual); scroll del cuerpo.
-- Upload: pickers `+` con preview, peso (20–400); Guardar enabled solo con ≥1 foto + peso; `POST /users/me/progress-photos` multipart (`weightKg` + `front`/`back`).
+- Nav **Avances** (`athlete-avances-ui`): header fijo (título + hint del mes seleccionado + peso actual); scroll del cuerpo.
+- Upload: pickers `+` con preview, peso (20–400); debajo del peso, caption “Mes actual · cambiar” (o el mes elegido) abre month-picker para backfill.
+- Guardar enabled solo con ≥1 foto + peso; `POST /users/me/progress-photos` multipart (`weightKg` + `front`/`back` + `yearMonth` opcional).
 - Historial: mismo timeline + comparar que el coach (vía `progress-history-ui`).
-- Re-subir el mismo mes **reemplaza** (upsert UTC); no hay UI de delete (API DELETE existe).
+- Re-subir el mismo mes **reemplaza** (upsert); no hay UI de delete (API DELETE existe).
 
 ### Lightbox compartido (`progress-photo-lightbox.js`)
 - Click en foto → modal con **URL original** (calidad completa); **Descargar** fetch→blob → `FirstName_LastName_Front|Back[_YYYY-MM].ext`.
@@ -266,7 +267,7 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 | POST | `/users/training-program` | Sí | Agregar al plan |
 | PUT | `/users/training-program/remove` | Sí | Confirmar quitar |
 | PUT | `/users/training-program/:exerciseId` | Sí | Guardar pauta |
-| POST | `/users/me/progress-photos` | Sí | Atleta: upload avance (multipart weight + fotos) |
+| POST | `/users/me/progress-photos` | Sí | Atleta: upload avance (multipart weight + fotos + `yearMonth?`) |
 | GET | `/users/:userId/progress-photos` | Sí | Atleta self o coach asignado: historial |
 | POST | `/users/coach/invites` | Sí | Coach invita atleta por email |
 | POST | `/users/me/pending-coach-invite/respond` | Sí | Atleta accept / reject |
