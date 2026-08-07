@@ -165,10 +165,12 @@ export function analyzeProgressPhotos(userId, { yearMonths, locale } = {}) {
 /**
  * POST /users/me/progress-photos (multipart)
  * Fields: weightKg (required) + front? and/or back? image files.
+ * Optional yearMonth (YYYY-MM); omitted → current month on the API.
  */
-export function uploadProgressPhotos({ weightKg, frontFile, backFile }) {
+export function uploadProgressPhotos({ weightKg, frontFile, backFile, yearMonth } = {}) {
   const form = new FormData();
   form.append('weightKg', String(weightKg));
+  if (yearMonth) form.append('yearMonth', String(yearMonth));
   if (frontFile) form.append('front', frontFile);
   if (backFile) form.append('back', backFile);
   return postMultipart(`${USERS}/me/progress-photos`, form, { auth: true });

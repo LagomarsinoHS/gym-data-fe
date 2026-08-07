@@ -32,5 +32,5 @@ export function cloudinaryDeliveryUrl(url, transformation) {
  * Lightbox and downloads should keep using the original URL.
  */
 export function progressPhotoThumbUrl(url) {
-  return cloudinaryDeliveryUrl(url, 'c_fill,w_480,h_640,q_auto,f_auto');
+  return cloudinaryDeliveryUrl(url, 'c_fit,w_480,h_640,q_auto,f_auto');
 }

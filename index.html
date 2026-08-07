@@ -297,7 +297,7 @@
       <div class="athlete-avances">
         <header class="athlete-avances-header">
           <h2 class="athlete-avances-title" data-ui="athleteAvances">Avances</h2>
-          <p class="athlete-avances-month-hint" data-ui="athleteAvancesMonthHint">
+          <p class="athlete-avances-month-hint" id="athlete-avances-month-hint" data-ui="athleteAvancesMonthHint">
             Se guarda como avance del mes actual.
           </p>
           <p class="athlete-avances-current-weight" id="athlete-avances-current-weight" hidden>
@@ -309,43 +309,107 @@
         <div class="athlete-avances-body">
           <div class="athlete-avances-body-inner">
             <section class="athlete-avances-upload">
-              <form class="athlete-avances-form" id="athlete-avances-form">
-                <div class="athlete-avances-form-grid">
-                  <label class="athlete-avances-field athlete-avances-photo-field">
-                    <span class="athlete-avances-field-label" data-ui="progressPhotosFront">Frente</span>
-                    <span class="athlete-avances-photo-slot">
-                      <input type="file" id="athlete-avances-front" name="front" accept="image/jpeg,image/png,image/webp" />
-                      <span class="athlete-avances-photo-plus" aria-hidden="true">+</span>
-                      <img class="athlete-avances-photo-preview" id="athlete-avances-front-preview" alt="" hidden />
-                    </span>
-                  </label>
-                  <label class="athlete-avances-field athlete-avances-photo-field">
-                    <span class="athlete-avances-field-label" data-ui="progressPhotosBackSide">Espalda</span>
-                    <span class="athlete-avances-photo-slot">
-                      <input type="file" id="athlete-avances-back" name="back" accept="image/jpeg,image/png,image/webp" />
-                      <span class="athlete-avances-photo-plus" aria-hidden="true">+</span>
-                      <img class="athlete-avances-photo-preview" id="athlete-avances-back-preview" alt="" hidden />
-                    </span>
-                  </label>
-                  <label class="athlete-avances-field athlete-avances-field-weight">
-                    <span class="athlete-avances-field-label" data-ui="athleteAvancesWeight">Peso (kg)</span>
-                    <input
-                      type="number"
-                      id="athlete-avances-weight"
-                      name="weightKg"
-                      inputmode="decimal"
-                      step="0.1"
-                      min="20"
-                      max="400"
-                      required
+              <div
+                class="athlete-avances-toast"
+                id="athlete-avances-toast"
+                hidden
+                role="status"
+                aria-live="polite"
+              >
+                <span class="athlete-avances-toast-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.75" />
+                    <path
+                      d="M8 12.5l2.5 2.5L16.5 9"
+                      stroke="currentColor"
+                      stroke-width="1.75"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
                     />
-                  </label>
+                  </svg>
+                </span>
+                <div class="athlete-avances-toast-copy">
+                  <p class="athlete-avances-toast-title" id="athlete-avances-toast-title"></p>
+                  <p class="athlete-avances-toast-detail" id="athlete-avances-toast-detail"></p>
                 </div>
-                <div class="athlete-avances-form-actions">
-                  <button type="submit" class="recommend-cta" id="athlete-avances-save" disabled>
-                    <span data-ui="athleteAvancesSave">Guardar</span>
-                  </button>
-                  <p class="athlete-avances-form-status" id="athlete-avances-form-status" role="status" hidden></p>
+              </div>
+              <form class="athlete-avances-form" id="athlete-avances-form">
+                <div class="athlete-avances-pair">
+                  <p class="athlete-avances-pair-title" data-ui="athleteAvancesPairTitle">Tu avance</p>
+                  <div class="athlete-avances-pair-frame">
+                    <label class="athlete-avances-field athlete-avances-photo-field athlete-avances-photo-field--pair">
+                      <span class="athlete-avances-photo-slot">
+                        <input type="file" id="athlete-avances-front" name="front" accept="image/jpeg,image/png,image/webp" />
+                        <span class="athlete-avances-photo-plus" aria-hidden="true">+</span>
+                        <img class="athlete-avances-photo-preview" id="athlete-avances-front-preview" alt="" hidden />
+                        <span class="athlete-avances-photo-badge" data-ui="progressPhotosFront">Frente</span>
+                      </span>
+                    </label>
+                    <div class="athlete-avances-pair-divider" aria-hidden="true"></div>
+                    <label class="athlete-avances-field athlete-avances-photo-field athlete-avances-photo-field--pair">
+                      <span class="athlete-avances-photo-slot">
+                        <input type="file" id="athlete-avances-back" name="back" accept="image/jpeg,image/png,image/webp" />
+                        <span class="athlete-avances-photo-plus" aria-hidden="true">+</span>
+                        <img class="athlete-avances-photo-preview" id="athlete-avances-back-preview" alt="" hidden />
+                        <span class="athlete-avances-photo-badge" data-ui="progressPhotosBackSide">Espalda</span>
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="athlete-avances-form-footer">
+                  <div class="athlete-avances-weight-block">
+                    <label class="athlete-avances-field athlete-avances-field-weight">
+                      <span class="athlete-avances-field-label" data-ui="athleteAvancesWeight">Peso (kg)</span>
+                      <input
+                        type="number"
+                        id="athlete-avances-weight"
+                        name="weightKg"
+                        inputmode="decimal"
+                        step="0.1"
+                        min="20"
+                        max="400"
+                        required
+                      />
+                    </label>
+
+                    <div class="month-picker athlete-avances-month-caption" id="athlete-avances-month-picker-ui">
+                      <input type="hidden" id="athlete-avances-year-month" name="yearMonth" value="" />
+                      <button
+                        type="button"
+                        class="athlete-avances-month-caption-btn"
+                        id="athlete-avances-month-trigger"
+                        aria-haspopup="dialog"
+                        aria-expanded="false"
+                        aria-controls="athlete-avances-month-panel"
+                      >
+                        <span class="athlete-avances-month-caption-value" id="athlete-avances-month-trigger-label">Mes actual</span>
+                        <span class="athlete-avances-month-caption-sep" aria-hidden="true">·</span>
+                        <span class="athlete-avances-month-caption-action" data-ui="athleteAvancesChangeMonth">cambiar</span>
+                      </button>
+                      <div
+                        class="month-picker-panel"
+                        id="athlete-avances-month-panel"
+                        role="dialog"
+                        aria-label="Month"
+                        hidden
+                      >
+                        <div class="month-picker-year">
+                          <button type="button" class="month-picker-year-btn" id="athlete-avances-month-prev-year" aria-label="Previous year">‹</button>
+                          <span class="month-picker-year-label" id="athlete-avances-month-year-label"></span>
+                          <button type="button" class="month-picker-year-btn" id="athlete-avances-month-next-year" aria-label="Next year">›</button>
+                        </div>
+                        <div class="month-picker-grid" id="athlete-avances-month-grid"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="athlete-avances-form-actions">
+                    <button type="submit" class="recommend-cta" id="athlete-avances-save" disabled>
+                      <span data-ui="athleteAvancesSave">Guardar</span>
+                    </button>
+                    <p class="athlete-avances-form-status" id="athlete-avances-form-status" role="status" hidden></p>
+                  </div>
                 </div>
               </form>
             </section>

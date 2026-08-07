@@ -3,7 +3,7 @@
  * Markup: #athlete-avances-view
  */
 import { getProgressPhotos, uploadProgressPhotos } from '../api/users.js';
-import { ui } from '../utils/labels.js';
+import { getLang, ui } from '../utils/labels.js';
 import {
   createProgressHistoryRenderer,
   formatWeight,
@@ -24,6 +24,9 @@ let loading = false;
 let loadError = null;
 let saving = false;
 let loadedUserId = null;
+/** Year displayed inside the custom month panel. */
+let pickerViewYear = null;
+let monthPanelOpen = false;
 
 /** @type {() => object | null} */
 let getUser = () => null;
@@ -36,8 +39,21 @@ let backInput;
 let frontPreviewEl;
 let backPreviewEl;
 let weightInput;
+let yearMonthInput;
+let monthHintEl;
+let monthTriggerBtn;
+let monthTriggerLabel;
+let monthPanelEl;
+let monthYearLabelEl;
+let monthGridEl;
+let monthPrevYearBtn;
+let monthNextYearBtn;
 let saveBtn;
 let formStatusEl;
+let toastEl;
+let toastTitleEl;
+let toastDetailEl;
+let toastHideTimer = null;
 let currentWeightWrap;
 let currentWeightValueEl;
 let compareBar;
@@ -66,8 +82,20 @@ export function initAthleteAvancesUi(opts = {}) {
   frontPreviewEl = document.getElementById('athlete-avances-front-preview');
   backPreviewEl = document.getElementById('athlete-avances-back-preview');
   weightInput = document.getElementById('athlete-avances-weight');
+  yearMonthInput = document.getElementById('athlete-avances-year-month');
+  monthHintEl = document.getElementById('athlete-avances-month-hint');
+  monthTriggerBtn = document.getElementById('athlete-avances-month-trigger');
+  monthTriggerLabel = document.getElementById('athlete-avances-month-trigger-label');
+  monthPanelEl = document.getElementById('athlete-avances-month-panel');
+  monthYearLabelEl = document.getElementById('athlete-avances-month-year-label');
+  monthGridEl = document.getElementById('athlete-avances-month-grid');
+  monthPrevYearBtn = document.getElementById('athlete-avances-month-prev-year');
+  monthNextYearBtn = document.getElementById('athlete-avances-month-next-year');
   saveBtn = document.getElementById('athlete-avances-save');
   formStatusEl = document.getElementById('athlete-avances-form-status');
+  toastEl = document.getElementById('athlete-avances-toast');
+  toastTitleEl = document.getElementById('athlete-avances-toast-title');
+  toastDetailEl = document.getElementById('athlete-avances-toast-detail');
   currentWeightWrap = document.getElementById('athlete-avances-current-weight');
   currentWeightValueEl = document.getElementById('athlete-avances-current-weight-value');
   compareBar = document.getElementById('athlete-avances-compare-bar');
@@ -91,6 +119,44 @@ export function initAthleteAvancesUi(opts = {}) {
   weightInput?.addEventListener('input', syncSaveEnabled);
   weightInput?.addEventListener('change', syncSaveEnabled);
 
+  monthTriggerBtn?.addEventListener('click', () => {
+    if (saving) return;
+    if (monthPanelOpen) closeMonthPanel();
+    else openMonthPanel();
+  });
+  monthPrevYearBtn?.addEventListener('click', () => {
+    if (pickerViewYear == null) return;
+    pickerViewYear -= 1;
+    renderMonthPanel();
+  });
+  monthNextYearBtn?.addEventListener('click', () => {
+    if (pickerViewYear == null) return;
+    const maxYear = Number(currentYearMonthUtc().slice(0, 4));
+    if (pickerViewYear >= maxYear) return;
+    pickerViewYear += 1;
+    renderMonthPanel();
+  });
+  monthGridEl?.addEventListener('click', event => {
+    const btn = event.target.closest('[data-month]');
+    if (!btn || btn.disabled) return;
+    const month = String(btn.dataset.month || '').padStart(2, '0');
+    if (!pickerViewYear || !month) return;
+    setYearMonthValue(`${pickerViewYear}-${month}`);
+    closeMonthPanel();
+  });
+
+  document.addEventListener('click', event => {
+    if (!monthPanelOpen) return;
+    const root = document.getElementById('athlete-avances-month-picker-ui');
+    if (root && !root.contains(event.target)) closeMonthPanel();
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && monthPanelOpen) {
+      event.stopPropagation();
+      closeMonthPanel();
+    }
+  });
+
   compareBtn?.addEventListener('click', () => {
     if (history.getViewMode() === 'timeline') {
       history.enterPickMode();
@@ -107,6 +173,8 @@ export function initAthleteAvancesUi(opts = {}) {
     renderHistoryBody();
   });
 
+  syncYearMonthBounds();
+  syncMonthHint();
   syncSaveEnabled();
 }
 
@@ -118,18 +186,154 @@ export function syncAthleteAvancesLabels() {
     const label = saveBtn.querySelector('[data-ui]');
     if (label) label.textContent = ui('athleteAvancesSaving');
   }
+  if (monthPrevYearBtn) monthPrevYearBtn.setAttribute('aria-label', ui('athleteAvancesPrevYear'));
+  if (monthNextYearBtn) monthNextYearBtn.setAttribute('aria-label', ui('athleteAvancesNextYear'));
+  if (monthPanelEl) monthPanelEl.setAttribute('aria-label', ui('athleteAvancesMonth'));
+  syncMonthTriggerLabel();
+  if (monthPanelOpen) renderMonthPanel();
+  syncMonthHint();
 }
 
 export function syncAthleteAvancesView() {
   const viewEl = document.getElementById('athlete-avances-view');
   if (!viewEl || viewEl.hidden) {
     closeProgressPhotoLightbox();
+    hideSaveToast();
+    closeMonthPanel();
     return;
   }
 
+  syncYearMonthBounds();
   syncAthleteAvancesLabels();
   updateCurrentWeightDisplay();
   void ensurePhotosLoaded().then(() => renderHistoryBody());
+}
+
+function currentYearMonthUtc(date = new Date()) {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+}
+
+function formatMonthLabel(yearMonth) {
+  const match = String(yearMonth || '').match(/^(\d{4})-(\d{2})$/);
+  if (!match) return String(yearMonth || '');
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const locale = getLang() === 'en' ? 'en-US' : 'es-ES';
+  const raw = new Intl.DateTimeFormat(locale, {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(year, month - 1, 1)));
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+function syncYearMonthBounds() {
+  const current = currentYearMonthUtc();
+  let value = String(yearMonthInput?.value || '').trim();
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(value) || value > current) {
+    value = current;
+  }
+  setYearMonthValue(value, { silent: true });
+}
+
+function setYearMonthValue(yearMonth, { silent = false } = {}) {
+  const current = currentYearMonthUtc();
+  let value = String(yearMonth || '').trim();
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(value) || value > current) {
+    value = current;
+  }
+  if (yearMonthInput) yearMonthInput.value = value;
+  syncMonthTriggerLabel();
+  if (!silent) {
+    syncMonthHint();
+    syncSaveEnabled();
+  }
+}
+
+function syncMonthTriggerLabel() {
+  if (!monthTriggerLabel) return;
+  const value = String(yearMonthInput?.value || '').trim();
+  const current = currentYearMonthUtc();
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) {
+    monthTriggerLabel.textContent = ui('athleteAvancesMonthCurrent');
+    return;
+  }
+  monthTriggerLabel.textContent =
+    value === current ? ui('athleteAvancesMonthCurrent') : formatMonthLabel(value);
+}
+
+function monthShortLabels() {
+  const locale = getLang() === 'en' ? 'en-US' : 'es-ES';
+  return Array.from({ length: 12 }, (_, index) => {
+    const raw = new Intl.DateTimeFormat(locale, {
+      month: 'short',
+      timeZone: 'UTC',
+    }).format(new Date(Date.UTC(2020, index, 1)));
+    const cleaned = raw.replace(/\.$/, '');
+    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  });
+}
+
+function openMonthPanel() {
+  if (!monthPanelEl || !monthTriggerBtn) return;
+  const selected = String(yearMonthInput?.value || currentYearMonthUtc());
+  pickerViewYear = Number(selected.slice(0, 4)) || Number(currentYearMonthUtc().slice(0, 4));
+  monthPanelOpen = true;
+  monthPanelEl.hidden = false;
+  monthTriggerBtn.setAttribute('aria-expanded', 'true');
+  renderMonthPanel();
+}
+
+function closeMonthPanel() {
+  monthPanelOpen = false;
+  if (monthPanelEl) monthPanelEl.hidden = true;
+  monthTriggerBtn?.setAttribute('aria-expanded', 'false');
+}
+
+function renderMonthPanel() {
+  if (!monthGridEl || pickerViewYear == null) return;
+  const current = currentYearMonthUtc();
+  const maxYear = Number(current.slice(0, 4));
+  const maxMonth = Number(current.slice(5, 7));
+  const selected = String(yearMonthInput?.value || '');
+  const labels = monthShortLabels();
+
+  if (monthYearLabelEl) monthYearLabelEl.textContent = String(pickerViewYear);
+  if (monthPrevYearBtn) monthPrevYearBtn.disabled = false;
+  if (monthNextYearBtn) monthNextYearBtn.disabled = pickerViewYear >= maxYear;
+
+  monthGridEl.innerHTML = '';
+  labels.forEach((label, index) => {
+    const monthNum = index + 1;
+    const month = String(monthNum).padStart(2, '0');
+    const value = `${pickerViewYear}-${month}`;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'month-picker-month';
+    btn.dataset.month = month;
+    btn.textContent = label;
+    btn.disabled = pickerViewYear > maxYear || (pickerViewYear === maxYear && monthNum > maxMonth);
+    if (value === selected) btn.classList.add('is-selected');
+    monthGridEl.appendChild(btn);
+  });
+}
+
+function selectedYearMonth() {
+  const value = String(yearMonthInput?.value || '').trim();
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) return null;
+  if (value > currentYearMonthUtc()) return null;
+  return value;
+}
+
+function syncMonthHint() {
+  if (!monthHintEl) return;
+  const yearMonth = selectedYearMonth() || currentYearMonthUtc();
+  monthHintEl.textContent = ui('athleteAvancesMonthHintFor').replace(
+    '{month}',
+    formatMonthLabel(yearMonth),
+  );
 }
 
 function updateCurrentWeightDisplay() {
@@ -221,6 +425,8 @@ function clearPhotoInputs() {
 function clearFormInputs() {
   clearPhotoInputs();
   if (weightInput) weightInput.value = '';
+  syncYearMonthBounds();
+  syncMonthHint();
   syncSaveEnabled();
 }
 
@@ -237,7 +443,7 @@ function parsedWeightKg() {
 }
 
 function isFormReady() {
-  return hasPhotoSelected() && parsedWeightKg() != null;
+  return hasPhotoSelected() && parsedWeightKg() != null && Boolean(selectedYearMonth());
 }
 
 function syncSaveEnabled() {
@@ -259,11 +465,70 @@ function setFormStatus(message, { isError = false } = {}) {
   formStatusEl.classList.toggle('is-ok', !isError);
 }
 
+function hideSaveToast() {
+  if (toastHideTimer != null) {
+    clearTimeout(toastHideTimer);
+    toastHideTimer = null;
+  }
+  if (!toastEl || toastEl.hidden) return;
+
+  toastEl.classList.remove('is-visible');
+  toastEl.classList.add('is-leaving');
+
+  const finish = () => {
+    toastEl.hidden = true;
+    toastEl.classList.remove('is-leaving');
+    if (toastTitleEl) toastTitleEl.textContent = '';
+    if (toastDetailEl) toastDetailEl.textContent = '';
+  };
+
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    finish();
+    return;
+  }
+
+  window.setTimeout(finish, 280);
+}
+
+function showSaveToast(yearMonth = null) {
+  if (!toastEl || !toastTitleEl || !toastDetailEl) return;
+
+  if (toastHideTimer != null) {
+    clearTimeout(toastHideTimer);
+    toastHideTimer = null;
+  }
+
+  const month = yearMonth || selectedYearMonth() || currentYearMonthUtc();
+  toastTitleEl.textContent = ui('athleteAvancesSaveOk');
+  toastDetailEl.textContent = ui('athleteAvancesSaveOkDetailMonth').replace(
+    '{month}',
+    formatMonthLabel(month),
+  );
+
+  toastEl.hidden = false;
+  toastEl.classList.remove('is-leaving');
+  toastEl.classList.remove('is-visible');
+  // Force reflow so the enter transition always runs.
+  void toastEl.offsetWidth;
+  requestAnimationFrame(() => {
+    toastEl.classList.add('is-visible');
+  });
+
+  toastHideTimer = window.setTimeout(() => {
+    toastHideTimer = null;
+    hideSaveToast();
+  }, 3400);
+}
+
 function setSaving(next) {
   saving = next;
   if (frontInput) frontInput.disabled = next;
   if (backInput) backInput.disabled = next;
   if (weightInput) weightInput.disabled = next;
+  if (monthTriggerBtn) monthTriggerBtn.disabled = next;
+  if (monthPrevYearBtn) monthPrevYearBtn.disabled = next;
+  if (monthNextYearBtn) monthNextYearBtn.disabled = next;
+  if (next) closeMonthPanel();
   frontInput?.closest('.athlete-avances-photo-slot')?.classList.toggle('is-disabled', next);
   backInput?.closest('.athlete-avances-photo-slot')?.classList.toggle('is-disabled', next);
   syncSaveEnabled();
@@ -277,14 +542,16 @@ async function onSave() {
   const backFile = backInput?.files?.[0] || null;
   const weightKg = parsedWeightKg();
   if (weightKg == null) return;
+  const yearMonth = selectedYearMonth();
 
   setSaving(true);
   setFormStatus('');
+  hideSaveToast();
 
   try {
-    await uploadProgressPhotos({ weightKg, frontFile, backFile });
+    await uploadProgressPhotos({ weightKg, frontFile, backFile, yearMonth });
     clearFormInputs();
-    setFormStatus(ui('athleteAvancesSaveOk'));
+    showSaveToast(yearMonth);
     await refreshUser().catch(() => {});
     resetHistoryCache();
     history.resetCompareState();
