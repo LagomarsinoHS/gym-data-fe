@@ -28,8 +28,8 @@ let loadSeq = 0;
 let loading = false;
 let loadError = null;
 
-/** @type {{ loading: boolean, text: string | null, error: string | null }} */
-let analyzeAiState = { loading: false, text: null, error: null };
+/** @type {{ loading: boolean, sections: Array<{ title: string, blocks: Array<{ type: string, title?: string, text: string }> }> | null, error: string | null }} */
+let analyzeAiState = { loading: false, sections: null, error: null };
 let analyzeSeq = 0;
 
 let backBtn;
@@ -141,7 +141,7 @@ export function syncProgressPhotosLabels() {
 
 function clearAnalyzeAiState() {
   analyzeSeq += 1;
-  analyzeAiState = { loading: false, text: null, error: null };
+  analyzeAiState = { loading: false, sections: null, error: null };
 }
 
 async function runAnalyzeWithAi(yearMonths) {
@@ -150,7 +150,7 @@ async function runAnalyzeWithAi(yearMonths) {
   if (!Array.isArray(yearMonths) || yearMonths.length !== 2) return;
 
   const seq = ++analyzeSeq;
-  analyzeAiState = { loading: true, text: null, error: null };
+  analyzeAiState = { loading: true, sections: null, error: null };
   renderProgressPhotosBody();
 
   try {
@@ -159,18 +159,17 @@ async function runAnalyzeWithAi(yearMonths) {
       locale: getLang() === 'en' ? 'en' : 'es',
     });
     if (seq !== analyzeSeq) return;
+    const sections = normalizeAnalyzeSections(res?.sections);
     analyzeAiState = {
       loading: false,
-      text: String(res?.analysis || '').trim() || null,
-      error: String(res?.analysis || '').trim()
-        ? null
-        : ui('progressPhotosAnalyzeAiFail'),
+      sections,
+      error: sections ? null : ui('progressPhotosAnalyzeAiFail'),
     };
   } catch (err) {
     if (seq !== analyzeSeq) return;
     analyzeAiState = {
       loading: false,
-      text: null,
+      sections: null,
       error:
         (typeof err?.message === 'string' && err.message.trim()) ||
         ui('progressPhotosAnalyzeAiFail'),
@@ -178,6 +177,29 @@ async function runAnalyzeWithAi(yearMonths) {
   }
 
   renderProgressPhotosBody();
+}
+
+function normalizeAnalyzeSections(raw) {
+  if (!Array.isArray(raw) || !raw.length) return null;
+  const sections = [];
+  for (const section of raw) {
+    const title = typeof section?.title === 'string' ? section.title.trim() : '';
+    if (!title || !Array.isArray(section?.blocks)) continue;
+    const blocks = [];
+    for (const block of section.blocks) {
+      const text = typeof block?.text === 'string' ? block.text.trim() : '';
+      if (!text) continue;
+      if (block.type === 'paragraph') {
+        blocks.push({ type: 'paragraph', text });
+      } else if (block.type === 'subtitle') {
+        const blockTitle = typeof block?.title === 'string' ? block.title.trim() : '';
+        if (!blockTitle) continue;
+        blocks.push({ type: 'subtitle', title: blockTitle, text });
+      }
+    }
+    if (blocks.length) sections.push({ title, blocks });
+  }
+  return sections.length ? sections : null;
 }
 
 function updateAthleteCard() {

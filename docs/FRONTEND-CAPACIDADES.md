@@ -163,7 +163,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 ## 7. Recomendar (Pro)
 
 - Modal: zona (select) + 1–2 equipos (chips).
-- `GET /exercises/recommend?zone=&equipment=` (auth).
+- `GET /exercises/recommend?zone=&equipment=&locale=` (auth).
 - Resultados: toolbar + “Generar otro”; cards con rol opcional; click → modal ejercicio.
 - Logout limpia el plan recomendado en memoria.
 
@@ -258,7 +258,7 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 | GET | `/exercises?…` | No | Catálogo / filtros / search / páginas |
 | GET | `/exercises/:id` | No | Modal, search numérico, deep link |
 | GET | `/exercises/random` | No | WOD |
-| GET | `/exercises/recommend?zone&equipment` | Sí | Submit recommend |
+| GET | `/exercises/recommend?zone&equipment&locale` | Sí | Submit recommend |
 | POST | `/auth/login` | No | Login |
 | POST | `/auth/register` | No | Register |
 | GET | `/users/me` | Sí | Sesión (user + programs + `subscription` + `coach` + `coachQuota` + `currentWeightKg`; **sin** invite ni `progressPhotos`) |

@@ -4675,6 +4675,69 @@ html[data-theme="dark"] .coach-panel-invite-status-pill.is-cancelled {
   transform: translateY(0);
 }
 
+.recommend-composer {
+  display: grid;
+  grid-template-rows: 0fr;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 1px solid transparent;
+  opacity: 0;
+  text-align: left;
+  transition:
+    grid-template-rows 0.48s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.4s ease,
+    margin-top 0.48s cubic-bezier(0.22, 1, 0.36, 1),
+    padding-top 0.48s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.35s ease;
+}
+
+.recommend-composer.is-open {
+  grid-template-rows: 1fr;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top-color: var(--border);
+  opacity: 1;
+}
+
+.recommend-composer-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.recommend-composer .recommend-submit {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.recommend-submit .recommend-submit-spinner {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+  flex-shrink: 0;
+}
+
+.recommend-submit.is-loading .recommend-submit-spinner {
+  display: block;
+}
+
+.recommend-form.is-loading {
+  pointer-events: none;
+}
+
+.recommend-form.is-loading .recommend-equip-chip,
+.recommend-form.is-loading select {
+  opacity: 0.65;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recommend-composer {
+    transition: none;
+  }
+}
+
 .recommend-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
@@ -4689,6 +4752,56 @@ html[data-theme="dark"] .coach-panel-invite-status-pill.is-cancelled {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--accent);
+}
+
+.recommend-note {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recommend-note[hidden] {
+  display: none !important;
+}
+
+.recommend-note-label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.recommend-note-body {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: calc(1.55em * 5 + 24px);
+  max-height: 180px;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--bg-surface) 88%, var(--accent) 4%);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  resize: vertical;
+  overflow-y: auto;
+  outline: none;
+  field-sizing: fixed;
+}
+
+.recommend-note-body:focus {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recommend-note-body {
+    scroll-behavior: auto;
+  }
 }
 
 /* ── Recommend modal ─────────────────────────────── */
@@ -6060,8 +6173,8 @@ html[data-theme='dark'] .progress-photos-compare-pick-item.is-selected .progress
   grid-template-rows: 0fr;
   opacity: 0;
   transition:
-    grid-template-rows 0.32s ease,
-    opacity 0.28s ease;
+    grid-template-rows 0.58s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.45s ease;
 }
 
 .progress-photos-analyze-slot.is-open {
@@ -6086,6 +6199,41 @@ html[data-theme='dark'] .progress-photos-compare-pick-item.is-selected .progress
   background: color-mix(in srgb, var(--bg-surface) 88%, var(--accent) 4%);
 }
 
+.progress-photos-analyze-content {
+  display: grid;
+  gap: 10px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 0.5s ease 0.05s,
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.05s;
+}
+
+.progress-photos-analyze-content.is-revealed {
+  opacity: 1;
+  transform: none;
+}
+
+.progress-photos-analyze-scroll {
+  max-height: min(42vh, 22rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 6px;
+  scrollbar-gutter: stable;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-photos-analyze-slot,
+  .progress-photos-analyze-content {
+    transition: none;
+  }
+
+  .progress-photos-analyze-content {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .progress-photos-analyze-title {
   margin: 0;
   font-size: 13px;
@@ -6108,31 +6256,41 @@ html[data-theme='dark'] .progress-photos-compare-pick-item.is-selected .progress
 
 .progress-photos-analyze-body {
   display: grid;
-  gap: 10px;
+  gap: 12px;
+}
+
+.progress-photos-analyze-heading {
+  margin: 10px 0 0;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.progress-photos-analyze-heading.is-h1 {
+  margin-top: 14px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.progress-photos-analyze-heading.is-h1:first-child {
+  margin-top: 0;
+}
+
+.progress-photos-analyze-heading.is-h2 {
+  margin-top: 8px;
+  padding-left: 8px;
+  border-left: 2px solid color-mix(in srgb, var(--accent) 65%, transparent);
+  font-size: 13px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--accent) 55%, var(--text-primary));
 }
 
 .progress-photos-analyze-body p {
   margin: 0;
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.65;
   color: var(--text-secondary);
-}
-
-.progress-photos-analyze-list {
-  margin: 0;
-  padding: 0 0 0 1.1rem;
-  display: grid;
-  gap: 8px;
-}
-
-.progress-photos-analyze-list li {
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--text-secondary);
-}
-
-.progress-photos-analyze-list li::marker {
-  color: color-mix(in srgb, var(--accent) 70%, var(--text-secondary));
 }
 
 .progress-photos-compare-delta {

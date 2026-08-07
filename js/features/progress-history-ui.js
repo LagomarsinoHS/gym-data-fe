@@ -100,7 +100,7 @@ export function updateProgressCompareBar({
  *   getEmptyLead?: () => string,
  *   analyzeWithAi?: {
  *     canAccess?: () => boolean,
- *     getState?: () => { loading: boolean, text: string | null, error: string | null },
+ *     getState?: () => { loading: boolean, sections: Array | null, error: string | null },
  *     onAnalyze?: (yearMonths: [string, string]) => void | Promise<void>,
  *   },
  * }} [opts]
@@ -394,7 +394,7 @@ export function createProgressHistoryRenderer(opts = {}) {
         typeof opts.analyzeWithAi.getState === 'function'
           ? opts.analyzeWithAi.getState()
           : null;
-      if (aiState?.loading || aiState?.text || aiState?.error) {
+      if (aiState?.loading || aiState?.sections?.length || aiState?.error) {
         panel.append(createAnalyzeAiResult(aiState));
       }
     }
@@ -435,6 +435,9 @@ export function createProgressHistoryRenderer(opts = {}) {
     const wrap = document.createElement('div');
     wrap.className = 'progress-photos-analyze-result';
 
+    /** @type {HTMLElement | null} */
+    let delayedContent = null;
+
     if (state.loading) {
       const status = document.createElement('p');
       status.className = 'progress-photos-analyze-status';
@@ -445,32 +448,16 @@ export function createProgressHistoryRenderer(opts = {}) {
       status.className = 'progress-photos-analyze-status is-error';
       status.textContent = state.error;
       wrap.append(status);
-    } else if (state.text) {
-      const title = document.createElement('h3');
-      title.className = 'progress-photos-analyze-title';
-      title.textContent = ui('progressPhotosAnalyzeAiTitle');
-      wrap.append(title);
+    } else if (state.sections?.length) {
+      delayedContent = document.createElement('div');
+      delayedContent.className = 'progress-photos-analyze-content';
 
-      const formatted = formatAnalyzeAiText(state.text);
-      if (formatted.type === 'list') {
-        const list = document.createElement('ul');
-        list.className = 'progress-photos-analyze-list';
-        for (const item of formatted.items) {
-          const li = document.createElement('li');
-          li.textContent = item;
-          list.append(li);
-        }
-        wrap.append(list);
-      } else {
-        const body = document.createElement('div');
-        body.className = 'progress-photos-analyze-body';
-        for (const paragraph of formatted.items) {
-          const p = document.createElement('p');
-          p.textContent = paragraph;
-          body.append(p);
-        }
-        wrap.append(body);
-      }
+      const scroll = document.createElement('div');
+      scroll.className = 'progress-photos-analyze-scroll';
+      scroll.append(renderAnalyzeAiSections(state.sections));
+
+      delayedContent.append(scroll);
+      wrap.append(delayedContent);
     }
 
     inner.append(wrap);
@@ -479,6 +466,31 @@ export function createProgressHistoryRenderer(opts = {}) {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         slot.classList.add('is-open');
+
+        if (!delayedContent) return;
+
+        let revealed = false;
+        const reveal = () => {
+          if (revealed || !delayedContent) return;
+          revealed = true;
+          delayedContent.classList.add('is-revealed');
+        };
+
+        const onEnd = event => {
+          if (event.target !== slot) return;
+          if (
+            event.propertyName !== 'grid-template-rows' &&
+            event.propertyName !== 'opacity'
+          ) {
+            return;
+          }
+          slot.removeEventListener('transitionend', onEnd);
+          reveal();
+        };
+
+        slot.addEventListener('transitionend', onEnd);
+        // Fallback if transitionend is missed (prefers-reduced-motion, etc.)
+        window.setTimeout(reveal, 750);
       });
     });
 
@@ -942,47 +954,47 @@ function formatWeightDelta(fromWeight, toWeight) {
 }
 
 /**
- * Normalize AI analysis text for readable UI (paragraphs or bullets).
- * @returns {{ type: 'list' | 'paragraphs', items: string[] }}
+ * Render structured AI analysis: section titles + paragraph/subtitle blocks.
  */
-function formatAnalyzeAiText(raw) {
-  const text = String(raw || '').trim();
-  if (!text) return { type: 'paragraphs', items: [] };
+function renderAnalyzeAiSections(sections) {
+  const root = document.createElement('div');
+  root.className = 'progress-photos-analyze-body';
 
-  const paragraphs = text
-    .split(/\n\s*\n/)
-    .map(part => part.trim())
-    .filter(Boolean);
+  for (const section of sections || []) {
+    const title = typeof section?.title === 'string' ? section.title.trim() : '';
+    if (!title) continue;
 
-  if (paragraphs.length > 1) {
-    return { type: 'paragraphs', items: paragraphs };
+    const heading = document.createElement('h4');
+    heading.className = 'progress-photos-analyze-heading is-h1';
+    heading.textContent = title;
+    root.append(heading);
+
+    for (const block of section.blocks || []) {
+      if (block?.type === 'paragraph' && typeof block.text === 'string' && block.text.trim()) {
+        const p = document.createElement('p');
+        p.textContent = block.text.trim();
+        root.append(p);
+        continue;
+      }
+
+      if (block?.type === 'subtitle') {
+        const blockTitle = typeof block.title === 'string' ? block.title.trim() : '';
+        const text = typeof block.text === 'string' ? block.text.trim() : '';
+        if (!blockTitle || !text) continue;
+
+        const sub = document.createElement('h5');
+        sub.className = 'progress-photos-analyze-heading is-h2';
+        sub.textContent = blockTitle;
+        root.append(sub);
+
+        const p = document.createElement('p');
+        p.textContent = text;
+        root.append(p);
+      }
+    }
   }
 
-  const lines = text
-    .split(/\n/)
-    .map(line => line.trim())
-    .filter(Boolean);
-
-  if (lines.length > 1) {
-    const items = lines.map(line =>
-      line.replace(/^[-•*]\s+/, '').replace(/^\d+[.)]\s+/, ''),
-    );
-    const mostlyShort = items.filter(item => item.length <= 180).length >= items.length * 0.6;
-    return mostlyShort
-      ? { type: 'list', items }
-      : { type: 'paragraphs', items };
-  }
-
-  const sentences = text
-    .split(/(?<=[.!?…])\s+(?=[A-ZÁÉÍÓÚÑ¿¡0-9])/)
-    .map(part => part.trim())
-    .filter(Boolean);
-
-  if (sentences.length >= 3) {
-    return { type: 'list', items: sentences };
-  }
-
-  return { type: 'paragraphs', items: [text] };
+  return root;
 }
 
 function compareSideIconSvg(side) {

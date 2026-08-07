@@ -37,17 +37,17 @@ export function getLabels() {
 }
 
 /**
- * GET /exercises/recommend?zone=&equipment=barbell,cable
+ * GET /exercises/recommend?zone=&equipment=barbell,cable&locale=es
  * Requires auth (Pro). equipment: 1–2 values (comma-separated).
  */
-export function getRecommendedExercises({ zone, equipment } = {}) {
+export function getRecommendedExercises({ zone, equipment, locale } = {}) {
   const equipmentParam = Array.isArray(equipment)
     ? equipment.filter(Boolean).join(',')
     : equipment;
 
   return get(
     `${EXERCISES}/recommend`,
-    { zone, equipment: equipmentParam },
+    { zone, equipment: equipmentParam, locale },
     { auth: true },
   );
 }

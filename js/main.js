@@ -56,7 +56,7 @@ import { EQUIP_INITIAL } from './constants.js';
 import { debounce, dedupeById } from './utils/helpers.js';
 import { assetUrl } from './utils/assets.js';
 import { fillCardMedia, wireCardGrid } from './utils/cards.js';
-import { setLang, ui, label, exerciseName } from './utils/labels.js';
+import { setLang, ui, label, exerciseName, getLang } from './utils/labels.js';
 import { getStoredLang, setStoredLang } from './utils/prefs.js';
 import { cleanReps, formatReps } from './utils/reps.js';
 import { exerciseShareUrl, readExerciseFromUrl, syncExerciseInUrl } from './utils/url.js';
@@ -172,7 +172,11 @@ async function init() {
   initRecommendUi({
     getFilterLabels: () => state.labels,
     onSubmit: async ({ zone, equipment }) => {
-      const plan = await getRecommendedExercises({ zone, equipment });
+      const plan = await getRecommendedExercises({
+        zone,
+        equipment,
+        locale: getLang(),
+      });
       for (const item of plan?.exercises || []) {
         const ex = item.exercise || item;
         if (ex?.id) upsertExercise(ex);

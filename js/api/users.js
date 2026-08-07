@@ -149,7 +149,7 @@ export function getProgressPhotos(userId, { year } = {}) {
 /**
  * POST /users/:userId/progress-photos/analyze
  * Coach + paid plan. Body: { yearMonths: [YYYY-MM, YYYY-MM], locale? }
- * Returns { analysis: string }
+ * Returns { sections: Array<{ title, blocks }> }
  */
 export function analyzeProgressPhotos(userId, { yearMonths, locale } = {}) {
   return post(
