@@ -190,8 +190,9 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 - Modal email exacto → `POST /users/coach/invites`; errores por `code` (`mapApiError` → copy i18n).
 - Orden: client-side sobre alumnos **ya cargados** (incluye “Cargar más”); re-click de la opción activa quita el orden.
 - Badge **Nuevo**: invites `accepted` con `respondedAt` ≤ 48h (vía `GET /users/coach/invites`); al abrir la fila se guarda como visto en `localStorage` y no vuelve a marcarse (ni al recargar / re-login).
-- Descargar: menú toolbar “Descargar todos”; por alumno ⏬ → Excel (activo) / PDF (pronto).
-  - `POST /users/coach/training-program/export` binary (`athleteIds: []` = todos; `[id]` = uno) + `locale`.
+- Descargar: toolbar **Todos · Excel** / **Todos · PDF**; por alumno ⏬ → Excel / PDF.
+  - `POST /users/coach/training-program/export` binary (`athleteIds: []` = todos; `[id]` = uno) + `locale` + `format` (`xlsx` \| `pdf`).
+  - Varios alumnos → ZIP. Layout: sesiones en un archivo, bloques por categoría, total de series.
 - Loading spinner al primer fetch; empty / sin resultados sin flash raro.
 - Lista → `GET /users/coach/athletes` (paginado 5 + Cargar más); cache en memoria.
 - Acordeón alumno → info + plan; **Agregar sesión** (modal nombre, local).
@@ -274,7 +275,7 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 | GET | `/users/coach/athletes` | Sí | Lista paginada Mis alumnos / stats Panel |
 | GET | `/users/coach/invites` | Sí | Historial invites coach (`status` opcional) |
 | PUT | `/users/coach/athletes/:athleteId/training-program` | Sí | Guardar plan (replace sesiones) |
-| POST | `/users/coach/training-program/export` | Sí | Export Excel/zip (binary) |
+| POST | `/users/coach/training-program/export` | Sí | Export Excel/PDF/zip (binary; body `format`) |
 
 > BE también expone `DELETE /users/me/progress-photos` (sin UI FE aún).
 
@@ -385,12 +386,12 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 ## 19. Stubs / aún no cableado
 
 - Plantillas (`coach-templates`) placeholder.
-- Export PDF (UI disabled “Pronto”).
 - Admin no se elige en register (solo DB); en nav se comporta como coach.
 - Sin refresh token; si `/me` falla, sesión guest.
 - Recommend exige `subscription.plan === 'premium'` del back (athletes).
 - Coach tiers (`growth` / `pro`) e invite quotas: ver `coachQuota` en `/me`.
 - Delete de progress photos: API lista, sin botón en FE.
+- Pauta nutricional (coach → atleta): pendiente; ver [TODO.md](./TODO.md).
 
 ---
 

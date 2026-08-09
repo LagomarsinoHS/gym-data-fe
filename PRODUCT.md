@@ -70,7 +70,7 @@ Plataforma de entrenamiento que une un **catálogo profesional de ejercicios**, 
 - Buscá y ordená tu roster
 - Armá planes por **sesiones** (ej. Lunes, Sesión 1): ejercicios + series/reps/descanso/notas
 - Guardá y actualizá el plan completo del alumno
-- Exportá planes a **Excel** (uno o varios alumnos; varios → ZIP)
+- Exportá planes a **Excel** o **PDF** (uno o varios alumnos; varios → ZIP)
 - Acceso rápido a los **avances** de cada alumno
 
 ### Avances de alumnos
@@ -135,8 +135,8 @@ La IA **elige solo del catálogo** (no inventa ejercicios) y escribe la justific
 
 Estas piezas están contempladas en el producto pero aún no son el foco vendible:
 
+- **Pauta nutricional**: el coach sube una guía alimenticia; el atleta la ve en su app
 - **Plantillas** reutilizables de rutinas para coaches
-- Exportación a **PDF**
 - Pantalla completa de **Configuración**
 - Flujo de **pago / upgrade** dentro de la app
 - Más opciones de perfil (email, notificaciones, privacy, etc.)
@@ -147,11 +147,11 @@ Estas piezas están contempladas en el producto pero aún no son el foco vendibl
 
 - **Atletas** que quieren un catálogo serio, un plan propio y seguimiento visual del cuerpo
 - **Atletas con coach** que necesitan ver el plan asignado y que su entrenador vea sus avances
-- **Coaches** que quieren invitar alumnos, programar sesiones, exportar a Excel y apoyarse en IA para leer el progreso
+- **Coaches** que quieren invitar alumnos, programar sesiones, exportar a Excel/PDF y apoyarse en IA para leer el progreso
 - **Gimnasios / estudios** que busquen una base bilingüe de ejercicios + flujo coach–alumno sin armar todo desde cero
 
 ---
 
 ## Pitch corto (elevator)
 
-> ExerciseDB es la plataforma donde atletas y coaches trabajan sobre el mismo catálogo de +1.300 ejercicios: el atleta arma su plan o sigue el del coach, registra avances con fotos y peso, y —según el plan— usa IA para entrenamientos sugeridos o para interpretar el progreso. El coach gestiona alumnos, asigna rutinas por sesión y puede exportar programas a Excel.
+> ExerciseDB es la plataforma donde atletas y coaches trabajan sobre el mismo catálogo de +1.300 ejercicios: el atleta arma su plan o sigue el del coach, registra avances con fotos y peso, y —según el plan— usa IA para entrenamientos sugeridos o para interpretar el progreso. El coach gestiona alumnos, asigna rutinas por sesión y puede exportar programas a Excel o PDF.

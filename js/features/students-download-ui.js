@@ -1,7 +1,8 @@
 /**
  * Coach — Mis alumnos: export / download (toolbar + per-athlete menu).
  * Markup: #students-download, .student-row-download
- * API: POST /users/coach/training-program/export (binary xlsx | zip)
+ * API: POST /users/coach/training-program/export (binary xlsx | pdf | zip)
+ * Body: { athleteIds, locale, format: 'xlsx' | 'pdf' }
  */
 import { exportCoachTrainingProgram } from '../api/users.js';
 import { getLang, ui } from '../utils/labels.js';
@@ -10,19 +11,22 @@ import { store, getAthleteSessions } from './coach-athletes-store.js';
 let downloadWrap;
 let downloadBtn;
 let downloadMenu;
-let downloadAllBtn;
+let downloadAllExcelBtn;
+let downloadAllPdfBtn;
 
 export function initStudentsDownloadUi() {
   downloadWrap = document.getElementById('students-download');
   downloadBtn = document.getElementById('students-download-btn');
   downloadMenu = document.getElementById('students-download-menu');
-  downloadAllBtn = document.getElementById('students-download-all');
+  downloadAllExcelBtn = document.getElementById('students-download-all-excel');
+  downloadAllPdfBtn = document.getElementById('students-download-all-pdf');
 
   downloadBtn?.addEventListener('click', e => {
     e.stopPropagation();
     toggleDownloadMenu();
   });
-  downloadAllBtn?.addEventListener('click', onDownloadAll);
+  downloadAllExcelBtn?.addEventListener('click', () => onDownloadAll('xlsx'));
+  downloadAllPdfBtn?.addEventListener('click', () => onDownloadAll('pdf'));
 
   document.addEventListener('click', e => {
     const openAthleteMenu = document.querySelector('.student-row-download.is-open');
@@ -56,17 +60,19 @@ export function syncDownloadAllState() {
     downloadBtn.disabled = false;
     downloadBtn.removeAttribute('title');
   }
-  if (!downloadAllBtn) return;
-  downloadAllBtn.disabled = !enabled;
-  downloadAllBtn.setAttribute('aria-disabled', enabled ? 'false' : 'true');
-  downloadAllBtn.title = enabled ? '' : ui('studentsDownloadAllDisabled');
-  downloadAllBtn.classList.toggle('is-disabled', !enabled);
+  for (const btn of [downloadAllExcelBtn, downloadAllPdfBtn]) {
+    if (!btn) continue;
+    btn.disabled = !enabled;
+    btn.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+    btn.title = enabled ? '' : ui('studentsDownloadAllDisabled');
+    btn.classList.toggle('is-disabled', !enabled);
+  }
 }
 
 export function createAthleteDownloadMenu(athleteId) {
   const wrap = document.createElement('div');
   wrap.className = 'student-row-download';
-  const canExcel = athleteHasDownloadablePlan(athleteId);
+  const canDownload = athleteHasDownloadablePlan(athleteId);
 
   const trigger = document.createElement('button');
   trigger.type = 'button';
@@ -86,47 +92,46 @@ export function createAthleteDownloadMenu(athleteId) {
   menu.setAttribute('role', 'menu');
   menu.hidden = true;
 
-  const excelBtn = document.createElement('button');
-  excelBtn.type = 'button';
-  excelBtn.className = 'student-row-download-item';
-  excelBtn.setAttribute('role', 'menuitem');
-  excelBtn.disabled = !canExcel;
-  excelBtn.setAttribute('aria-disabled', canExcel ? 'false' : 'true');
-  excelBtn.classList.toggle('is-disabled', !canExcel);
-  excelBtn.title = canExcel ? ui('studentsDownloadExcel') : ui('studentsDownloadAllDisabled');
+  const excelBtn = createDownloadMenuItem({
+    label: ui('studentsDownloadExcel'),
+    enabled: canDownload,
+    onClick: btn => onDownloadAthlete(athleteId, btn, 'xlsx'),
+  });
 
-  const excelLabel = document.createElement('span');
-  excelLabel.className = 'student-row-download-item-label';
-  excelLabel.textContent = ui('studentsDownloadExcel');
-  excelBtn.append(excelLabel);
-
-  if (canExcel) {
-    excelBtn.addEventListener('click', e => {
-      e.stopPropagation();
-      onDownloadAthleteExcel(athleteId, excelBtn);
-    });
-  }
-
-  const pdfBtn = document.createElement('button');
-  pdfBtn.type = 'button';
-  pdfBtn.className = 'student-row-download-item is-disabled';
-  pdfBtn.setAttribute('role', 'menuitem');
-  pdfBtn.disabled = true;
-  pdfBtn.setAttribute('aria-disabled', 'true');
-  pdfBtn.title = ui('studentsDownloadPdfSoon');
-
-  const pdfLabel = document.createElement('span');
-  pdfLabel.className = 'student-row-download-item-label';
-  pdfLabel.textContent = ui('studentsDownloadPdf');
-
-  const pdfHint = document.createElement('span');
-  pdfHint.className = 'student-row-download-item-hint';
-  pdfHint.textContent = ui('studentsDownloadPdfSoon');
-  pdfBtn.append(pdfLabel, pdfHint);
+  const pdfBtn = createDownloadMenuItem({
+    label: ui('studentsDownloadPdf'),
+    enabled: canDownload,
+    onClick: btn => onDownloadAthlete(athleteId, btn, 'pdf'),
+  });
 
   menu.append(excelBtn, pdfBtn);
   wrap.append(trigger, menu);
   return wrap;
+}
+
+function createDownloadMenuItem({ label, enabled, onClick }) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'student-row-download-item';
+  btn.setAttribute('role', 'menuitem');
+  btn.disabled = !enabled;
+  btn.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+  btn.classList.toggle('is-disabled', !enabled);
+  btn.title = enabled ? label : ui('studentsDownloadAllDisabled');
+
+  const labelEl = document.createElement('span');
+  labelEl.className = 'student-row-download-item-label';
+  labelEl.textContent = label;
+  btn.append(labelEl);
+
+  if (enabled) {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      onClick(btn);
+    });
+  }
+
+  return btn;
 }
 
 function hasDownloadablePlans() {
@@ -191,10 +196,11 @@ function toggleAthleteDownloadMenu(wrap) {
   trigger?.setAttribute('aria-expanded', 'true');
 }
 
-function fallbackExportFilename(contentType, athleteIds) {
+function fallbackExportFilename(contentType, athleteIds, format) {
   const isZip = String(contentType || '').includes('zip');
   if (isZip) return 'Pautas de entrenamientos.zip';
-  return athleteIds.length === 1 ? 'training-program.xlsx' : 'training-programs.xlsx';
+  const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+  return athleteIds.length === 1 ? `training-program.${ext}` : `training-programs.${ext}`;
 }
 
 function triggerBlobDownload(blob, filename) {
@@ -209,7 +215,7 @@ function triggerBlobDownload(blob, filename) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-async function runTrainingProgramExport(athleteIds, triggerBtn) {
+async function runTrainingProgramExport(athleteIds, triggerBtn, format = 'xlsx') {
   if (triggerBtn?.disabled || triggerBtn?.dataset.busy === '1') return;
   if (triggerBtn) {
     triggerBtn.dataset.busy = '1';
@@ -219,28 +225,39 @@ async function runTrainingProgramExport(athleteIds, triggerBtn) {
     const { blob, filename, contentType } = await exportCoachTrainingProgram(
       athleteIds,
       getLang(),
+      format,
     );
-    triggerBlobDownload(blob, filename || fallbackExportFilename(contentType, athleteIds));
+    triggerBlobDownload(
+      blob,
+      filename || fallbackExportFilename(contentType, athleteIds, format),
+    );
   } catch (err) {
     console.error(err);
     window.alert(ui('studentsDownloadFail'));
   } finally {
     if (triggerBtn) {
       delete triggerBtn.dataset.busy;
-      if (triggerBtn === downloadAllBtn) syncDownloadAllState();
-      else triggerBtn.disabled = false;
+      if (
+        triggerBtn === downloadAllExcelBtn ||
+        triggerBtn === downloadAllPdfBtn
+      ) {
+        syncDownloadAllState();
+      } else {
+        triggerBtn.disabled = false;
+      }
     }
   }
 }
 
-function onDownloadAll() {
-  if (downloadAllBtn?.disabled || !hasDownloadablePlans()) return;
+function onDownloadAll(format = 'xlsx') {
+  const triggerBtn = format === 'pdf' ? downloadAllPdfBtn : downloadAllExcelBtn;
+  if (triggerBtn?.disabled || !hasDownloadablePlans()) return;
   closeDownloadMenu();
-  void runTrainingProgramExport([], downloadAllBtn);
+  void runTrainingProgramExport([], triggerBtn, format);
 }
 
-function onDownloadAthleteExcel(athleteId, excelBtn) {
+function onDownloadAthlete(athleteId, btn, format) {
   if (!athleteHasDownloadablePlan(athleteId)) return;
   closeAthleteDownloadMenus();
-  void runTrainingProgramExport([String(athleteId)], excelBtn);
+  void runTrainingProgramExport([String(athleteId)], btn, format);
 }

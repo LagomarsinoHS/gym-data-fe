@@ -747,7 +747,11 @@ export function updateSessionExercise(athleteId, sessionId, exerciseId, updates)
   if ('sets' in updates) item.sets = updates.sets;
   if ('reps' in updates) item.reps = updates.reps;
   if ('rest' in updates) item.rest = updates.rest;
-  if ('notes' in updates) item.notes = updates.notes;
+  if ('notes' in updates) {
+    const notes = String(updates.notes ?? '').trim();
+    if (notes) item.notes = notes;
+    else delete item.notes;
+  }
 
   touchPlanUi(athleteId);
   return true;

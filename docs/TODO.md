@@ -47,12 +47,12 @@ coachTrainingProgram: {
 - [x] Colección `invites` + create / respond (BE)
 - [x] `GET /users/me/pending-coach-invite` → `{ invite }` (banner atleta)
 - [x] Export Excel binary (`POST .../training-program/export`)
+- [x] Export PDF (`format: pdf` on same export endpoint; UI toolbar + por alumno)
 - [x] Mis alumnos: ordenar sin/con pauta (client-side)
 - [x] Panel: historial invites filtrable (`GET /users/coach/invites`)
 - [x] Panel invites: al filtrar → vaciar lista → spinner → pintar data (sin dejar filas viejas)
 - [x] Cupo coach: deshabilitar Invitar si `coachQuota.canInvite === false`; errores por `ApiErrorCode`
 - [x] Accept invite con coach al límite: flash del mensaje localizado; pending canceladas en BE
-- [ ] Export PDF
 - [ ] Reordenar ejercicios / sesiones
 - [ ] Duplicar sesión o copiar a otro atleta
 - [ ] Plantillas reutilizables (`coach-templates`)
@@ -118,6 +118,25 @@ Acuerdo con BE: 2 fotos/mes (`front` + `back`) + `weightKg`, historial por `year
 - [ ] **Analizar progreso** (IA): en la comparación de **2 meses**, botón “Analizar progreso” que envía las 2 fotos (frente y/o espalda del par) a un endpoint/IA y muestra un resumen de diferencias visuales (grasa, postura, tamaño, etc.). Requiere diseño BE (quién llama al modelo, auth, costos) + UI de loading/resultado en FE.
 
 > BE: POST (`yearMonth?`) / DELETE / GET + weight listos. FE: upload + backfill + timeline/comparar coach/atleta listos; DELETE sin UI; Analizar progreso pendiente.
+---
+
+## Nutrición — pauta alimenticia (coach → atleta)
+
+Vista nueva para que el coach cargue una **pauta nutricional** al alumno y el atleta la consulte (mismo patrón que plan del coach: coach escribe, atleta lee).
+
+### Producto
+- [ ] Definir qué se sube (texto estructurado, PDF/imagen, o ambos) y si es 1 pauta por atleta o historial por fechas
+- [ ] Vista coach: subir / editar / reemplazar pauta del alumno (desde Mis alumnos o nav dedicada)
+- [ ] Vista atleta: ver pauta asignada (nav bajo Mi plan, vacío si no hay coach o no hay pauta)
+
+### Backend
+- [ ] Campo / recurso de pauta nutricional por atleta (authz: coach asignado escribe; atleta self o coach lee)
+- [ ] Endpoints create/update + get; storage si hay archivo (Cloudinary u otro)
+
+### Frontend
+- [ ] UI coach (upload / editor + guardar)
+- [ ] UI atleta (solo lectura + empty states: sin coach / sin pauta)
+
 ---
 
 ## Plataforma / nice-to-have

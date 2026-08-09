@@ -20,6 +20,7 @@ import {
   athleteDisplayName,
   findAthlete,
   resetCoachAthletesStore,
+  isAthleteDirty,
 } from './coach-athletes-store.js';
 import {
   initCoachSessionsUi,
@@ -310,7 +311,11 @@ function mergeLocalSessions(nextItems) {
     const old = prev.get(id);
     const apiSessions = Array.isArray(a?.coachTrainingProgram) ? a.coachTrainingProgram : [];
     const oldSessions = Array.isArray(old?.coachTrainingProgram) ? old.coachTrainingProgram : [];
-    // Prefer API when it has sessions; otherwise keep local (e.g. unsaved dirty plan).
+    // Keep local edits while the plan has unsaved changes.
+    if (id && isAthleteDirty(id) && oldSessions.length) {
+      return { ...a, coachTrainingProgram: oldSessions };
+    }
+    // Prefer API when it has sessions; otherwise keep local (e.g. brand-new unsaved plan).
     if (apiSessions.length) return { ...a, coachTrainingProgram: apiSessions };
     if (oldSessions.length) return { ...a, coachTrainingProgram: oldSessions };
     return { ...a, coachTrainingProgram: [] };

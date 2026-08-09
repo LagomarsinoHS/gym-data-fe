@@ -36,6 +36,7 @@ import {
   updateSessionExercise,
   removeExerciseFromSession,
 } from './features/coach-sessions-ui.js';
+import { store as coachStore } from './features/coach-athletes-store.js';
 import { initCoachInviteUi, syncCoachInviteBanner } from './features/coach-invite-ui.js';
 import {
   initSessionUi,
@@ -832,9 +833,23 @@ function setPrescriptionEditorVisible(visible, { keepOpen = false } = {}) {
     syncPrescriptionSummary(null);
     return;
   }
-  if (!keepOpen) collapsePrescriptionForm({ instant: true });
+
+  // Late fillModal/syncPlanAction must not wipe in-progress prescription edits.
+  const formIsOpen = Boolean(
+    modalRxForm
+    && !modalRxForm.hidden
+    && modalRxForm.classList.contains('is-open'),
+  );
+  if (formIsOpen || keepOpen) {
+    if (!formIsOpen) {
+      syncPrescriptionSummary(modalOverlay.dataset.openId);
+    }
+    return;
+  }
+
+  collapsePrescriptionForm({ instant: true });
   populatePrescriptionForm(modalOverlay.dataset.openId);
-  if (!keepOpen && modalRxForm?.hidden) {
+  if (modalRxForm?.hidden) {
     syncPrescriptionSummary(modalOverlay.dataset.openId);
   }
 }
@@ -1031,9 +1046,15 @@ function buildPrescriptionUpdate() {
     if (!Number.isInteger(rest) || rest < 0) return { error: ui('prescriptionNeedField') };
     updates.rest = rest;
   }
-  if (notesRaw.trim() !== '') updates.notes = notesRaw.trim();
+  // Always include notes so an empty field clears the previous note.
+  updates.notes = notesRaw.trim();
 
-  if (!Object.keys(updates).length) return { error: ui('prescriptionNeedField') };
+  const hasContent =
+    'sets' in updates ||
+    'reps' in updates ||
+    'rest' in updates ||
+    updates.notes !== '';
+  if (!hasContent) return { error: ui('prescriptionNeedField') };
   return { updates };
 }
 
@@ -1053,10 +1074,15 @@ async function onPrescriptionSubmit(e) {
 
   try {
     const assign = getSessionAssignTarget();
-    if (isCoach() && assign) {
+    const coachAthleteId =
+      assign?.athleteId || (isCoach() ? coachStore.editorAthleteId : null);
+    const coachSessionId =
+      assign?.sessionId || (isCoach() ? coachStore.editorSessionId : null);
+
+    if (isCoach() && coachAthleteId && coachSessionId) {
       const ok = updateSessionExercise(
-        assign.athleteId,
-        assign.sessionId,
+        coachAthleteId,
+        coachSessionId,
         exerciseId,
         built.updates,
       );

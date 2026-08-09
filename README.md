@@ -20,7 +20,7 @@ Consume la API desplegada en Render (o tu backend local).
 - Auth (login / registro) + roles atleta / coach
 - Menú de cuenta en sidebar: iniciales, nombre corto, rol; dropdown (Mi perfil / Configuración deshabilitados; Cerrar sesión)
 - **Mi entrenamiento** (agregar / quitar / pauta), **Plan del coach** (sesiones) y **Avances** (upload / backfill de mes + timeline + comparar)
-- Coach: **Panel**, **Mis alumnos**, **Avances** (timeline + comparar fotos de alumnos), export Excel
+- Coach: **Panel**, **Mis alumnos**, **Avances** (timeline + comparar fotos de alumnos), export **Excel / PDF** (toolbar y por alumno)
 - Banner de invite pendiente (atleta) vía `GET /users/me/pending-coach-invite` (mensaje localizado si el coach no tiene cupo)
 - Planes: athlete `free`/`premium`; coach `free`/`growth`/`pro` + `coachQuota` en `/me`
 - UI bilingüe (Español / English)
@@ -106,7 +106,7 @@ Para desarrollar contra tu API local, levantá el backend en el puerto **3000** 
 | `POST` | `/users/me/pending-coach-invite/respond` | Atleta accept / reject |
 | `GET` | `/users/coach/athletes` | Mis alumnos / stats Panel |
 | `PUT` | `/users/coach/athletes/:id/training-program` | Guardar plan coach |
-| `POST` | `/users/coach/training-program/export` | Export Excel / zip (binary) |
+| `POST` | `/users/coach/training-program/export` | Export Excel / PDF / zip (binary; `format`: `xlsx`\|`pdf`) |
 | `POST` | `/admin/subscriptions/grant` · `/revoke` | Admin (JWT + role admin) |
 
 Respuesta típica de listado:
