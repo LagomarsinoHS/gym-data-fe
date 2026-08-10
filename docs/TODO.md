@@ -77,7 +77,8 @@ Menú de usuario en sidebar (iniciales o foto + nombre corto + dropdown).
 **Mi perfil** habilitado. **Configuración** sigue deshabilitada (tooltip “Próximamente”).
 
 - [x] **Mi perfil** — lectura (`/users/me`) + acciones “Pronto”; ítem de menú habilitado
-- [x] **Mi perfil → editar perfil** — sección inline (nombre/apellido/contraseña) → `PATCH /users/me`; sin modal; cierra al guardar OK
+- [x] **Mi perfil → editar perfil** — sección inline (nombre/apellido + body stats + goal + contraseña) → `PATCH /users/me` (`profile` / `goal`); sin modal; cierra al guardar OK
+- [x] **Mi perfil → datos corporales opcionales** — estatura, sexo, fecha nac., objetivo en editar perfil + facts; register sigue básico
 - [x] **Mi perfil → darse de baja** — modal pide email → `DELETE /users/me` → cierra sesión (soft-delete; **no** limpia vínculo coach en BD — ver BE TODO)
 - [x] **Mi perfil → foto de perfil** — click en avatar → Ver foto / Subir foto (`POST /users/me/profile-photo`); Cloudinary `gym-app/profiles/{userId}/profilePhoto`
 - [ ] **Mi perfil → acciones** — cablear: notificaciones, privacidad, **dejar coach** (unlink ≠ baja de cuenta), billing, export, etc.

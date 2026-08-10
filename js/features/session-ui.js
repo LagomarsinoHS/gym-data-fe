@@ -6,6 +6,7 @@
 import { getMe } from '../api/users.js';
 import { clearToken, isLoggedIn } from '../api/token.js';
 import { ui } from '../utils/labels.js';
+import { userProfile } from '../utils/helpers.js';
 import { clearRecommendPlan } from './recommend-ui.js';
 import { clearCoachAthletesCache } from './students-ui.js';
 import {
@@ -321,8 +322,9 @@ function renderUserName() {
   const roleEl = document.getElementById('sidebar-user-role');
   if (!user) return;
 
-  const first = String(user.firstName || '').trim();
-  const last = String(user.lastName || '').trim();
+  const profile = userProfile(user);
+  const first = String(profile.firstName || '').trim();
+  const last = String(profile.lastName || '').trim();
   const full = [first, last].filter(Boolean).join(' ');
   const shortName = last
     ? `${first} ${last.charAt(0)}.`.trim()

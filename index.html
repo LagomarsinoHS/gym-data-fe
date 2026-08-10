@@ -442,13 +442,12 @@
 
         <section class="profile-hero-row" id="profile-hero" aria-live="polite"></section>
 
-        <section class="profile-facts" id="profile-facts" aria-label="Account details"></section>
-
+        <div id="profile-edit-park" class="profile-edit-park" hidden>
         <section class="profile-edit" id="profile-edit-panel" hidden aria-labelledby="profile-edit-title">
           <div class="profile-edit-head">
             <h3 class="profile-edit-title" id="profile-edit-title" data-ui="profileEditTitle">Editar perfil</h3>
             <p class="profile-edit-lead" data-ui="profileEditLead">
-              Cambia nombre, apellido y/ o contraseña. Guarda con al menos un cambio.
+              Actualiza nombre, datos opcionales del cuerpo y / o contraseña. Guarda con al menos un cambio.
             </p>
           </div>
           <form class="profile-edit-form" id="profile-edit-form">
@@ -460,6 +459,54 @@
               <label class="profile-edit-field">
                 <span class="profile-edit-label" data-ui="profileEditLastName">Apellido</span>
                 <input type="text" id="profile-edit-last-name" name="lastName" autocomplete="family-name" />
+              </label>
+              <div class="profile-edit-field profile-edit-field--height">
+                <span class="profile-edit-label" id="profile-edit-height-label" data-ui="profileEditHeight">Estatura (cm)</span>
+                <div class="height-stepper" id="profile-edit-height-stepper" role="group" aria-labelledby="profile-edit-height-label">
+                  <button type="button" class="height-stepper-btn" id="profile-edit-height-dec" aria-label="-1 cm">−</button>
+                  <label class="height-stepper-value">
+                    <input
+                      type="number"
+                      class="height-stepper-input"
+                      id="profile-edit-height-input"
+                      name="heightCmVisible"
+                      inputmode="numeric"
+                      min="120"
+                      max="230"
+                      step="1"
+                      placeholder="—"
+                      aria-labelledby="profile-edit-height-label"
+                    />
+                    <span class="height-stepper-unit">cm</span>
+                  </label>
+                  <button type="button" class="height-stepper-btn" id="profile-edit-height-inc" aria-label="+1 cm">+</button>
+                </div>
+                <input type="hidden" id="profile-edit-height" name="heightCm" value="" />
+                <button type="button" class="height-stepper-clear" id="profile-edit-height-clear" data-ui="profileEditOptionalEmpty">Sin especificar</button>
+              </div>
+              <label class="profile-edit-field">
+                <span class="profile-edit-label" data-ui="profileEditBirthDate">Fecha de nacimiento</span>
+                <input type="date" id="profile-edit-birth-date" name="birthDate" />
+              </label>
+              <label class="profile-edit-field">
+                <span class="profile-edit-label" data-ui="profileEditSex">Sexo</span>
+                <select id="profile-edit-sex" name="sex">
+                  <option value="" data-ui="profileEditOptionalEmpty">Sin especificar</option>
+                  <option value="male" data-ui="profileSexMale">Masculino</option>
+                  <option value="female" data-ui="profileSexFemale">Femenino</option>
+                  <option value="other" data-ui="profileSexOther">Otro</option>
+                  <option value="prefer_not_to_say" data-ui="profileSexPreferNot">Prefiero no decir</option>
+                </select>
+              </label>
+              <label class="profile-edit-field">
+                <span class="profile-edit-label" data-ui="profileEditGoal">Objetivo</span>
+                <select id="profile-edit-goal" name="goal">
+                  <option value="" data-ui="profileEditOptionalEmpty">Sin especificar</option>
+                  <option value="strength" data-ui="profileGoalStrength">Fuerza</option>
+                  <option value="hypertrophy" data-ui="profileGoalHypertrophy">Hipertrofia</option>
+                  <option value="fat_loss" data-ui="profileGoalFatLoss">Pérdida de grasa</option>
+                  <option value="general" data-ui="profileGoalGeneral">Salud / general</option>
+                </select>
               </label>
             </div>
             <div class="profile-edit-password">
@@ -486,6 +533,7 @@
             </div>
           </form>
         </section>
+        </div>
 
         <section class="profile-actions profile-actions--available" aria-labelledby="profile-available-title">
           <div class="profile-actions-head">

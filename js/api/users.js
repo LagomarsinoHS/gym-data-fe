@@ -9,7 +9,7 @@ export function getMe() {
 
 /**
  * PATCH /users/me
- * Partial update: firstName and/or lastName and/or password change.
+ * Partial update: profile (name/body stats), goal, and/or password.
  */
 export function updateProfile(body) {
   return patch(`${USERS}/me`, body, { auth: true });
@@ -110,7 +110,7 @@ export function respondCoachInvite(action) {
  * GET /users/coach/athletes
  * Athletes linked to the authenticated coach (coachId === me).
  * Returns PaginatedResponse<CoachAthleteDto>: { data, page, limit, pages, total }
- * Optional search matches firstName, lastName, or email.
+ * Optional search matches profile.firstName, profile.lastName, or email.
  */
 export function getCoachAthletes({ page = 1, limit = 50, search } = {}) {
   return get(

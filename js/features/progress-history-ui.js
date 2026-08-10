@@ -4,6 +4,7 @@
  * Used by coach progress-photos view and athlete Avances history.
  */
 import { progressPhotoThumbUrl } from '../utils/cloudinary.js';
+import { userProfile } from '../utils/helpers.js';
 import { getLang, ui } from '../utils/labels.js';
 import { openProgressPhotoLightbox } from './progress-photo-lightbox.js';
 
@@ -872,7 +873,7 @@ export function createProgressHistoryRenderer(opts = {}) {
       img.setAttribute('role', 'button');
       img.setAttribute('aria-label', title);
       const open = () => {
-        const person = getPerson();
+        const person = userProfile(getPerson());
         const items =
           Array.isArray(gallery) && gallery.length > 0
             ? gallery
@@ -890,8 +891,8 @@ export function createProgressHistoryRenderer(opts = {}) {
         openProgressPhotoLightbox({
           items,
           index: index >= 0 ? index : 0,
-          firstName: person?.firstName,
-          lastName: person?.lastName,
+          firstName: person.firstName,
+          lastName: person.lastName,
         });
       };
       img.addEventListener('click', open);

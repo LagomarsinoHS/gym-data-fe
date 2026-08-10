@@ -2,6 +2,8 @@
  * Shared in-memory state for coach Mis alumnos + session plan editing.
  * Single owner of athletes / dirty / editor pointers so UI modules stay thin.
  */
+import { userProfile } from '../utils/helpers.js';
+
 export const store = {
   athletes: [],
   athletesLoaded: false,
@@ -49,8 +51,9 @@ export function findSession(athleteId, sessionId) {
 }
 
 export function athleteDisplayName(athlete) {
-  const first = String(athlete?.firstName || '').trim();
-  const last = String(athlete?.lastName || '').trim();
+  const profile = userProfile(athlete);
+  const first = String(profile.firstName || '').trim();
+  const last = String(profile.lastName || '').trim();
   const email = String(athlete?.email || '').trim();
   return [first, last].filter(Boolean).join(' ') || email || '—';
 }

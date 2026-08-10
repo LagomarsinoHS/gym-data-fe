@@ -8,6 +8,7 @@
 import { getCoachAthletes, getCoachInvites, inviteCoachAthlete } from '../api/users.js';
 import { ui } from '../utils/labels.js';
 import { ApiErrorCode, mapApiError } from '../utils/api-errors.js';
+import { userProfile } from '../utils/helpers.js';
 import { openProgressPhotos } from './progress-photos-ui.js';
 import {
   canInviteAthlete,
@@ -458,7 +459,9 @@ async function onSubmitInvite({ copyWhatsApp = false } = {}) {
  */
 async function copyWhatsAppInviteMessage(email) {
   const user = getUser();
-  const coachName = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || 'Tu coach';
+  const profile = userProfile(user);
+  const coachName =
+    [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim() || 'Tu coach';
   const message = ui('inviteWhatsAppMessage', coachName, email, window.location.origin);
   try {
     await navigator.clipboard.writeText(message);
@@ -691,8 +694,9 @@ function openStudentRow(row) {
 
 function createStudentRow(athlete) {
   const id = String(athlete?.id || '');
-  const first = String(athlete?.firstName || '').trim();
-  const last = String(athlete?.lastName || '').trim();
+  const profile = userProfile(athlete);
+  const first = String(profile.firstName || '').trim();
+  const last = String(profile.lastName || '').trim();
   const email = String(athlete?.email || '').trim();
   const full = athleteDisplayName(athlete);
   const isNew = Boolean(id && recentAcceptedIds.has(id));
