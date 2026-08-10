@@ -8778,6 +8778,54 @@ html[data-theme='dark'] .athlete-avances-toast-icon {
   grid-column: 1 / -1;
 }
 
+.profile-edit-field--birth {
+  grid-column: 1 / -1;
+}
+
+.birth-picker {
+  max-width: 220px;
+}
+
+.birth-picker-panel {
+  left: 0;
+  transform: none;
+  width: min(220px, 86vw);
+  padding: 10px;
+}
+
+.birth-picker-nav-label {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 4px 6px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  cursor: pointer;
+}
+
+.birth-picker-nav-label:hover:not(:disabled) {
+  color: var(--accent);
+}
+
+.birth-picker-nav-label:disabled {
+  cursor: default;
+}
+
+.birth-picker-grid.is-days {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.birth-picker-grid .month-picker-month {
+  min-height: 34px;
+  font-variant-numeric: tabular-nums;
+}
+
 .profile-edit-label {
   font-size: 12px;
   font-weight: 700;

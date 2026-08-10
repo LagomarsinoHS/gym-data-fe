@@ -7,7 +7,7 @@ import { deleteAccount, uploadProfilePhoto, updateProfile } from '../api/users.j
 import { formatDate } from '../utils/dates.js';
 import { ApiErrorCode, mapApiError } from '../utils/api-errors.js';
 import { userProfile } from '../utils/helpers.js';
-import { ui } from '../utils/labels.js';
+import { getLang, ui } from '../utils/labels.js';
 import { openProgressPhotoLightbox } from './progress-photo-lightbox.js';
 import {
   canInviteAthlete,
@@ -24,6 +24,15 @@ const ALLOWED_PROFILE_PHOTO_TYPES = new Set([
   'image/png',
   'image/webp',
 ]);
+
+const BIRTH_MIN_YEAR = 1920;
+/** @type {'year' | 'month' | 'day'} */
+let birthPickerStep = 'year';
+let birthPickerViewYear = null;
+let birthPickerViewMonth = null;
+let birthPanelOpen = false;
+/** Live draft YYYY-MM-DD (or '') for the birth picker — source of truth for save. */
+let birthDraftYmd = '';
 
 const PROFILE_ACTIONS = [
   {
@@ -97,6 +106,14 @@ let editHeightDecBtn;
 let editHeightIncBtn;
 let editHeightClearBtn;
 let editBirthDate;
+let editBirthPicker;
+let editBirthTrigger;
+let editBirthTriggerLabel;
+let editBirthPanel;
+let editBirthNavLabel;
+let editBirthPrevBtn;
+let editBirthNextBtn;
+let editBirthGrid;
 let editSex;
 let editGoal;
 let editCurrentPassword;
@@ -130,6 +147,14 @@ export function initProfileUi() {
   editHeightIncBtn = document.getElementById('profile-edit-height-inc');
   editHeightClearBtn = document.getElementById('profile-edit-height-clear');
   editBirthDate = document.getElementById('profile-edit-birth-date');
+  editBirthPicker = document.getElementById('profile-edit-birth-picker');
+  editBirthTrigger = document.getElementById('profile-edit-birth-trigger');
+  editBirthTriggerLabel = document.getElementById('profile-edit-birth-trigger-label');
+  editBirthPanel = document.getElementById('profile-edit-birth-panel');
+  editBirthNavLabel = document.getElementById('profile-edit-birth-nav-label');
+  editBirthPrevBtn = document.getElementById('profile-edit-birth-prev');
+  editBirthNextBtn = document.getElementById('profile-edit-birth-next');
+  editBirthGrid = document.getElementById('profile-edit-birth-grid');
   editSex = document.getElementById('profile-edit-sex');
   editGoal = document.getElementById('profile-edit-goal');
   editCurrentPassword = document.getElementById('profile-edit-current-password');
@@ -156,6 +181,21 @@ export function initProfileUi() {
     editHeightInput.blur();
   });
 
+  editBirthTrigger?.addEventListener('click', () => {
+    if (birthPanelOpen) closeBirthPanel();
+    else openBirthPanel();
+  });
+  editBirthPrevBtn?.addEventListener('click', onBirthNavPrev);
+  editBirthNextBtn?.addEventListener('click', onBirthNavNext);
+  editBirthNavLabel?.addEventListener('click', onBirthNavLabelClick);
+  editBirthGrid?.addEventListener('click', onBirthGridClick);
+
+  document.addEventListener('click', (event) => {
+    if (!birthPanelOpen) return;
+    if (editBirthPicker?.contains(/** @type {Node} */ (event.target))) return;
+    closeBirthPanel();
+  });
+
   document
     .getElementById('deactivate-account-close')
     ?.addEventListener('click', closeDeactivateModal);
@@ -167,6 +207,11 @@ export function initProfileUi() {
   });
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
+    if (birthPanelOpen) {
+      e.stopPropagation();
+      closeBirthPanel();
+      return;
+    }
     if (openAvatarMenu) {
       closeAvatarMenu();
       return;
@@ -189,6 +234,9 @@ export function initProfileUi() {
   document
     .getElementById('profile-edit-cancel')
     ?.addEventListener('click', closeEditPanel);
+  editSaveBtn?.addEventListener('click', () => {
+    void saveProfileEdits();
+  });
   editForm?.addEventListener('input', () => {
     if (
       editCurrentPassword &&
@@ -199,16 +247,21 @@ export function initProfileUi() {
     syncEditSaveEnabled();
   });
   editForm?.addEventListener('change', () => syncEditSaveEnabled());
-  editForm?.addEventListener('submit', onEditSubmit);
+  editForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    void saveProfileEdits();
+  });
 }
 
 export function syncProfileLabels() {
   document
     .querySelectorAll('#profile-view [data-ui], #deactivate-account-overlay [data-ui]')
     .forEach((el) => {
+      if (el.id === 'profile-edit-birth-trigger-label') return;
       el.textContent = ui(el.dataset.ui);
     });
   syncHeightStepperUi();
+  syncBirthPickerLabels();
 }
 
 export function syncProfileView() {
@@ -217,6 +270,8 @@ export function syncProfileView() {
 
   closeAvatarMenu();
   syncProfileLabels();
+  // While a save is in-flight, don't remount/reset the edit form.
+  if (editBusy) return;
   renderProfileBody();
   if (editOpen) {
     fillEditFormFromUser();
@@ -764,6 +819,7 @@ function openEditPanel() {
 
 function closeEditPanel() {
   if (editBusy) return;
+  closeBirthPanel();
   editOpen = false;
   if (editPanel) editPanel.hidden = true;
   parkEditPanel();
@@ -794,7 +850,9 @@ function fillEditFormFromUser() {
       ? Number(profile.heightCm)
       : null,
   );
-  if (editBirthDate) editBirthDate.value = String(profile.birthDate || '').slice(0, 10);
+  setBirthDateValue(normalizeBirthDate(profile.birthDate), {
+    silent: true,
+  });
   if (editSex) editSex.value = String(profile.sex || '');
   if (editGoal) editGoal.value = String(user.goal || '');
   clearCurrentPasswordError();
@@ -879,6 +937,336 @@ function syncHeightStepperUi() {
   }
 }
 
+function todayLocalParts() {
+  const now = new Date();
+  return {
+    y: now.getFullYear(),
+    m: now.getMonth() + 1,
+    d: now.getDate(),
+  };
+}
+
+/** Normalize API / form birth values to YYYY-MM-DD or ''. */
+function normalizeBirthDate(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw || raw === 'null' || raw === 'undefined') return '';
+  const ymd = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+  return ymd ? ymd[1] : '';
+}
+
+function parseBirthYmd(value) {
+  const match = normalizeBirthDate(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  const y = Number(match[1]);
+  const m = Number(match[2]);
+  const d = Number(match[3]);
+  if (!y || m < 1 || m > 12 || d < 1 || d > 31) return null;
+  return { y, m, d };
+}
+
+function daysInMonth(year, month) {
+  return new Date(year, month, 0).getDate();
+}
+
+function isFutureBirthParts(y, m, d) {
+  const today = todayLocalParts();
+  return (
+    y > today.y ||
+    (y === today.y && m > today.m) ||
+    (y === today.y && m === today.m && d > today.d)
+  );
+}
+
+function monthShortLabels() {
+  const locale = getLang() === 'en' ? 'en-US' : 'es-ES';
+  return Array.from({ length: 12 }, (_, index) => {
+    const raw = new Intl.DateTimeFormat(locale, { month: 'short' }).format(
+      new Date(2020, index, 1),
+    );
+    const cleaned = raw.replace(/\.$/, '');
+    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  });
+}
+
+function monthLongLabel(month) {
+  const locale = getLang() === 'en' ? 'en-US' : 'es-ES';
+  const raw = new Intl.DateTimeFormat(locale, { month: 'long' }).format(
+    new Date(2020, month - 1, 1),
+  );
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+function formatBirthLabel(ymd) {
+  const parts = parseBirthYmd(ymd);
+  if (!parts) return ui('profileEditBirthChoose');
+  const locale = getLang() === 'en' ? 'en-US' : 'es-ES';
+  const raw = new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(parts.y, parts.m - 1, parts.d));
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+function decadeStart(year) {
+  const offset = Math.max(0, year - BIRTH_MIN_YEAR);
+  return BIRTH_MIN_YEAR + Math.floor(offset / 12) * 12;
+}
+
+function syncBirthPickerLabels() {
+  if (editBirthPrevBtn) {
+    editBirthPrevBtn.setAttribute('aria-label', ui('profileEditBirthPrev'));
+  }
+  if (editBirthNextBtn) {
+    editBirthNextBtn.setAttribute('aria-label', ui('profileEditBirthNext'));
+  }
+  if (editBirthNavLabel) {
+    editBirthNavLabel.setAttribute('aria-label', ui('profileEditBirthBack'));
+  }
+  if (editBirthPanel) {
+    editBirthPanel.setAttribute('aria-label', ui('profileEditBirthDate'));
+  }
+  syncBirthTriggerLabel();
+  if (birthPanelOpen) renderBirthPanel();
+}
+
+function syncBirthTriggerLabel() {
+  if (!editBirthTriggerLabel) {
+    editBirthTriggerLabel = document.getElementById(
+      'profile-edit-birth-trigger-label',
+    );
+  }
+  if (!editBirthTriggerLabel) return;
+  editBirthTriggerLabel.textContent = formatBirthLabel(birthDraftYmd);
+}
+
+function setBirthDateValue(ymd, { silent = false } = {}) {
+  const parts = parseBirthYmd(ymd);
+  let value = '';
+  if (
+    parts &&
+    parts.y >= BIRTH_MIN_YEAR &&
+    !isFutureBirthParts(parts.y, parts.m, parts.d)
+  ) {
+    const safeDay = Math.min(parts.d, daysInMonth(parts.y, parts.m));
+    value = `${parts.y}-${String(parts.m).padStart(2, '0')}-${String(safeDay).padStart(2, '0')}`;
+  }
+  birthDraftYmd = value;
+  if (!editBirthDate) {
+    editBirthDate = document.getElementById('profile-edit-birth-date');
+  }
+  if (editBirthDate) editBirthDate.value = value;
+  syncBirthTriggerLabel();
+  if (!silent) syncEditSaveEnabled();
+}
+
+function openBirthPanel() {
+  if (!editBirthPanel || !editBirthTrigger) return;
+  const selected = parseBirthYmd(birthDraftYmd || editBirthDate?.value);
+  const today = todayLocalParts();
+  birthPickerViewYear = selected?.y ?? today.y - 25;
+  birthPickerViewMonth = selected?.m ?? 1;
+  if (birthPickerViewYear < BIRTH_MIN_YEAR) birthPickerViewYear = BIRTH_MIN_YEAR;
+  if (birthPickerViewYear > today.y) birthPickerViewYear = today.y;
+  birthPickerStep = 'year';
+  birthPanelOpen = true;
+  editBirthPanel.hidden = false;
+  editBirthTrigger.setAttribute('aria-expanded', 'true');
+  renderBirthPanel();
+}
+
+function closeBirthPanel() {
+  birthPanelOpen = false;
+  if (editBirthPanel) editBirthPanel.hidden = true;
+  editBirthTrigger?.setAttribute('aria-expanded', 'false');
+}
+
+function onBirthNavPrev() {
+  if (birthPickerStep === 'year') {
+    birthPickerViewYear = Math.max(
+      BIRTH_MIN_YEAR,
+      decadeStart(birthPickerViewYear) - 12,
+    );
+  } else if (birthPickerStep === 'month') {
+    birthPickerViewYear = Math.max(BIRTH_MIN_YEAR, birthPickerViewYear - 1);
+  } else if (birthPickerStep === 'day') {
+    if (birthPickerViewMonth <= 1) {
+      if (birthPickerViewYear <= BIRTH_MIN_YEAR) return;
+      birthPickerViewYear -= 1;
+      birthPickerViewMonth = 12;
+    } else {
+      birthPickerViewMonth -= 1;
+    }
+  }
+  renderBirthPanel();
+}
+
+function onBirthNavNext() {
+  const today = todayLocalParts();
+  if (birthPickerStep === 'year') {
+    const next = decadeStart(birthPickerViewYear) + 12;
+    if (next > today.y) return;
+    birthPickerViewYear = next;
+  } else if (birthPickerStep === 'month') {
+    if (birthPickerViewYear >= today.y) return;
+    birthPickerViewYear += 1;
+  } else if (birthPickerStep === 'day') {
+    if (birthPickerViewMonth >= 12) {
+      if (birthPickerViewYear >= today.y) return;
+      birthPickerViewYear += 1;
+      birthPickerViewMonth = 1;
+    } else {
+      const nextMonth = birthPickerViewMonth + 1;
+      if (
+        birthPickerViewYear === today.y &&
+        nextMonth > today.m
+      ) {
+        return;
+      }
+      birthPickerViewMonth = nextMonth;
+    }
+  }
+  renderBirthPanel();
+}
+
+function onBirthNavLabelClick() {
+  if (birthPickerStep === 'day') {
+    birthPickerStep = 'month';
+    renderBirthPanel();
+    return;
+  }
+  if (birthPickerStep === 'month') {
+    birthPickerStep = 'year';
+    renderBirthPanel();
+  }
+}
+
+function onBirthGridClick(event) {
+  const btn = /** @type {HTMLButtonElement | null} */ (
+    event.target instanceof Element
+      ? event.target.closest('button[data-birth-value]')
+      : null
+  );
+  if (!btn || btn.disabled) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const raw = String(btn.dataset.birthValue || '');
+  if (birthPickerStep === 'year') {
+    birthPickerViewYear = Number(raw);
+    birthPickerStep = 'month';
+    renderBirthPanel();
+    return;
+  }
+  if (birthPickerStep === 'month') {
+    birthPickerViewMonth = Number(raw);
+    birthPickerStep = 'day';
+    renderBirthPanel();
+    return;
+  }
+  const day = Number(raw);
+  const y = birthPickerViewYear;
+  const m = birthPickerViewMonth;
+  if (!y || !m || !day) return;
+  setBirthDateValue(
+    `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+  );
+  closeBirthPanel();
+}
+
+function renderBirthPanel() {
+  if (!editBirthGrid || birthPickerViewYear == null) return;
+  const today = todayLocalParts();
+  const selected = parseBirthYmd(birthDraftYmd);
+  editBirthGrid.classList.toggle('is-days', birthPickerStep === 'day');
+  editBirthGrid.replaceChildren();
+
+  if (birthPickerStep === 'year') {
+    const start = decadeStart(birthPickerViewYear);
+    const end = start + 11;
+    if (editBirthNavLabel) {
+      editBirthNavLabel.textContent = `${start}–${end}`;
+      editBirthNavLabel.disabled = true;
+    }
+    if (editBirthPrevBtn) editBirthPrevBtn.disabled = start <= BIRTH_MIN_YEAR;
+    if (editBirthNextBtn) editBirthNextBtn.disabled = start + 12 > today.y;
+
+    for (let year = start; year <= end; year += 1) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'month-picker-month';
+      btn.dataset.birthValue = String(year);
+      btn.textContent = String(year);
+      btn.disabled = year < BIRTH_MIN_YEAR || year > today.y;
+      if (selected?.y === year) btn.classList.add('is-selected');
+      editBirthGrid.appendChild(btn);
+    }
+    return;
+  }
+
+  if (birthPickerStep === 'month') {
+    if (editBirthNavLabel) {
+      editBirthNavLabel.textContent = String(birthPickerViewYear);
+      editBirthNavLabel.disabled = false;
+    }
+    if (editBirthPrevBtn) {
+      editBirthPrevBtn.disabled = birthPickerViewYear <= BIRTH_MIN_YEAR;
+    }
+    if (editBirthNextBtn) {
+      editBirthNextBtn.disabled = birthPickerViewYear >= today.y;
+    }
+    monthShortLabels().forEach((label, index) => {
+      const month = index + 1;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'month-picker-month';
+      btn.dataset.birthValue = String(month);
+      btn.textContent = label;
+      btn.disabled =
+        birthPickerViewYear > today.y ||
+        (birthPickerViewYear === today.y && month > today.m);
+      if (selected?.y === birthPickerViewYear && selected?.m === month) {
+        btn.classList.add('is-selected');
+      }
+      editBirthGrid.appendChild(btn);
+    });
+    return;
+  }
+
+  if (editBirthNavLabel) {
+    editBirthNavLabel.textContent = `${monthLongLabel(birthPickerViewMonth)} ${birthPickerViewYear}`;
+    editBirthNavLabel.disabled = false;
+  }
+  const canPrevMonth =
+    birthPickerViewYear > BIRTH_MIN_YEAR || birthPickerViewMonth > 1;
+  const canNextMonth =
+    birthPickerViewYear < today.y ||
+    (birthPickerViewYear === today.y && birthPickerViewMonth < today.m);
+  if (editBirthPrevBtn) editBirthPrevBtn.disabled = !canPrevMonth;
+  if (editBirthNextBtn) editBirthNextBtn.disabled = !canNextMonth;
+
+  const maxDay = daysInMonth(birthPickerViewYear, birthPickerViewMonth);
+  for (let day = 1; day <= maxDay; day += 1) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'month-picker-month';
+    btn.dataset.birthValue = String(day);
+    btn.textContent = String(day);
+    btn.disabled = isFutureBirthParts(
+      birthPickerViewYear,
+      birthPickerViewMonth,
+      day,
+    );
+    if (
+      selected?.y === birthPickerViewYear &&
+      selected?.m === birthPickerViewMonth &&
+      selected?.d === day
+    ) {
+      btn.classList.add('is-selected');
+    }
+    editBirthGrid.appendChild(btn);
+  }
+}
+
 function buildEditPayload() {
   const user = getUser();
   if (!user) return { error: ui('profileEditError') };
@@ -913,8 +1301,8 @@ function buildEditPayload() {
       : null;
   if (nextHeight !== currentHeight) profilePatch.heightCm = nextHeight;
 
-  const nextBirth = String(editBirthDate?.value || '').trim() || null;
-  const currentBirth = String(profile.birthDate || '').slice(0, 10) || null;
+  const nextBirth = normalizeBirthDate(birthDraftYmd) || null;
+  const currentBirth = normalizeBirthDate(profile.birthDate) || null;
   if (nextBirth !== currentBirth) profilePatch.birthDate = nextBirth;
 
   const nextSex = String(editSex?.value || '').trim() || null;
@@ -932,8 +1320,9 @@ function buildEditPayload() {
   const currentPassword = String(editCurrentPassword?.value || '');
   const newPassword = String(editNewPassword?.value || '');
   const confirmNewPassword = String(editConfirmPassword?.value || '');
-  const passwordTouched =
-    Boolean(currentPassword) || Boolean(newPassword) || Boolean(confirmNewPassword);
+  // Ignore autofilled currentPassword alone — password change only when
+  // new and/or confirm are filled.
+  const passwordTouched = Boolean(newPassword) || Boolean(confirmNewPassword);
 
   if (passwordTouched) {
     if (!currentPassword || !newPassword || !confirmNewPassword) {
@@ -980,8 +1369,8 @@ function syncEditSaveEnabled() {
       : null;
   const heightChanged = Boolean(user) && nextHeight !== currentHeight;
 
-  const nextBirth = String(editBirthDate?.value || '').trim() || null;
-  const currentBirth = String(profile.birthDate || '').slice(0, 10) || null;
+  const nextBirth = normalizeBirthDate(birthDraftYmd) || null;
+  const currentBirth = normalizeBirthDate(profile.birthDate) || null;
   const birthChanged = Boolean(user) && nextBirth !== currentBirth;
 
   const nextSex = String(editSex?.value || '').trim() || null;
@@ -990,10 +1379,8 @@ function syncEditSaveEnabled() {
   const nextGoal = String(editGoal?.value || '').trim() || null;
   const goalChanged = Boolean(user) && nextGoal !== (user.goal || null);
 
-  const passwordAny =
-    Boolean(editCurrentPassword?.value) ||
-    Boolean(editNewPassword?.value) ||
-    Boolean(editConfirmPassword?.value);
+  const passwordIntent =
+    Boolean(editNewPassword?.value) || Boolean(editConfirmPassword?.value);
 
   editSaveBtn.disabled = !(
     nameChanged ||
@@ -1001,7 +1388,7 @@ function syncEditSaveEnabled() {
     birthChanged ||
     sexChanged ||
     goalChanged ||
-    passwordAny
+    passwordIntent
   );
 }
 
@@ -1042,9 +1429,9 @@ function clearCurrentPasswordError() {
   }
 }
 
-async function onEditSubmit(e) {
-  e.preventDefault();
+async function saveProfileEdits() {
   if (editBusy) return;
+  if (editSaveBtn?.disabled) return;
 
   clearCurrentPasswordError();
   const { body, error } = buildEditPayload();
@@ -1274,9 +1661,9 @@ function ageFromBirthDate(birthDate) {
   const month = Number(match[2]);
   const day = Number(match[3]);
   const today = new Date();
-  let age = today.getUTCFullYear() - year;
-  const m = today.getUTCMonth() + 1 - month;
-  if (m < 0 || (m === 0 && today.getUTCDate() < day)) age -= 1;
+  let age = today.getFullYear() - year;
+  const m = today.getMonth() + 1 - month;
+  if (m < 0 || (m === 0 && today.getDate() < day)) age -= 1;
   return age >= 0 && age < 130 ? age : null;
 }
 

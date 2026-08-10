@@ -450,7 +450,7 @@
               Actualiza nombre, datos opcionales del cuerpo y / o contraseña. Guarda con al menos un cambio.
             </p>
           </div>
-          <form class="profile-edit-form" id="profile-edit-form">
+          <form class="profile-edit-form" id="profile-edit-form" novalidate>
             <div class="profile-edit-grid">
               <label class="profile-edit-field">
                 <span class="profile-edit-label" data-ui="profileEditFirstName">Nombre</span>
@@ -484,10 +484,40 @@
                 <input type="hidden" id="profile-edit-height" name="heightCm" value="" />
                 <button type="button" class="height-stepper-clear" id="profile-edit-height-clear" data-ui="profileEditOptionalEmpty">Sin especificar</button>
               </div>
-              <label class="profile-edit-field">
-                <span class="profile-edit-label" data-ui="profileEditBirthDate">Fecha de nacimiento</span>
-                <input type="date" id="profile-edit-birth-date" name="birthDate" />
-              </label>
+              <div class="profile-edit-field profile-edit-field--birth">
+                <span class="profile-edit-label" id="profile-edit-birth-label" data-ui="profileEditBirthDate">Fecha de nacimiento</span>
+                <div class="month-picker birth-picker" id="profile-edit-birth-picker">
+                  <input type="hidden" id="profile-edit-birth-date" value="" />
+                  <button
+                    type="button"
+                    class="month-picker-trigger"
+                    id="profile-edit-birth-trigger"
+                    aria-haspopup="dialog"
+                    aria-expanded="false"
+                    aria-controls="profile-edit-birth-panel"
+                    aria-labelledby="profile-edit-birth-label"
+                  >
+                    <span class="month-picker-trigger-label" id="profile-edit-birth-trigger-label" data-ui="profileEditBirthChoose">Elegir fecha</span>
+                    <span class="month-picker-trigger-ico" aria-hidden="true">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                    </span>
+                  </button>
+                  <div
+                    class="month-picker-panel birth-picker-panel"
+                    id="profile-edit-birth-panel"
+                    role="dialog"
+                    aria-label="Date of birth"
+                    hidden
+                  >
+                    <div class="month-picker-year">
+                      <button type="button" class="month-picker-year-btn" id="profile-edit-birth-prev" aria-label="Previous">‹</button>
+                      <button type="button" class="birth-picker-nav-label" id="profile-edit-birth-nav-label"></button>
+                      <button type="button" class="month-picker-year-btn" id="profile-edit-birth-next" aria-label="Next">›</button>
+                    </div>
+                    <div class="month-picker-grid birth-picker-grid" id="profile-edit-birth-grid"></div>
+                  </div>
+                </div>
+              </div>
               <label class="profile-edit-field">
                 <span class="profile-edit-label" data-ui="profileEditSex">Sexo</span>
                 <select id="profile-edit-sex" name="sex">
@@ -514,7 +544,7 @@
               <div class="profile-edit-grid profile-edit-grid--password">
                 <label class="profile-edit-field" id="profile-edit-current-password-field">
                   <span class="profile-edit-label" data-ui="profileEditCurrentPassword">Contraseña actual</span>
-                  <input type="password" id="profile-edit-current-password" name="currentPassword" autocomplete="current-password" />
+                  <input type="password" id="profile-edit-current-password" name="currentPassword" autocomplete="off" />
                 </label>
                 <label class="profile-edit-field">
                   <span class="profile-edit-label" data-ui="profileEditNewPassword">Nueva contraseña</span>
@@ -529,7 +559,7 @@
             <p class="profile-edit-status" id="profile-edit-status" hidden></p>
             <div class="profile-edit-actions">
               <button type="button" class="profile-edit-cancel" id="profile-edit-cancel" data-ui="profileEditCancel">Cancelar</button>
-              <button type="submit" class="profile-edit-save" id="profile-edit-save" disabled data-ui="profileEditSave">Guardar</button>
+              <button type="button" class="profile-edit-save" id="profile-edit-save" disabled data-ui="profileEditSave">Guardar</button>
             </div>
           </form>
         </section>
