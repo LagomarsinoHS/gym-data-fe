@@ -54,6 +54,8 @@ Plataforma de entrenamiento que une un **catálogo profesional de ejercicios**, 
 ### Perfil y cuenta
 - Registro / login
 - Foto de perfil, nombre y cambio de contraseña
+- Datos corporales opcionales (estatura, sexo, fecha de nacimiento, objetivo)
+- Vista de perfil en dos columnas (identidad + información personal) con edición in-place
 - Plan de suscripción visible (Free / Premium)
 - Baja de cuenta (con confirmación)
 
@@ -68,7 +70,9 @@ Plataforma de entrenamiento que une un **catálogo profesional de ejercicios**, 
 ### Mis alumnos
 - Invitá atletas por email (con cupo según tu plan)
 - Buscá y ordená tu roster
+- Ves el **objetivo** del atleta al abrir su ficha
 - Armá planes por **sesiones** (ej. Lunes, Sesión 1): ejercicios + series/reps/descanso/notas
+- Reordená sesiones y ejercicios arrastrando las cards
 - Guardá y actualizá el plan completo del alumno
 - Exportá planes a **Excel** o **PDF** (uno o varios alumnos; varios → ZIP)
 - Acceso rápido a los **avances** de cada alumno

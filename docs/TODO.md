@@ -49,11 +49,12 @@ coachTrainingProgram: {
 - [x] Export Excel binary (`POST .../training-program/export`)
 - [x] Export PDF (`format: pdf` on same export endpoint; UI toolbar + por alumno)
 - [x] Mis alumnos: ordenar sin/con pauta (client-side)
+- [x] Mis alumnos: pill **Objetivo** al expandir la ficha (derecha de Nombre)
 - [x] Panel: historial invites filtrable (`GET /users/coach/invites`)
 - [x] Panel invites: al filtrar → vaciar lista → spinner → pintar data (sin dejar filas viejas)
 - [x] Cupo coach: deshabilitar Invitar si `coachQuota.canInvite === false`; errores por `ApiErrorCode`
 - [x] Accept invite con coach al límite: flash del mensaje localizado; pending canceladas en BE
-- [ ] Reordenar ejercicios / sesiones
+- [x] Reordenar ejercicios / sesiones (drag & drop de la card; click abre/cierra sesión; sin flash de re-render)
 - [ ] Duplicar sesión o copiar a otro atleta
 - [ ] Plantillas reutilizables (`coach-templates`)
 - [ ] (Opc.) UI upsell cuando el cupo está lleno (growth/pro)
@@ -77,8 +78,9 @@ Menú de usuario en sidebar (iniciales o foto + nombre corto + dropdown).
 **Mi perfil** habilitado. **Configuración** sigue deshabilitada (tooltip “Próximamente”).
 
 - [x] **Mi perfil** — lectura (`/users/me`) + acciones “Pronto”; ítem de menú habilitado
-- [x] **Mi perfil → editar perfil** — sección inline (nombre/apellido + body stats + goal + contraseña) → `PATCH /users/me` (`profile` / `goal`); sin modal; cierra al guardar OK
-- [x] **Mi perfil → datos corporales opcionales** — estatura, sexo, fecha nac., objetivo en editar perfil + facts; register sigue básico
+- [x] **Mi perfil → editar perfil** — panel derecho del header en modo formulario (nombre/apellido + body stats + goal + contraseña) → `PATCH /users/me`; cierra al guardar OK
+- [x] **Mi perfil → datos corporales opcionales** — estatura, sexo, fecha nac., objetivo en editar perfil + info personal del header; register sigue básico
+- [x] **Mi perfil → header split** — identidad (foto/badges/coach) + información personal + metrics peso/estatura
 - [x] **Mi perfil → darse de baja** — modal pide email → `DELETE /users/me` → cierra sesión (soft-delete; **no** limpia vínculo coach en BD — ver BE TODO)
 - [x] **Mi perfil → foto de perfil** — click en avatar → Ver foto / Subir foto (`POST /users/me/profile-photo`); Cloudinary `gym-app/profiles/{userId}/profilePhoto`
 - [ ] **Mi perfil → acciones** — cablear: notificaciones, privacidad, **dejar coach** (unlink ≠ baja de cuenta), billing, export, etc.
@@ -127,9 +129,9 @@ Acuerdo con BE: 2 fotos/mes (`front` + `back`) + `weightKg`, historial por `year
 - [x] Preview al elegir archivo; Guardar gated; caption mes + month-picker (backfill)
 - [x] Lightbox compartido + descarga + nav de galería en comparar
 - [ ] (Opc.) UI atleta/coach para `DELETE /users/me/progress-photos` (API ya existe; hoy se reemplaza al volver a guardar)
-- [ ] **Analizar progreso** (IA): en la comparación de **2 meses**, botón “Analizar progreso” que envía las 2 fotos (frente y/o espalda del par) a un endpoint/IA y muestra un resumen de diferencias visuales (grasa, postura, tamaño, etc.). Requiere diseño BE (quién llama al modelo, auth, costos) + UI de loading/resultado en FE.
+- [x] **Analizar progreso** (IA): comparación de 2 meses → resumen vía API
 
-> BE: POST (`yearMonth?`) / DELETE / GET + weight listos. FE: upload + backfill + timeline/comparar coach/atleta listos; DELETE sin UI; Analizar progreso pendiente.
+> BE: POST (`yearMonth?`) / DELETE / GET + weight listos. FE: upload + backfill + timeline/comparar + Analizar progreso listos; DELETE sin UI.
 ---
 
 ## Nutrición — pauta alimenticia (coach → atleta)

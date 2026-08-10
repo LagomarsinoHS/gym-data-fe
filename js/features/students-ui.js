@@ -654,7 +654,7 @@ function syncLoadMoreBtn() {
   if (label) label.textContent = ui('studentsLoadMore');
 }
 
-function createDetail(label, value) {
+function createDetail(label, value, { trailing = null } = {}) {
   const row = document.createElement('div');
   row.className = 'student-row-detail';
 
@@ -662,11 +662,17 @@ function createDetail(label, value) {
   labelEl.className = 'student-row-detail-label';
   labelEl.textContent = label;
 
+  const valueWrap = document.createElement('span');
+  valueWrap.className = 'student-row-detail-value-wrap';
+
   const valueEl = document.createElement('span');
   valueEl.className = 'student-row-detail-value';
   valueEl.textContent = value;
+  valueWrap.append(valueEl);
 
-  row.append(labelEl, valueEl);
+  if (trailing) valueWrap.append(trailing);
+
+  row.append(labelEl, valueWrap);
   return row;
 }
 
@@ -765,12 +771,11 @@ function createStudentRow(athlete) {
     createAthleteDownloadMenu(id),
   );
 
-  body.append(
-    createDetail(ui('firstName'), first || '—'),
-    createDetail(ui('lastName'), last || '—'),
-    emailLine,
-    createAthletePlan(athlete),
-  );
+  body.append(createDetail(ui('firstName'), first || '—', {
+    trailing: createGoalPill(athlete?.goal),
+  }));
+  body.append(createDetail(ui('lastName'), last || '—'));
+  body.append(emailLine, createAthletePlan(athlete));
 
   header.addEventListener('click', () => toggleStudentRow(row));
   row.append(header, body);
@@ -864,4 +869,38 @@ function closeStudentRow(row) {
     store.openAthleteId = null;
     store.openSessionId = null;
   }
+}
+
+function formatAthleteGoal(goal) {
+  switch (String(goal || '')) {
+    case 'strength':
+      return ui('profileGoalStrength');
+    case 'hypertrophy':
+      return ui('profileGoalHypertrophy');
+    case 'fat_loss':
+      return ui('profileGoalFatLoss');
+    case 'general':
+      return ui('profileGoalGeneral');
+    default:
+      return '';
+  }
+}
+
+function createGoalPill(goal) {
+  const goalLabel = formatAthleteGoal(goal);
+  if (!goalLabel) return null;
+
+  const group = document.createElement('span');
+  group.className = 'student-row-goal';
+
+  const lab = document.createElement('span');
+  lab.className = 'student-row-goal-label';
+  lab.textContent = ui('profileGoal');
+
+  const pill = document.createElement('span');
+  pill.className = 'student-row-goal-pill';
+  pill.textContent = goalLabel;
+
+  group.append(lab, pill);
+  return group;
 }

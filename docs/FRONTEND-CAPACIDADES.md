@@ -39,7 +39,7 @@ Si el boot falla → mensaje de error en el contador de resultados.
 - Overlay auth: backdrop / Escape cierran; errores mapeados (401, 409, etc.).
 - Password min 6; autocomplete distinto login vs register.
 - **Menú de cuenta** (`session-ui.js` / `#sidebar-user`): avatar con iniciales, nombre corto (`Humberto L`), badge de rol, chevron → dropdown.
-  - **Mi perfil**: activo → vista `#profile-view`. Avatar clickeable → Ver/Subir foto. **Editar perfil** abre sección inline (nombre, apellido, contraseña) + Guardar → `PATCH /users/me`. **Darse de baja** modal email → `DELETE /users/me`. Al entrar, `refreshUser()`.
+  - **Mi perfil**: activo → vista `#profile-view`. Header split (identidad azul + información personal) con botón **Editar** en el panel derecho: el formulario reemplaza el contenido derecho in-place (nombre, body stats, goal, contraseña) → `PATCH /users/me`. Avatar → Ver/Subir foto. **Darse de baja** modal email → `DELETE /users/me`. Al entrar, `refreshUser()`.
   - **Configuración**: visible pero `disabled` (tooltip “Próximamente”).
   - **Cerrar sesión**: activo (rojo).
   - Cierra con click afuera o Escape.
@@ -65,8 +65,8 @@ Si el boot falla → mensaje de error en el contador de resultados.
 | `students` | Mis alumnos (`students-ui` + cupo `coachQuota.canInvite` + `coach-sessions-ui` + `students-download-ui` + store) |
 | `avances` | Coach: lista de alumnos → abrir fotos de progreso |
 | `progress-photos` | Coach: timeline + comparar fotos de un alumno (lightbox) |
-| `session-editor` | Editor de una sesión del atleta (coach) |
-| `profile` | Mi perfil (foto, editar inline, darse de baja; resto “Pronto”) |
+| `session-editor` | Editor de una sesión del atleta (coach; drag para reordenar ejercicios) |
+| `profile` | Mi perfil (header split, editar in-place, foto, darse de baja; resto “Pronto”) |
 
 - Post-login: coach/admin → `coach-panel`; athlete → `training`.
 - Recomendar: nav locked + tooltip si no es Pro.
@@ -195,8 +195,12 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
   - Varios alumnos → ZIP. Layout: sesiones en un archivo, bloques por categoría, total de series.
 - Loading spinner al primer fetch; empty / sin resultados sin flash raro.
 - Lista → `GET /users/coach/athletes` (paginado 5 + Cargar más); cache en memoria.
-- Acordeón alumno → info + plan; **Agregar sesión** (modal nombre, local).
+- Acordeón alumno → info + plan; al expandir: **Objetivo** en pill verde a la derecha de Nombre (si el atleta tiene `goal`).
+- **Agregar sesión** (modal nombre, local).
 - Sub-acordeón sesión → mini-cards (thumb, nombre, pauta) + Editar sesión.
+- **Reordenar**: drag & drop de la card completa.
+  - Sesiones en Mis alumnos: click abre/cierra; arrastrar reordena (sin re-render flash; dirty + Guardar plan).
+  - Ejercicios en `session-editor`: arrastrar la card; Editar / ✕ siguen activos.
 - Vista `session-editor`: cards, Editar / ✕, Agregar ejercicios; modal confirmar quitar sesión.
 - Catálogo en modo asignar: banner + “Agregar a la sesión” + lápiz pauta (local); guardar vuelve al editor.
 - Sesiones en `athlete.coachTrainingProgram`; **Guardar plan** → `PUT /users/coach/athletes/:id/training-program` (replace; respuesta enriquecida).
@@ -213,6 +217,7 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 - Vista `progress-photos` (`progress-photos-ui`): back a Avances o Mis alumnos; card alumno (nombre, correo, peso actual — en comparar, chip compacto).
 - Timeline cronológico (meses con foto/peso, más reciente arriba); cards usan thumb Cloudinary (`c_fit,w_480,h_640,q_auto,f_auto`); lightbox/descarga usan la URL original de Mongo.
 - **Comparar**: elegir ≥2 meses → **2 meses** lado a lado con tabs Frente/Espalda; **3+** doble carrusel (wrap). Δ peso entre el más viejo y el más nuevo.
+- Con **2 meses**: botón **Analizar progreso** (Growth/Pro) → `POST` análisis IA; loading + resumen en UI.
 - `GET /users/:userId/progress-photos` → `{ currentWeightKg, years[] }` (un fetch; sin paginación de API).
 
 ### Atleta

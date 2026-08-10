@@ -25,6 +25,9 @@ const ICON_CLOSE_SVG = `
   </svg>
 `;
 
+/** @type {{ kind: 'session' | 'exercise', athleteId: string, sessionId?: string, id: string } | null} */
+let activeDrag = null;
+
 let sessionOverlay;
 let sessionForm;
 let sessionNameInput;
@@ -313,15 +316,17 @@ function createSessionRow(session, athleteId) {
   const items = Array.isArray(session?.items) ? session.items : [];
 
   const row = document.createElement('div');
-  row.className = 'student-session';
+  row.className = 'student-session is-draggable';
   if (id) row.dataset.sessionId = id;
+  row.title = ui('sessionDragHandle');
 
   const top = document.createElement('div');
   top.className = 'student-session-top';
 
-  const header = document.createElement('button');
-  header.type = 'button';
+  const header = document.createElement('div');
   header.className = 'student-session-header';
+  header.setAttribute('role', 'button');
+  header.tabIndex = 0;
   header.setAttribute('aria-expanded', 'false');
 
   const nameEl = document.createElement('span');
@@ -381,12 +386,32 @@ function createSessionRow(session, athleteId) {
   actions.append(editBtn);
   body.append(actions);
 
-  header.addEventListener('click', e => {
+  const onToggle = e => {
     e.stopPropagation();
+    if (row.dataset.suppressClick === '1') {
+      delete row.dataset.suppressClick;
+      return;
+    }
     toggleSessionRow(row);
+  };
+  header.addEventListener('click', onToggle);
+  header.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    onToggle(e);
   });
 
   row.append(top, body);
+  wireCardDrag(row, {
+    kind: 'session',
+    athleteId: String(athleteId),
+    id,
+    itemSelector: '.student-session',
+    ignoreSelector: '.student-session-remove, .student-session-edit, .student-session-actions button',
+    onDragStart: () => {
+      row.dataset.suppressClick = '1';
+    },
+  });
 
   if (store.openSessionId && store.openSessionId === id) openSessionRow(row);
 
@@ -551,8 +576,9 @@ function createEditorItem(item, athleteId, sessionId) {
   const name = exerciseName(ex) || id || '—';
 
   const row = document.createElement('article');
-  row.className = 'session-editor-item';
+  row.className = 'session-editor-item is-draggable';
   if (id) row.dataset.id = id;
+  row.title = ui('sessionExerciseDragHandle');
 
   const media = createExerciseMedia(ex, name, {
     mediaClass: 'session-editor-item-media',
@@ -581,7 +607,8 @@ function createEditorItem(item, athleteId, sessionId) {
   editBtn.type = 'button';
   editBtn.className = 'session-editor-item-edit';
   editBtn.textContent = ui('sessionEditExercise');
-  editBtn.addEventListener('click', () => {
+  editBtn.addEventListener('click', e => {
+    e.stopPropagation();
     editSessionExercise(athleteId, sessionId, id);
   });
 
@@ -591,12 +618,21 @@ function createEditorItem(item, athleteId, sessionId) {
   removeBtn.setAttribute('aria-label', ui('sessionRemoveExercise'));
   removeBtn.title = ui('sessionRemoveExercise');
   removeBtn.innerHTML = ICON_CLOSE_SVG;
-  removeBtn.addEventListener('click', () => {
+  removeBtn.addEventListener('click', e => {
+    e.stopPropagation();
     removeExerciseFromSession(athleteId, sessionId, id);
   });
 
   actions.append(editBtn, removeBtn);
   row.append(media, main, actions);
+  wireCardDrag(row, {
+    kind: 'exercise',
+    athleteId: String(athleteId),
+    sessionId: String(sessionId),
+    id,
+    itemSelector: '.session-editor-item',
+    ignoreSelector: 'button, a, input, select, textarea',
+  });
   return row;
 }
 
@@ -773,6 +809,192 @@ export function removeExerciseFromSession(athleteId, sessionId, exerciseId) {
   return true;
 }
 
+/** Local reorder — persists with Guardar plan (full PUT replace). */
+export function moveSessionToIndex(athleteId, sessionId, toIndex) {
+  const athlete = findAthlete(athleteId);
+  if (!athlete) return false;
+
+  const sessions = ensureAthleteSessions(athlete);
+  const sorted = [...sessions].sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0));
+  const from = sorted.findIndex(s => String(s?.id) === String(sessionId));
+  if (from < 0) return false;
+
+  const clamped = Math.max(0, Math.min(sorted.length - 1, Number(toIndex)));
+  if (!Number.isInteger(clamped) || clamped === from) return false;
+
+  const [session] = sorted.splice(from, 1);
+  sorted.splice(clamped, 0, session);
+  sorted.forEach((s, i) => { s.order = i; });
+  athlete.coachTrainingProgram = sorted;
+
+  markAthleteDirty(athleteId);
+  reorderSessionRowsInDom(athleteId);
+  syncPlanDirtyChrome(athleteId);
+  return true;
+}
+
+/** Local reorder within a session — persists with Guardar plan. */
+export function moveSessionExerciseToIndex(athleteId, sessionId, exerciseId, toIndex) {
+  const session = findSession(athleteId, sessionId);
+  if (!session) return false;
+
+  const items = Array.isArray(session.items) ? session.items : [];
+  const sorted = [...items].sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0));
+  const key = String(exerciseId || '');
+  const from = sorted.findIndex(
+    item => String(item.exercise?.id || item.exerciseId) === key,
+  );
+  if (from < 0) return false;
+
+  const clamped = Math.max(0, Math.min(sorted.length - 1, Number(toIndex)));
+  if (!Number.isInteger(clamped) || clamped === from) return false;
+
+  const [item] = sorted.splice(from, 1);
+  sorted.splice(clamped, 0, item);
+  sorted.forEach((entry, i) => { entry.order = i; });
+  session.items = sorted;
+
+  markAthleteDirty(athleteId);
+  reorderExerciseRowsInDom(sessionId);
+  syncPlanDirtyChrome(athleteId);
+  return true;
+}
+
+/**
+ * Whole-card drag. Ignores interactive targets; optional onDragStart for click suppress.
+ * @param {HTMLElement} row
+ * @param {{ kind: 'session' | 'exercise', athleteId: string, sessionId?: string, id: string, itemSelector: string, ignoreSelector?: string, onDragStart?: () => void }} meta
+ */
+function wireCardDrag(row, meta) {
+  const ignoreSelector = meta.ignoreSelector || 'button, a, input, select, textarea';
+
+  row.addEventListener('pointerdown', e => {
+    if (e.button != null && e.button !== 0) return;
+    const target = /** @type {Element | null} */ (e.target);
+    if (target?.closest?.(ignoreSelector)) {
+      row.draggable = false;
+      return;
+    }
+    row.draggable = true;
+  });
+
+  const clearDraggable = () => {
+    if (!activeDrag) row.draggable = false;
+  };
+  row.addEventListener('pointerup', clearDraggable);
+  row.addEventListener('pointercancel', clearDraggable);
+
+  wireSharedDragEvents(row, meta);
+}
+
+/**
+ * @param {HTMLElement} row
+ * @param {{ kind: 'session' | 'exercise', athleteId: string, sessionId?: string, id: string, itemSelector: string, onDragStart?: () => void }} meta
+ */
+function wireSharedDragEvents(row, meta) {
+  row.addEventListener('dragstart', e => {
+    if (!row.draggable) {
+      e.preventDefault();
+      return;
+    }
+    activeDrag = {
+      kind: meta.kind,
+      athleteId: meta.athleteId,
+      sessionId: meta.sessionId,
+      id: meta.id,
+    };
+    row.classList.add('is-dragging');
+    meta.onDragStart?.();
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', meta.id);
+    try {
+      e.dataTransfer.setDragImage(row, 40, 24);
+    } catch {
+      /* some browsers reject custom drag image */
+    }
+  });
+
+  row.addEventListener('dragend', () => {
+    row.draggable = false;
+    row.classList.remove('is-dragging');
+    clearDropMarkers(row.parentElement, meta.itemSelector);
+    activeDrag = null;
+  });
+
+  row.addEventListener('dragover', e => {
+    if (!activeDrag || activeDrag.kind !== meta.kind) return;
+    if (activeDrag.athleteId !== meta.athleteId) return;
+    if (meta.kind === 'exercise' && activeDrag.sessionId !== meta.sessionId) return;
+    if (activeDrag.id === meta.id) return;
+
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+
+    const rect = row.getBoundingClientRect();
+    const before = e.clientY < rect.top + rect.height / 2;
+    row.classList.toggle('is-drop-before', before);
+    row.classList.toggle('is-drop-after', !before);
+
+    const parent = row.parentElement;
+    if (!parent) return;
+    parent.querySelectorAll(meta.itemSelector).forEach(el => {
+      if (el === row) return;
+      el.classList.remove('is-drop-before', 'is-drop-after');
+    });
+  });
+
+  row.addEventListener('dragleave', e => {
+    if (row.contains(/** @type {Node} */ (e.relatedTarget))) return;
+    row.classList.remove('is-drop-before', 'is-drop-after');
+  });
+
+  row.addEventListener('drop', e => {
+    if (!activeDrag || activeDrag.kind !== meta.kind) return;
+    if (activeDrag.athleteId !== meta.athleteId) return;
+    if (meta.kind === 'exercise' && activeDrag.sessionId !== meta.sessionId) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const parent = row.parentElement;
+    const siblings = parent
+      ? [...parent.querySelectorAll(meta.itemSelector)]
+      : [];
+    const targetIndex = siblings.indexOf(row);
+    if (targetIndex < 0) return;
+
+    const before = row.classList.contains('is-drop-before');
+    let toIndex = before ? targetIndex : targetIndex + 1;
+
+    const fromIndex = siblings.findIndex(el => {
+      if (meta.kind === 'session') {
+        return String(el.dataset.sessionId || '') === activeDrag.id;
+      }
+      return String(el.dataset.id || '') === activeDrag.id;
+    });
+    if (fromIndex >= 0 && fromIndex < toIndex) toIndex -= 1;
+
+    clearDropMarkers(parent, meta.itemSelector);
+
+    if (meta.kind === 'session') {
+      moveSessionToIndex(activeDrag.athleteId, activeDrag.id, toIndex);
+    } else {
+      moveSessionExerciseToIndex(
+        activeDrag.athleteId,
+        activeDrag.sessionId,
+        activeDrag.id,
+        toIndex,
+      );
+    }
+  });
+}
+
+function clearDropMarkers(parent, itemSelector) {
+  parent?.querySelectorAll(itemSelector).forEach(el => {
+    el.classList.remove('is-drop-before', 'is-drop-after', 'is-dragging');
+  });
+}
+
 /** Local remove — persists with Guardar plan (full PUT replace). */
 export function removeSessionFromAthlete(athleteId, sessionId) {
   const athlete = findAthlete(athleteId);
@@ -889,6 +1111,84 @@ function touchPlanUi(athleteId) {
   markAthleteDirty(athleteId);
   syncSessionEditorView();
   store.refreshList();
+}
+
+/** Move existing session cards in place (avoids accordion flash). */
+function reorderSessionRowsInDom(athleteId) {
+  const athlete = findAthlete(athleteId);
+  const list = document.querySelector(
+    `#students-list .student-row[data-id="${cssEscape(athleteId)}"] .student-session-list`,
+  );
+  if (!athlete || !list) return false;
+
+  for (const session of getAthleteSessions(athlete)) {
+    const el = list.querySelector(
+      `.student-session[data-session-id="${cssEscape(session?.id)}"]`,
+    );
+    if (el) list.appendChild(el);
+  }
+  return true;
+}
+
+/** Move existing exercise cards in the session editor list. */
+function reorderExerciseRowsInDom(sessionId) {
+  const session = findSession(store.editorAthleteId, sessionId);
+  const list = document.getElementById('session-editor-list');
+  if (!session || !list) return false;
+
+  const items = [...(session.items || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  for (const item of items) {
+    const id = String(item.exercise?.id || item.exerciseId || '');
+    if (!id) continue;
+    const el = list.querySelector(`.session-editor-item[data-id="${cssEscape(id)}"]`);
+    if (el) list.appendChild(el);
+  }
+  return true;
+}
+
+/** Dirty chip + save bar without rebuilding session cards. */
+function syncPlanDirtyChrome(athleteId) {
+  const id = String(athleteId || '');
+  const plan = document.querySelector(
+    `#students-list .student-row[data-id="${cssEscape(id)}"] .student-plan`,
+  );
+  if (!plan) return;
+
+  const headActions = plan.querySelector('.student-plan-head-actions');
+  if (headActions) {
+    let dirty = headActions.querySelector('.student-plan-dirty');
+    if (isAthleteDirty(id)) {
+      if (!dirty) {
+        dirty = document.createElement('span');
+        dirty.className = 'student-plan-dirty';
+        dirty.textContent = ui('athletePlanUnsaved');
+        headActions.prepend(dirty);
+      }
+    } else {
+      dirty?.remove();
+    }
+  }
+
+  const needBar =
+    isAthleteDirty(id)
+    || store.savingAthleteIds.has(id)
+    || store.saveErrorByAthleteId.has(id);
+  const saveBar = plan.querySelector('.student-plan-save-bar');
+  if (needBar) {
+    const next = createPlanSaveBar(id);
+    if (saveBar) saveBar.replaceWith(next);
+    else plan.append(next);
+  } else {
+    saveBar?.remove();
+  }
+}
+
+function cssEscape(value) {
+  const text = String(value ?? '');
+  if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
+    return CSS.escape(text);
+  }
+  return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
 function createExerciseMedia(ex, name, { mediaClass, thumbClass }) {
