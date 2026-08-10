@@ -1,4 +1,4 @@
-const TOKEN_KEY = 'FLEX_TOKEN';
+const TOKEN_KEY = 'steelPulse.token';
 
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);

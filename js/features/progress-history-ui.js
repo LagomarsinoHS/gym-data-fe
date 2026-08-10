@@ -17,6 +17,14 @@ export function formatWeight(weight) {
   return text || '—';
 }
 
+/** @returns {string | null} */
+export function formatHeightCm(heightCm) {
+  if (heightCm == null || heightCm === '') return null;
+  const n = Number(heightCm);
+  if (!Number.isFinite(n)) return null;
+  return `${Math.round(n)} cm`;
+}
+
 export function flattenTimelineMonths(payload) {
   /** @type {Array<{ yearMonth: string, month: number, year?: number, weightKg?: number | null, front: any, back: any }>} */
   const entries = [];
@@ -405,18 +413,8 @@ export function createProgressHistoryRenderer(opts = {}) {
     } else {
       const oldest = months[months.length - 1];
       const newest = months[0];
-      const delta = formatWeightDelta(oldest?.weightKg, newest?.weightKg);
-      if (delta) {
-        const deltaRow = document.createElement('div');
-        deltaRow.className = 'progress-photos-compare-delta';
-        const label = document.createElement('span');
-        label.textContent = ui('progressPhotosCompareWeightChange');
-        const value = document.createElement('span');
-        value.className = 'progress-photos-compare-delta-value';
-        value.textContent = delta;
-        deltaRow.append(label, value);
-        panel.append(deltaRow);
-      }
+      const metrics = createCompareMetrics(oldest?.weightKg, newest?.weightKg);
+      if (metrics) panel.append(metrics);
       panel.append(
         createCompareCarousel(ui('progressPhotosFront'), months, 'front'),
         createCompareCarousel(ui('progressPhotosBackSide'), months, 'back'),
@@ -424,6 +422,54 @@ export function createProgressHistoryRenderer(opts = {}) {
     }
 
     return panel;
+  }
+
+  /**
+   * Weight delta (+ optional profile height) for compare views.
+   * @param {unknown} fromWeight
+   * @param {unknown} toWeight
+   * @returns {HTMLElement | null}
+   */
+  function createCompareMetrics(fromWeight, toWeight) {
+    const delta = formatWeightDelta(fromWeight, toWeight);
+    const heightText = formatHeightCm(userProfile(getPerson()).heightCm);
+    if (!delta && !heightText) return null;
+
+    const metrics = document.createElement('div');
+    metrics.className = 'progress-photos-compare-metrics';
+
+    if (delta) {
+      metrics.append(
+        createCompareMetric(ui('progressPhotosCompareWeightChange'), delta),
+      );
+    }
+    if (heightText) {
+      metrics.append(
+        createCompareMetric(ui('profileHeight'), heightText, {
+          staticValue: true,
+        }),
+      );
+    }
+    return metrics;
+  }
+
+  /**
+   * @param {string} labelText
+   * @param {string} valueText
+   * @param {{ staticValue?: boolean }} [opts]
+   */
+  function createCompareMetric(labelText, valueText, opts = {}) {
+    const item = document.createElement('div');
+    item.className = 'progress-photos-compare-metric';
+    const label = document.createElement('span');
+    label.className = 'progress-photos-compare-metric-label';
+    label.textContent = labelText;
+    const value = document.createElement('span');
+    value.className = 'progress-photos-compare-metric-value';
+    if (opts.staticValue) value.classList.add('is-static');
+    value.textContent = valueText;
+    item.append(label, value);
+    return item;
   }
 
   function createAnalyzeAiResult(state) {
@@ -558,22 +604,8 @@ export function createProgressHistoryRenderer(opts = {}) {
 
     wrap.append(tabs, stage);
 
-    const delta = formatWeightDelta(older.weightKg, newer.weightKg);
-    if (delta) {
-      const metrics = document.createElement('div');
-      metrics.className = 'progress-photos-compare-metrics';
-      const item = document.createElement('div');
-      item.className = 'progress-photos-compare-metric';
-      const label = document.createElement('span');
-      label.className = 'progress-photos-compare-metric-label';
-      label.textContent = ui('progressPhotosCompareWeightChange');
-      const value = document.createElement('span');
-      value.className = 'progress-photos-compare-metric-value';
-      value.textContent = delta;
-      item.append(label, value);
-      metrics.append(item);
-      wrap.append(metrics);
-    }
+    const metrics = createCompareMetrics(older.weightKg, newer.weightKg);
+    if (metrics) wrap.append(metrics);
 
     function syncTabs() {
       for (const [side, btn] of tabButtons) {

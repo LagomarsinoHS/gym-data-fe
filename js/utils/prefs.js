@@ -4,8 +4,8 @@
  * theme-boot.js mirrors THEME_KEY on purpose (sync head, no modules / no FOUC).
  */
 
-export const THEME_KEY = 'FLEX_THEME';
-export const LANG_KEY = 'FLEX_LANG';
+export const THEME_KEY = 'steelPulse.theme';
+export const LANG_KEY = 'steelPulse.lang';
 
 function read(key) {
   try {

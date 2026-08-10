@@ -41,7 +41,7 @@ const ATHLETE_PAGE_SIZE = 5;
 const SEARCH_DEBOUNCE_MS = 500;
 /** Highlight athletes who accepted an invite within this window. */
 const NEW_ACCEPT_MS = 48 * 60 * 60 * 1000;
-const SEEN_NEW_ATHLETES_KEY = 'FLEX_SEEN_NEW_ATHLETES';
+const SEEN_NEW_ATHLETES_KEY = 'steelPulse.seenNewAthletes';
 
 let overlay;
 let form;
@@ -476,7 +476,6 @@ function inviteErrorMessage(err) {
   return mapApiError(err, {
     byCode: {
       [ApiErrorCode.CoachAthleteQuotaFull]: 'inviteQuotaFull',
-      [ApiErrorCode.AthleteNotFoundByEmail]: 'inviteNotFound',
       [ApiErrorCode.EmailNotAnAthlete]: 'inviteNotAthlete',
       [ApiErrorCode.AthleteHasPendingInvite]: 'invitePending',
     },

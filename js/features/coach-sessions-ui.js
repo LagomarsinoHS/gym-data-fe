@@ -5,6 +5,10 @@
  */
 import { putCoachAthleteTrainingProgram } from '../api/users.js';
 import { assetUrl } from '../utils/assets.js';
+import {
+  createFeatureHint,
+  dismissFeatureHintById,
+} from '../utils/feature-hints.js';
 import { exerciseName, ui } from '../utils/labels.js';
 import { prescriptionLines, prescriptionNote } from '../utils/prescription.js';
 import {
@@ -185,7 +189,19 @@ export function createAthletePlan(athlete) {
     }
   }
 
-  plan.append(planHead, sessionList);
+  plan.append(planHead);
+
+  if (sessions.length >= 2) {
+    const tip = createFeatureHint({
+      id: 'reorder-sessions',
+      text: ui('hintReorderSessions'),
+      dismissLabel: ui('hintDismiss'),
+      className: 'feature-hint--plan',
+    });
+    if (tip) plan.append(tip);
+  }
+
+  plan.append(sessionList);
 
   if (isAthleteDirty(id) || store.savingAthleteIds.has(id) || store.saveErrorByAthleteId.has(id)) {
     plan.append(createPlanSaveBar(id));
@@ -544,6 +560,7 @@ export function syncSessionEditorView() {
 
   if (!athlete || !session) {
     listEl.replaceChildren();
+    syncSessionEditorReorderHint(0);
     if (nameInput && document.activeElement !== nameInput) {
       nameInput.value = '';
     }
@@ -559,6 +576,10 @@ export function syncSessionEditorView() {
     subtitleEl.textContent = `${athleteDisplayName(athlete)} · ${sessionAccordionMeta(items)}`;
   }
 
+  syncSessionEditorReorderHint(
+    [...(session.items || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).length,
+  );
+
   listEl.replaceChildren();
   const items = [...(session.items || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   if (!items.length) return;
@@ -568,6 +589,28 @@ export function syncSessionEditorView() {
     frag.appendChild(createEditorItem(item, store.editorAthleteId, store.editorSessionId));
   }
   listEl.append(frag);
+}
+
+function syncSessionEditorReorderHint(itemCount) {
+  const host = document.getElementById('session-editor-hint');
+  if (!host) return;
+  host.replaceChildren();
+  if (itemCount < 2) {
+    host.hidden = true;
+    return;
+  }
+  const tip = createFeatureHint({
+    id: 'reorder-exercises',
+    text: ui('hintReorderExercises'),
+    dismissLabel: ui('hintDismiss'),
+    className: 'feature-hint--editor',
+  });
+  if (!tip) {
+    host.hidden = true;
+    return;
+  }
+  host.hidden = false;
+  host.append(tip);
 }
 
 function createEditorItem(item, athleteId, sessionId) {
@@ -830,6 +873,7 @@ export function moveSessionToIndex(athleteId, sessionId, toIndex) {
   markAthleteDirty(athleteId);
   reorderSessionRowsInDom(athleteId);
   syncPlanDirtyChrome(athleteId);
+  dismissFeatureHintById('reorder-sessions');
   return true;
 }
 
@@ -857,6 +901,7 @@ export function moveSessionExerciseToIndex(athleteId, sessionId, exerciseId, toI
   markAthleteDirty(athleteId);
   reorderExerciseRowsInDom(sessionId);
   syncPlanDirtyChrome(athleteId);
+  dismissFeatureHintById('reorder-exercises');
   return true;
 }
 

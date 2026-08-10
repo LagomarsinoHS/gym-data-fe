@@ -3498,6 +3498,112 @@ html[data-theme='dark'] .student-row-goal-pill {
   gap: 12px;
 }
 
+.feature-hint {
+  --hint-orange: #ff5a00;
+  --hint-orange-deep: #e04500;
+  position: relative;
+  display: block;
+  width: fit-content;
+  max-width: min(100%, 280px);
+  margin: 0 0 10px;
+  animation: feature-hint-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.feature-hint-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px 10px;
+  padding: 8px 10px 8px 12px;
+  border-radius: 14px;
+  background: var(--hint-orange);
+  color: #fff;
+  box-shadow:
+    0 8px 18px color-mix(in srgb, var(--hint-orange) 42%, transparent),
+    0 1px 0 color-mix(in srgb, #fff 22%, transparent) inset;
+}
+
+.feature-hint-tail {
+  display: block;
+  width: 14px;
+  height: 8px;
+  margin: -1px 0 0 18px;
+  background: var(--hint-orange);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  filter: drop-shadow(0 5px 6px color-mix(in srgb, var(--hint-orange) 28%, transparent));
+}
+
+.feature-hint-text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 750;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.feature-hint-dismiss {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, #fff 55%, transparent);
+  background: color-mix(in srgb, #fff 18%, transparent);
+  color: #fff;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.feature-hint-dismiss:hover {
+  background: color-mix(in srgb, #fff 28%, transparent);
+  border-color: #fff;
+}
+
+.feature-hint-dismiss:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.feature-hint--plan {
+  margin: 2px 0 4px;
+}
+
+.feature-hint--editor {
+  margin: 0;
+}
+
+@keyframes feature-hint-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feature-hint {
+    animation: none;
+  }
+}
+
+.session-editor-hint-host {
+  margin: 0 0 12px;
+}
+
+.session-editor-hint-host[hidden] {
+  display: none;
+}
+
+.session-editor-hint-host:not([hidden]):empty {
+  display: none;
+}
+
 .student-plan-title {
   font-size: 11px;
   font-weight: 750;
@@ -6620,8 +6726,16 @@ html[data-theme='dark'] .progress-photos-compare-col-weight {
   color: #4ade80;
 }
 
+.progress-photos-compare-metric-value.is-static {
+  color: var(--text-primary);
+}
+
 html[data-theme='light'] .progress-photos-compare-metric-value {
   color: #15803d;
+}
+
+html[data-theme='light'] .progress-photos-compare-metric-value.is-static {
+  color: var(--text-primary);
 }
 
 .progress-photos-carousel {

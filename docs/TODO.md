@@ -55,6 +55,8 @@ coachTrainingProgram: {
 - [x] Cupo coach: deshabilitar Invitar si `coachQuota.canInvite === false`; errores por `ApiErrorCode`
 - [x] Accept invite con coach al límite: flash del mensaje localizado; pending canceladas en BE
 - [x] Reordenar ejercicios / sesiones (drag & drop de la card; click abre/cierra sesión; sin flash de re-render)
+- [x] Hint contextual primera vez (localStorage `steelPulse.featureHints`; tip en plan + editor; se oculta al dismiss o al reordenar)
+- [x] Comparar avances: mostrar estatura del perfil junto al cambio de peso (si está cargada)
 - [ ] Duplicar sesión o copiar a otro atleta
 - [ ] Plantillas reutilizables (`coach-templates`)
 - [ ] (Opc.) UI upsell cuando el cupo está lleno (growth/pro)
@@ -105,7 +107,7 @@ Acuerdo con BE: 2 fotos/mes (`front` + `back`) + `weightKg`, historial por `year
 
 ### Flujo UI — coach
 - Nav **Avances** (lista de alumnos) o botón Avances en Mis alumnos → vista `progress-photos`
-- Timeline cronológico + **Comparar** (≥2 meses): 2 → lado a lado (tabs Frente/Espalda); 3+ → carruseles
+- Timeline cronológico + **Comparar** (≥2 meses): 2 → lado a lado (tabs Frente/Espalda); 3+ → carruseles; métricas Δ peso + estatura de perfil (si hay)
 - Card alumno: nombre, correo, peso actual (chip compacto en modo comparar)
 - Lightbox + flechas en galería de comparar + **Descargar** → `FirstName_LastName_Front.jpg`
 
@@ -128,7 +130,7 @@ Acuerdo con BE: 2 fotos/mes (`front` + `back`) + `weightKg`, historial por `year
 - [x] Empty: Sin datos / mes incompleto (solo un lado)
 - [x] Preview al elegir archivo; Guardar gated; caption mes + month-picker (backfill)
 - [x] Lightbox compartido + descarga + nav de galería en comparar
-- [ ] (Opc.) UI atleta/coach para `DELETE /users/me/progress-photos` (API ya existe; hoy se reemplaza al volver a guardar)
+- [x] Comparar: estatura del perfil junto al Δ de peso (si hay `profile.heightCm`)
 - [x] **Analizar progreso** (IA): comparación de 2 meses → resumen vía API
 
 > BE: POST (`yearMonth?`) / DELETE / GET + weight listos. FE: upload + backfill + timeline/comparar + Analizar progreso listos; DELETE sin UI.

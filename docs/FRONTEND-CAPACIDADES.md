@@ -9,7 +9,7 @@ API: `localhost:3000` en local · `https://gym-data-8d3l.onrender.com` en prod.
 
 ## 1. Boot / arranque
 
-1. **`js/theme-boot.js`** (en `<head>`) — lee `FLEX_THEME` y pone `html[data-theme]` antes del paint (sin flash).
+1. **`js/theme-boot.js`** (en `<head>`) — migra keys legacy `FLEX_*` → `steelPulse.*`, lee `steelPulse.theme` y pone `html[data-theme]` antes del paint (sin flash).
 2. Carga CSS: `base.css` (tokens) → `app.css` (UI).
 3. **`init()` en `main.js`:**
    - Sincroniza labels `[data-ui]` según idioma guardado
@@ -31,7 +31,7 @@ Si el boot falla → mensaje de error en el contador de resultados.
 
 | Acción | Qué pasa |
 |--------|----------|
-| Login | `POST /auth/login` → guarda `FLEX_TOKEN` → `GET /users/me` → (atleta) pending invite → vista según rol |
+| Login | `POST /auth/login` → guarda `steelPulse.token` → `GET /users/me` → (atleta) pending invite → vista según rol |
 | Register | Form extra: nombre, apellido, rol Atleta/Entrenador → `POST /auth/register` (mismo flujo de token) |
 | Logout | Menú cuenta → **Cerrar sesión** → borra token, user=null, vista catálogo, limpia recommend / cache alumnos / pending invite |
 | Restaurar sesión | Al boot / post-login: Bearer + `/users/me`; si falla → guest |
@@ -201,6 +201,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 - **Reordenar**: drag & drop de la card completa.
   - Sesiones en Mis alumnos: click abre/cierra; arrastrar reordena (sin re-render flash; dirty + Guardar plan).
   - Ejercicios en `session-editor`: arrastrar la card; Editar / ✕ siguen activos.
+  - Tip contextual (localStorage `steelPulse.featureHints`, util `js/utils/feature-hints.js`): burbuja naranja compacta “Arrastra para reordenar” la primera vez que hay ≥2 sesiones/ejercicios; se cierra con “Entendido” o al reordenar.
 - Vista `session-editor`: cards, Editar / ✕, Agregar ejercicios; modal confirmar quitar sesión.
 - Catálogo en modo asignar: banner + “Agregar a la sesión” + lápiz pauta (local); guardar vuelve al editor.
 - Sesiones en `athlete.coachTrainingProgram`; **Guardar plan** → `PUT /users/coach/athletes/:id/training-program` (replace; respuesta enriquecida).
@@ -216,7 +217,7 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 - Nav **Avances** (`avances-ui`): lista paginada de alumnos → abre `progress-photos`.
 - Vista `progress-photos` (`progress-photos-ui`): back a Avances o Mis alumnos; card alumno (nombre, correo, peso actual — en comparar, chip compacto).
 - Timeline cronológico (meses con foto/peso, más reciente arriba); cards usan thumb Cloudinary (`c_fit,w_480,h_640,q_auto,f_auto`); lightbox/descarga usan la URL original de Mongo.
-- **Comparar**: elegir ≥2 meses → **2 meses** lado a lado con tabs Frente/Espalda; **3+** doble carrusel (wrap). Δ peso entre el más viejo y el más nuevo.
+- **Comparar**: elegir ≥2 meses → **2 meses** lado a lado con tabs Frente/Espalda; **3+** doble carrusel (wrap). Métricas: Δ peso entre el más viejo y el más nuevo + **estatura** del perfil (`profile.heightCm`) si está cargada (coach y atleta; si no hay altura, no se muestra).
 - Con **2 meses**: botón **Analizar progreso** (Growth/Pro) → `POST` análisis IA; loading + resumen en UI.
 - `GET /users/:userId/progress-photos` → `{ currentWeightKg, years[] }` (un fetch; sin paginación de API).
 
@@ -249,8 +250,8 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 
 | Preferencia | Key | Valores |
 |-------------|-----|---------|
-| Tema | `FLEX_THEME` | `light` \| `dark` |
-| Idioma | `FLEX_LANG` | `es` (default) \| `en` |
+| Tema | `steelPulse.theme` | `light` \| `dark` |
+| Idioma | `steelPulse.lang` | `es` (default) \| `en` |
 
 - Toggle tema: emoji + clase `theme-animating` ~280ms.
 - Toggle idioma: re-pinta chrome, filtros, grids, modal abierto.
@@ -268,7 +269,10 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 | GET | `/exercises/recommend?zone&equipment&locale` | Sí | Submit recommend |
 | POST | `/auth/login` | No | Login |
 | POST | `/auth/register` | No | Register |
-| GET | `/users/me` | Sí | Sesión (user + programs + `subscription` + `coach` + `coachQuota` + `currentWeightKg`; **sin** invite ni `progressPhotos`) |
+| GET | `/users/me` | Sí | Sesión (user + programs + `subscription` + `coach` + `coachQuota` + `currentWeightKg` + `profile` + `goal`; **sin** invite ni `progressPhotos`) |
+| PATCH | `/users/me` | Sí | Editar perfil (`profile` / `goal` / password) |
+| POST | `/users/me/profile-photo` | Sí | Subir foto de perfil |
+| DELETE | `/users/me` | Sí | Soft-delete cuenta |
 | GET | `/users/me/pending-coach-invite` | Sí | Atleta: `{ invite }` (null o pendiente) |
 | POST | `/users/training-program` | Sí | Agregar al plan |
 | PUT | `/users/training-program/remove` | Sí | Confirmar quitar |
@@ -281,8 +285,6 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 | GET | `/users/coach/invites` | Sí | Historial invites coach (`status` opcional) |
 | PUT | `/users/coach/athletes/:athleteId/training-program` | Sí | Guardar plan (replace sesiones) |
 | POST | `/users/coach/training-program/export` | Sí | Export Excel/PDF/zip (binary; body `format`) |
-
-> BE también expone `DELETE /users/me/progress-photos` (sin UI FE aún).
 
 ---
 
@@ -324,8 +326,9 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 
 | Archivo | Rol |
 |---------|-----|
-| `helpers.js` | `debounce`, `normalizeSearch`, `dedupeById` |
-| `prefs.js` | tema / idioma en localStorage |
+| `helpers.js` | `debounce`, `normalizeSearch`, `dedupeById`, `userProfile` |
+| `prefs.js` | tema / idioma en localStorage (`steelPulse.theme` / `steelPulse.lang`) |
+| `feature-hints.js` | tips one-shot (`steelPulse.featureHints`); mark seen / create bubble |
 | `url.js` | share URL, leer/sync deep link |
 | `cards.js` | media, GIF hover, click delegado |
 | `labels.js` | `ui`, `label`, `exerciseName`, lang |
@@ -340,10 +343,14 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 
 | Key | Dónde | Contenido |
 |-----|-------|-----------|
-| `FLEX_TOKEN` | localStorage | JWT |
-| `FLEX_THEME` | localStorage | light/dark |
-| `FLEX_LANG` | localStorage | es/en |
+| `steelPulse.token` | localStorage | JWT |
+| `steelPulse.theme` | localStorage | light/dark |
+| `steelPulse.lang` | localStorage | es/en |
+| `steelPulse.featureHints` | localStorage | tips vistos |
+| `steelPulse.seenNewAthletes` | localStorage | alumnos “Nuevo” ya vistos |
 | `mister-l-flexes` | sessionStorage | contador del 💪 del footer |
+
+Al boot, `theme-boot.js` migra una vez keys legacy `FLEX_*` → `steelPulse.*` (token, theme, lang, featureHints, seenNewAthletes) para no perder sesión/prefs.
 
 ---
 
