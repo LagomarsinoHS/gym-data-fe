@@ -4,6 +4,7 @@ import { ui } from './labels.js';
 export const ApiErrorCode = {
   CoachAthleteQuotaFull: 'COACH_ATHLETE_QUOTA_FULL',
   AthleteNotFoundByEmail: 'ATHLETE_NOT_FOUND_BY_EMAIL',
+  EmailNotAnAthlete: 'EMAIL_NOT_AN_ATHLETE',
   AthleteHasPendingInvite: 'ATHLETE_HAS_PENDING_INVITE',
   NoPendingCoachInvite: 'NO_PENDING_COACH_INVITE',
   CurrentPasswordIncorrect: 'CURRENT_PASSWORD_INCORRECT',

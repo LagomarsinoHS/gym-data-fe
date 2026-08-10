@@ -187,7 +187,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 - Toolbar: buscar (debounce 500ms), **Ordenar** (menú: sin/con pauta primero), **Descargar**, Invitar alumno.
 - **Invitar** se deshabilita si `GET /users/me` → `coachQuota.canInvite === false` (tooltip con mensaje de cuota). Al entrar a Mis alumnos se refresca `/me`.
-- Modal email exacto → `POST /users/coach/invites`; errores por `code` (`mapApiError` → copy i18n).
+- Modal email → `POST /users/coach/invites` (atleta puede no existir aún; pending 24h). Errores por `code` (`EMAIL_NOT_AN_ATHLETE`, `ATHLETE_HAS_PENDING_INVITE`, cuota). Dos acciones: **Enviar** o **Enviar + copiar WhatsApp**.
 - Orden: client-side sobre alumnos **ya cargados** (incluye “Cargar más”); re-click de la opción activa quita el orden.
 - Badge **Nuevo**: invites `accepted` con `respondedAt` ≤ 48h (vía `GET /users/coach/invites`); al abrir la fila se guarda como visto en `localStorage` y no vuelve a marcarse (ni al recargar / re-login).
 - Descargar: toolbar **Todos · Excel** / **Todos · PDF**; por alumno ⏬ → Excel / PDF.

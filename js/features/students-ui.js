@@ -49,6 +49,7 @@ let statusEl;
 let submitBtn;
 let submitLabel;
 let submitFill;
+let whatsappBtn;
 let loadMoreBtn;
 let searchInput;
 let searchClearBtn;
@@ -77,6 +78,7 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
   submitBtn = document.getElementById('add-student-submit');
   submitLabel = submitBtn?.querySelector('.recommend-submit-label');
   submitFill = document.getElementById('add-student-submit-fill');
+  whatsappBtn = document.getElementById('add-student-whatsapp');
   loadMoreBtn = document.getElementById('students-load-more');
   searchInput = document.getElementById('students-search');
   searchClearBtn = document.getElementById('students-search-clear');
@@ -95,6 +97,7 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
     toggleInviteQuotaTip();
   });
   document.getElementById('add-student-close')?.addEventListener('click', closeAddStudentModal);
+  whatsappBtn?.addEventListener('click', () => void onSubmitInvite({ copyWhatsApp: true }));
   loadMoreBtn?.addEventListener('click', () => void loadMoreAthletes());
   searchInput?.addEventListener('input', onSearchInput);
   searchClearBtn?.addEventListener('click', clearStudentsSearch);
@@ -399,24 +402,43 @@ export function closeAddStudentModal() {
 
 async function onSubmit(e) {
   e.preventDefault();
+  await onSubmitInvite({ copyWhatsApp: false });
+}
+
+/**
+ * @param {{ copyWhatsApp?: boolean }} [opts]
+ */
+async function onSubmitInvite({ copyWhatsApp = false } = {}) {
   const email = emailInput?.value.trim() ?? '';
-  if (!email) return;
+  if (!email) {
+    emailInput?.focus();
+    return;
+  }
 
   clearCloseTimer();
   setStatus('');
-  if (submitBtn) submitBtn.disabled = true;
+  setInviteButtonsDisabled(true);
 
   try {
     await inviteCoachAthlete(email);
     void loadCoachAthletes({ force: true });
     void refreshUser().then(() => syncInviteStudentButtons());
+
+    let copied = false;
+    if (copyWhatsApp) {
+      copied = await copyWhatsAppInviteMessage(email);
+      if (!copied) setStatus(ui('inviteSentButCopyFail'), 'error');
+    }
+
     if (submitBtn) {
       submitBtn.classList.add('is-sent');
       submitBtn.disabled = true;
     }
+    if (whatsappBtn) whatsappBtn.disabled = true;
     if (submitLabel) {
-      submitLabel.dataset.ui = 'inviteSent';
-      submitLabel.textContent = ui('inviteSent');
+      const key = copyWhatsApp && copied ? 'inviteSentAndCopied' : 'inviteSent';
+      submitLabel.dataset.ui = key;
+      submitLabel.textContent = ui(key);
     }
     startSubmitFill();
     closeTimer = window.setTimeout(() => {
@@ -430,11 +452,29 @@ async function onSubmit(e) {
   }
 }
 
+/**
+ * @param {string} email
+ * @returns {Promise<boolean>}
+ */
+async function copyWhatsAppInviteMessage(email) {
+  const user = getUser();
+  const coachName = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || 'Tu coach';
+  const message = ui('inviteWhatsAppMessage', coachName, email, window.location.origin);
+  try {
+    await navigator.clipboard.writeText(message);
+    return true;
+  } catch (err) {
+    console.error(err);
+    return false;
+  }
+}
+
 function inviteErrorMessage(err) {
   return mapApiError(err, {
     byCode: {
       [ApiErrorCode.CoachAthleteQuotaFull]: 'inviteQuotaFull',
       [ApiErrorCode.AthleteNotFoundByEmail]: 'inviteNotFound',
+      [ApiErrorCode.EmailNotAnAthlete]: 'inviteNotAthlete',
       [ApiErrorCode.AthleteHasPendingInvite]: 'invitePending',
     },
     fallback: 'inviteFail',
@@ -455,9 +495,14 @@ function setStatus(message, kind = '') {
   statusEl.classList.toggle('is-ok', kind === 'ok');
 }
 
+function setInviteButtonsDisabled(disabled) {
+  if (submitBtn) submitBtn.disabled = disabled;
+  if (whatsappBtn) whatsappBtn.disabled = disabled;
+}
+
 function resetSubmitBtn() {
+  setInviteButtonsDisabled(false);
   if (!submitBtn) return;
-  submitBtn.disabled = false;
   submitBtn.classList.remove('is-sent');
   if (submitLabel) {
     submitLabel.dataset.ui = 'addStudentSubmit';

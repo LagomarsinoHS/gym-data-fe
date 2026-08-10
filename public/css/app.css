@@ -5040,6 +5040,42 @@ html[data-theme="dark"] .coach-panel-invite-status-pill.is-cancelled {
   transition: opacity 0.15s, background 0.15s, border-color 0.15s;
 }
 
+.add-student-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.add-student-actions .recommend-submit {
+  margin-top: 0;
+  width: 100%;
+}
+
+.add-student-whatsapp {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s, opacity 0.15s;
+}
+
+.add-student-whatsapp:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--accent) 6%, var(--bg-surface));
+}
+
+.add-student-whatsapp:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .recommend-submit-fill {
   position: absolute;
   inset: 0 auto 0 0;

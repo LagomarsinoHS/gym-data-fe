@@ -292,7 +292,7 @@ function createInviteRow(invite) {
 
   const statusEl = document.createElement('span');
   statusEl.className = `coach-panel-invite-status-pill is-${invite.status || 'pending'}`;
-  statusEl.textContent = inviteStatusLabel(invite.status);
+  statusEl.textContent = inviteStatusLabel(invite);
 
   top.append(main, statusEl);
 
@@ -323,7 +323,8 @@ function createInviteDate(label, value) {
   return wrap;
 }
 
-function inviteStatusLabel(status) {
+function inviteStatusLabel(invite) {
+  const status = typeof invite === 'string' ? invite : invite?.status;
   switch (status) {
     case 'accepted':
       return ui('coachPanelInvitesStatusAccepted');
@@ -332,6 +333,10 @@ function inviteStatusLabel(status) {
     case 'cancelled':
       return ui('coachPanelInvitesStatusCancelled');
     case 'pending':
+      if (typeof invite === 'object' && invite && !invite.athleteId) {
+        return ui('coachPanelInvitesStatusAwaitingRegister');
+      }
+      return ui('coachPanelInvitesStatusAwaitingAccept');
     default:
       return ui('coachPanelInvitesStatusPending');
   }

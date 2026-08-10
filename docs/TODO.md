@@ -58,6 +58,17 @@ coachTrainingProgram: {
 - [ ] Plantillas reutilizables (`coach-templates`)
 - [ ] (Opc.) UI upsell cuando el cupo está lleno (growth/pro)
 
+### PDF brand (export con marca del coach)
+
+Hoy el PDF sale con estilo ExerciseDB / genérico. **PDF brand** = que el archivo se sienta “del coach” (o del estudio) cuando se lo manda al alumno o lo imprime.
+
+- [ ] Cabecera del PDF: nombre del coach (y opcional del estudio), fecha de exportación, nombre del atleta
+- [ ] Logo / foto de perfil del coach en el PDF (si tiene `profilePhoto`; subida dedicada de logo más adelante)
+- [ ] Colores de acento configurables (o al menos usar acento fijo del brand del coach vs verde default de ExerciseDB)
+- [ ] Pie de página: “Preparado por {Coach} · ExerciseDB” (o sin ExerciseDB en planes pagos)
+- [ ] (BE) Pasar datos de brand al `PdfService` (coach first/last, logo URL, atleta, fecha); Excel puede sumar la misma cabecera después
+- [ ] (Opc. Growth/Pro) quitar o reducir branding ExerciseDB en el PDF como perk de plan pago
+
 ---
 
 ## Cuenta — perfil / configuración
@@ -67,9 +78,9 @@ Menú de usuario en sidebar (iniciales o foto + nombre corto + dropdown).
 
 - [x] **Mi perfil** — lectura (`/users/me`) + acciones “Pronto”; ítem de menú habilitado
 - [x] **Mi perfil → editar perfil** — sección inline (nombre/apellido/contraseña) → `PATCH /users/me`; sin modal; cierra al guardar OK
-- [x] **Mi perfil → darse de baja** — modal pide email → `DELETE /users/me` → cierra sesión
+- [x] **Mi perfil → darse de baja** — modal pide email → `DELETE /users/me` → cierra sesión (soft-delete; **no** limpia vínculo coach en BD — ver BE TODO)
 - [x] **Mi perfil → foto de perfil** — click en avatar → Ver foto / Subir foto (`POST /users/me/profile-photo`); Cloudinary `gym-app/profiles/{userId}/profilePhoto`
-- [ ] **Mi perfil → acciones** — cablear: notificaciones, privacidad, vínculo coach, billing, export, etc.
+- [ ] **Mi perfil → acciones** — cablear: notificaciones, privacidad, **dejar coach** (unlink ≠ baja de cuenta), billing, export, etc.
 - [ ] **Configuración** — preferencias (tema/idioma sync a user, notificaciones, …); habilitar ítem del menú
 - [x] ~~**Configuración → darse de baja**~~ — hecho en Mi perfil (`DELETE /users/me`)
 - [x] ~~(BE) update perfil / deactivate~~ — `PATCH /users/me` + `DELETE /users/me` + `POST /users/me/profile-photo`
@@ -136,6 +147,30 @@ Vista nueva para que el coach cargue una **pauta nutricional** al alumno y el at
 ### Frontend
 - [ ] UI coach (upload / editor + guardar)
 - [ ] UI atleta (solo lectura + empty states: sin coach / sin pauta)
+
+---
+
+## Onboarding coach (“invitar alumno en 2 minutos”)
+
+Hoy un coach nuevo aterriza en Panel / Mis alumnos sin un camino guiado. Para vender hace falta que el **primer valor** se sienta en minutos, no explorando el menú.
+
+Objetivo UX: del registro a “ya tengo un alumno vinculado y veo dónde armar su plan” en ~2 minutos.
+
+### Invite pre-registro (email único, atleta puede no existir aún)
+
+- [x] (BE) Invite sin `athleteId` obligatorio mientras pending-pre-register; clave email + índices únicos pending
+- [x] (BE) Al `register` athlete: vincular invites pending por email
+- [x] (BE) Borrado automático de `pending` > 24h (TTL parcial Mongo + cleanup oportunista)
+- [x] (FE) Modal invite: copy claro + botón **Copiar mensaje WhatsApp**
+- [x] (FE) Historial: “esperando registro” vs “esperando aceptación”
+- [x] (FE) Empty Mis alumnos: texto alineado al nuevo flujo
+
+### Wizard / empty states
+- [ ] Primer login coach: checklist o wizard corto (3 pasos): 1) Invitar alumno · 2) Esperar/aceptar · 3) Abrir sesión / armar plan
+- [ ] Empty state de Mis alumnos más accionable (CTA grande “Invitar con email” + 1 línea de qué pasa después)
+- [ ] Copy del invite: el atleta entiende que es de *su* coach (nombre en el banner, no solo genérico)
+- [ ] (Opc. después) Deep link con token (`?invite=`)
+- [ ] (Opc.) Demo / alumno de prueba sin register real
 
 ---
 

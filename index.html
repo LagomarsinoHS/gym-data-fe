@@ -873,7 +873,7 @@
         <div class="students-empty" id="students-empty" hidden>
           <p class="students-empty-title" data-ui="studentsEmptyTitle">Aún no tienes alumnos</p>
           <p class="students-empty-lead" data-ui="studentsEmptyLead">
-            Invita a un atleta por su email exacto. Cuando acepte, aparecerá acá.
+            Invita por email aunque aún no tenga cuenta. Al registrarse verá tu invitación (válida 24h).
           </p>
           <button type="button" class="recommend-cta" id="students-empty-add-btn">
             <span data-ui="addStudent">Invitar alumno</span>
@@ -978,13 +978,18 @@
         <input type="email" id="add-student-email" name="email" required autocomplete="off" />
       </label>
       <p class="recommend-hint" data-ui="addStudentHint">
-        Escribe el email completo del atleta. No buscamos coincidencias parciales.
+        Si ya tiene cuenta, solo envía. Si no, usa Enviar + WhatsApp (válida 24h).
       </p>
       <p class="recommend-status" id="add-student-status" hidden></p>
-      <button type="submit" class="recommend-submit" id="add-student-submit">
-        <span class="recommend-submit-fill" id="add-student-submit-fill" hidden></span>
-        <span class="recommend-submit-label" data-ui="addStudentSubmit">Enviar invitación</span>
-      </button>
+      <div class="add-student-actions">
+        <button type="submit" class="recommend-submit" id="add-student-submit">
+          <span class="recommend-submit-fill" id="add-student-submit-fill" hidden></span>
+          <span class="recommend-submit-label" data-ui="addStudentSubmit">Enviar invitación</span>
+        </button>
+        <button type="button" class="add-student-whatsapp" id="add-student-whatsapp">
+          <span data-ui="inviteSendAndCopyWhatsApp">Enviar + copiar WhatsApp</span>
+        </button>
+      </div>
     </form>
   </div>
 </div>

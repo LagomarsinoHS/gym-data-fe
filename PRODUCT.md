@@ -135,7 +135,9 @@ La IA **elige solo del catálogo** (no inventa ejercicios) y escribe la justific
 
 Estas piezas están contempladas en el producto pero aún no son el foco vendible:
 
+- **Invite pre-registro**: el coach invita por email aunque el atleta aún no tenga cuenta; al registrarse con ese mail ve la invitación; pending sin respuesta se borra a las **24h**
 - **Pauta nutricional**: el coach sube una guía alimenticia; el atleta la ve en su app
+- **PDF brand**: export con nombre/logo del coach, fecha y pie “Preparado por…”
 - **Plantillas** reutilizables de rutinas para coaches
 - Pantalla completa de **Configuración**
 - Flujo de **pago / upgrade** dentro de la app
