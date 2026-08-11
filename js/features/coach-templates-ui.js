@@ -3,9 +3,12 @@
  * Apply from Plantillas → athletes; Use template from Mis alumnos → POST /coach/templates/:id/apply.
  * Markup: #coach-templates-view, #apply-template-overlay, #use-template-overlay
  */
-import { getCoachAthletes, getCoachTemplates, applyCoachTemplate } from '../api/users.js';
+import { getCoachAthletes } from '../api/users.js';
+import {
+  getCoachTemplates,
+  applyCoachTemplate,
+} from '../api/coach-templates.js';
 import { ui } from '../utils/labels.js';
-import { userProfile } from '../utils/helpers.js';
 import {
   store,
   TEMPLATES_SCOPE_ID,
@@ -14,6 +17,7 @@ import {
   clearAthleteDirty,
   ensureAthleteSessions,
   getAthleteSessions,
+  athleteDisplayName,
 } from './coach-athletes-store.js';
 import { createAthletePlan } from './coach-sessions-ui.js';
 const ATHLETE_PAGE_SIZE = 100;
@@ -179,9 +183,7 @@ export async function loadCoachTemplates({ force = false } = {}) {
   try {
     const res = await getCoachTemplates();
     if (seq !== loadSeq) return;
-    store.templates = Array.isArray(res?.coachTemplates) ? res.coachTemplates : [];
-    store.templatesLoaded = true;
-    clearAthleteDirty(TEMPLATES_SCOPE_ID);
+    applyFetchedTemplates(res);
     renderTemplatesList();
   } catch (err) {
     console.error(err);
@@ -201,6 +203,19 @@ function renderTemplatesList() {
   if (!bodyEl) return;
   const athlete = getTemplatesAthlete();
   bodyEl.replaceChildren(createAthletePlan(athlete));
+}
+
+function applyFetchedTemplates(res) {
+  store.templates = Array.isArray(res?.coachTemplates) ? res.coachTemplates : [];
+  store.templatesLoaded = true;
+  clearAthleteDirty(TEMPLATES_SCOPE_ID);
+}
+
+/** Ensure store.templates is hydrated (throws on network/API error). */
+async function ensureTemplatesLoaded() {
+  if (store.templatesLoaded) return;
+  const res = await getCoachTemplates();
+  applyFetchedTemplates(res);
 }
 
 function setLoading(on) {
@@ -366,7 +381,7 @@ function createApplyAthleteRow(athlete) {
 
   const nameEl = document.createElement('span');
   nameEl.className = 'apply-template-item-name';
-  nameEl.textContent = athleteDisplayNameLocal(athlete);
+  nameEl.textContent = athleteDisplayName(athlete);
 
   const emailEl = document.createElement('span');
   emailEl.className = 'apply-template-item-email';
@@ -393,14 +408,6 @@ function toggleApplyAthlete(id, athlete) {
   setApplyStatus('');
   renderApplyAthletes();
   syncApplyConfirm();
-}
-
-function athleteDisplayNameLocal(athlete) {
-  const profile = userProfile(athlete);
-  const first = String(profile.firstName || '').trim();
-  const last = String(profile.lastName || '').trim();
-  const email = String(athlete?.email || '').trim();
-  return [first, last].filter(Boolean).join(' ') || email || '—';
 }
 
 function syncApplyConfirm() {
@@ -470,7 +477,7 @@ async function confirmApplyTemplate() {
     if (okCount === 0 && skippedCount > 0 && failCount === 0) {
       setStatus(ui('templateApplyAllSkipped', templateName), 'ok');
     } else if (okCount === 1 && skippedCount === 0 && failCount === 0) {
-      const name = athleteDisplayNameLocal(
+      const name = athleteDisplayName(
         resolveAthleteForApply(applied[0]) || { id: applied[0] },
       );
       setStatus(ui('templateApplyOk', templateName, name), 'ok');
@@ -577,7 +584,7 @@ function closeUseTemplatesModal() {
 
 function syncUseLead() {
   if (!useLeadEl) return;
-  const name = athleteDisplayNameLocal(useAthlete);
+  const name = athleteDisplayName(useAthlete);
   useLeadEl.replaceChildren();
   useLeadEl.append(
     document.createTextNode(ui('useTemplateLeadBefore')),
@@ -590,12 +597,7 @@ async function loadUseTemplates() {
   const seq = ++useLoadSeq;
   setUseLoading(true);
   try {
-    if (!store.templatesLoaded) {
-      const res = await getCoachTemplates();
-      if (seq !== useLoadSeq) return;
-      store.templates = Array.isArray(res?.coachTemplates) ? res.coachTemplates : [];
-      store.templatesLoaded = true;
-    }
+    await ensureTemplatesLoaded();
     if (seq !== useLoadSeq) return;
     useTemplates = assignableTemplatesForAthlete(useAthlete);
     selectedTemplateIds = new Set(
@@ -749,7 +751,7 @@ async function confirmUseTemplates() {
   const templateIds = [...selectedTemplateIds];
   if (useBusy || !athleteId || templateIds.length === 0) return;
 
-  const athleteName = athleteDisplayNameLocal(useAthlete);
+  const athleteName = athleteDisplayName(useAthlete);
   useBusy = true;
   syncUseConfirm();
   setUseStatus('');

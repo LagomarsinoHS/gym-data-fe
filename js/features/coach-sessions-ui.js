@@ -3,7 +3,8 @@
  * Markup: #session-editor-view, #add-session-overlay, #session-assign-banner
  * State: coach-athletes-store.js · List shell: students-ui.js
  */
-import { putCoachAthleteTrainingProgram, putCoachTemplates, postCoachTemplate } from '../api/users.js';
+import { putCoachAthleteTrainingProgram } from '../api/users.js';
+import { putCoachTemplates, postCoachTemplate } from '../api/coach-templates.js';
 import { assetUrl } from '../utils/assets.js';
 import {
   createFeatureHint,

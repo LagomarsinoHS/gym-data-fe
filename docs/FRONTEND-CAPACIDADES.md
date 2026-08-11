@@ -14,7 +14,7 @@ API: `localhost:3000` en local · `https://gym-data-8d3l.onrender.com` en prod.
 3. **`init()` en `main.js`:**
    - Sincroniza labels `[data-ui]` según idioma guardado
    - `GET /exercises/labels` → chips de filtros
-   - Inicia sesión, auth, tema, drawer mobile, students, avances, progress photos, athlete avances, coach panel, coach invite, recommend
+   - Inicia sesión, auth, tema, drawer mobile, students, plantillas, avances, progress photos, athlete avances, coach panel, coach invite, recommend
    - Revela filtros (animación cascade)
    - En mobile: colapsa filtros + mueve results bar arriba
    - `restoreSession()` → si hay token, `GET /users/me` (+ `onUserSynced` → pending invite)
@@ -61,7 +61,7 @@ Si el boot falla → mensaje de error en el contador de resultados.
 | `coach-plan` | Plan del coach (`coachTrainingProgram`; empty sin coach / sin plan; columna centrada ~720px) |
 | `athlete-avances` | Atleta: upload (mes actual o backfill) + historial timeline + comparar |
 | `coach-panel` | Resumen informativo (`coach-panel-ui`): total alumnos + sin pauta + historial invites |
-| `coach-templates` | Shell placeholder |
+| `coach-templates` | Biblioteca de plantillas (`coach-templates-ui`): crear/editar/guardar + aplicar a alumnos / Usar plantilla desde Mis alumnos |
 | `students` | Mis alumnos (`students-ui` + cupo `coachQuota.canInvite` + `coach-sessions-ui` + `students-download-ui` + store) |
 | `avances` | Coach: lista de alumnos → abrir fotos de progreso |
 | `progress-photos` | Coach: timeline + comparar fotos de un alumno (lightbox) |
@@ -380,6 +380,7 @@ Al boot, `theme-boot.js` migra una vez keys legacy `FLEX_*` → `steelPulse.*` (
 | Students | `js/features/students-ui.js` |
 | Students download | `js/features/students-download-ui.js` |
 | Coach sessions / editor | `js/features/coach-sessions-ui.js` |
+| Coach templates | `js/features/coach-templates-ui.js` |
 | Athletes store | `js/features/coach-athletes-store.js` |
 | Avances coach (lista) | `js/features/avances-ui.js` |
 | Progress photos coach | `js/features/progress-photos-ui.js` |
@@ -389,7 +390,7 @@ Al boot, `theme-boot.js` migra una vez keys legacy `FLEX_*` → `steelPulse.*` (
 | Drawer | `js/features/nav-drawer.js` |
 | Tema | `theme-boot.js`, `theme-ui.js` |
 | Footer / eggs | `footer.js`, `easter-egg.js` |
-| API | `js/api/request.js` (`postMultipart`, `err.code`), `auth.js`, `users.js`, `exercises.js`, `token.js` |
+| API | `js/api/request.js` (`postMultipart`, `err.code`), `auth.js`, `users.js`, `coach-templates.js`, `exercises.js`, `token.js` |
 | Copy / i18n errors | `js/i18n/`, `js/utils/api-errors.js`, `js/utils/auth-errors.js` |
 | Estilos | `public/css/base.css`, `app.css` |
 
@@ -397,7 +398,6 @@ Al boot, `theme-boot.js` migra una vez keys legacy `FLEX_*` → `steelPulse.*` (
 
 ## 19. Stubs / aún no cableado
 
-- Plantillas (`coach-templates`) placeholder.
 - Admin no se elige en register (solo DB); en nav se comporta como coach.
 - Sin refresh token; si `/me` falla, sesión guest.
 - Recommend exige `subscription.plan === 'premium'` del back (athletes).

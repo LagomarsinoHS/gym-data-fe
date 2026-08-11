@@ -58,7 +58,7 @@ coachTrainingProgram: {
 - [x] Hint contextual primera vez (localStorage `steelPulse.featureHints`; tip en plan + editor; se oculta al dismiss o al reordenar)
 - [x] Comparar avances: mostrar estatura del perfil junto al cambio de peso (si está cargada)
 - [ ] Duplicar sesión o copiar a otro atleta
-- [x] Plantillas reutilizables (`coachTemplates` en User del coach) — biblioteca MVP (list/create/edit/save)
+- [x] Plantillas reutilizables (`coachTemplates` en User del coach) — biblioteca (list/create/edit/save + apply)
 - [x] Aplicar plantilla → alumno (desde Plantillas: POST /coach/templates/:id/apply)
 - [x] Aplicar plantilla desde Mis alumnos / plan del atleta (“Usar plantilla”)
 - [ ] (Opc.) UI upsell cuando el cupo está lleno (growth/pro)
