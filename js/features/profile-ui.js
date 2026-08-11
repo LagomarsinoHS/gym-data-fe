@@ -585,50 +585,49 @@ function createCoachBlock(user) {
 function buildDetailFacts(user) {
   /** @type {Array<{ label: string, value: string, tone?: string }>} */
   const facts = [
-    { label: ui('profileRole'), value: roleLabel(user) },
+    { label: ui('profileRole'), value: roleLabel(user) || '—' },
     {
       label: ui('profilePlan'),
-      value: planLabel(user.subscription?.plan),
+      value: planLabel(user.subscription?.plan) || '—',
       tone: isPaidPlan(user.subscription?.plan) ? 'paid' : undefined,
     },
-    { label: ui('profileMemberSince'), value: formatDate(user.createdAt) },
-  ];
-
-  if (user.subscription?.startedAt) {
-    facts.push({
+    {
+      label: ui('profileMemberSince'),
+      value: formatDate(user.createdAt) || '—',
+    },
+    {
       label: ui('profilePlanSince'),
-      value: formatDate(user.subscription.startedAt),
-    });
-  }
-  if (user.subscription?.expiresAt) {
-    facts.push({
+      value: user.subscription?.startedAt
+        ? formatDate(user.subscription.startedAt) || '—'
+        : '—',
+    },
+    {
       label: ui('profilePlanExpires'),
-      value: formatDate(user.subscription.expiresAt),
-    });
-  }
+      value: user.subscription?.expiresAt
+        ? formatDate(user.subscription.expiresAt) || '—'
+        : '—',
+    },
+  ];
 
   const profile = userProfile(user);
 
-  const sexLabel = formatSex(profile.sex);
-  if (sexLabel) {
-    facts.push({ label: ui('profileSex'), value: sexLabel });
-  }
-
-  if (profile.birthDate) {
-    facts.push({
-      label: ui('profileBirthDate'),
-      value: formatDate(profile.birthDate),
-    });
-    const age = ageFromBirthDate(profile.birthDate);
-    if (age != null) {
-      facts.push({ label: ui('profileAge'), value: String(age) });
-    }
-  }
-
-  const goalLabel = formatGoal(user.goal);
-  if (goalLabel) {
-    facts.push({ label: ui('profileGoal'), value: goalLabel });
-  }
+  facts.push({
+    label: ui('profileSex'),
+    value: formatSex(profile.sex) || '—',
+  });
+  facts.push({
+    label: ui('profileBirthDate'),
+    value: profile.birthDate ? formatDate(profile.birthDate) || '—' : '—',
+  });
+  const age = ageFromBirthDate(profile.birthDate);
+  facts.push({
+    label: ui('profileAge'),
+    value: age != null ? String(age) : '—',
+  });
+  facts.push({
+    label: ui('profileGoal'),
+    value: formatGoal(user.goal) || '—',
+  });
 
   if (isCoach(user) && user.coachQuota) {
     const { athleteCount, athleteLimit, canInvite } = user.coachQuota;
@@ -666,15 +665,13 @@ function buildMetricFacts(user) {
   const height =
     profile.heightCm != null && Number.isFinite(Number(profile.heightCm))
       ? `${Number(profile.heightCm)} cm`
-      : null;
-  if (height || isAthlete(user)) {
-    metrics.push({
-      label: ui('profileHeight'),
-      value: height || '—',
-      icon: 'height',
-      tone: 'height',
-    });
-  }
+      : '—';
+  metrics.push({
+    label: ui('profileHeight'),
+    value: height,
+    icon: 'height',
+    tone: 'height',
+  });
 
   return metrics;
 }

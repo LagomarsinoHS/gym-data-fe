@@ -1,12 +1,12 @@
 /**
  * Coach — session templates library (list / create / edit / save).
- * Apply from Plantillas → athletes; Use template from Mis alumnos → POST /coach/templates/:id/apply.
+ * Apply from Plantillas → athletes; Use template from Mis alumnos → POST /coach/templates/apply.
  * Markup: #coach-templates-view, #apply-template-overlay, #use-template-overlay
  */
 import { getCoachAthletes } from '../api/users.js';
 import {
   getCoachTemplates,
-  applyCoachTemplate,
+  applyCoachTemplates,
 } from '../api/coach-templates.js';
 import { ui } from '../utils/labels.js';
 import {
@@ -27,6 +27,11 @@ let bodyEl;
 let loadingEl;
 let statusEl;
 let loadSeq = 0;
+let toastEl;
+let toastTitleEl;
+let toastDetailEl;
+let toastHideTimer = null;
+const TOAST_VISIBLE_MS = 3000;
 
 let applyOverlay;
 let applyLeadEl;
@@ -69,6 +74,12 @@ export function initCoachTemplatesUi() {
   bodyEl = document.getElementById('coach-templates-body');
   loadingEl = document.getElementById('coach-templates-loading');
   statusEl = document.getElementById('coach-templates-status');
+  toastEl = document.getElementById('coach-templates-toast');
+  toastTitleEl = document.getElementById('coach-templates-toast-title');
+  toastDetailEl = document.getElementById('coach-templates-toast-detail');
+  document.getElementById('coach-templates-toast-close')?.addEventListener('click', () => {
+    hideApplyToast();
+  });
 
   applyOverlay = document.getElementById('apply-template-overlay');
   applyLeadEl = document.getElementById('apply-template-lead');
@@ -161,6 +172,7 @@ export function resetCoachTemplatesUi() {
   clearAthleteDirty(TEMPLATES_SCOPE_ID);
   setLoading(false);
   setStatus('');
+  hideApplyToast(true);
   bodyEl?.replaceChildren();
   closeApplyTemplateModal();
   closeUseTemplatesModal();
@@ -234,6 +246,63 @@ function setStatus(message, kind = '') {
   statusEl.textContent = message;
   statusEl.classList.toggle('is-error', kind === 'error');
   statusEl.classList.toggle('is-ok', kind === 'ok');
+}
+
+function hideApplyToast(immediate = false) {
+  if (toastHideTimer != null) {
+    clearTimeout(toastHideTimer);
+    toastHideTimer = null;
+  }
+  if (!toastEl || toastEl.hidden) return;
+
+  if (immediate) {
+    toastEl.hidden = true;
+    toastEl.classList.remove('is-visible', 'is-leaving');
+    if (toastTitleEl) toastTitleEl.textContent = '';
+    if (toastDetailEl) toastDetailEl.textContent = '';
+    return;
+  }
+
+  toastEl.classList.remove('is-visible');
+  toastEl.classList.add('is-leaving');
+
+  const finish = () => {
+    toastEl.hidden = true;
+    toastEl.classList.remove('is-leaving');
+    if (toastTitleEl) toastTitleEl.textContent = '';
+    if (toastDetailEl) toastDetailEl.textContent = '';
+  };
+
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    finish();
+    return;
+  }
+
+  window.setTimeout(finish, 280);
+}
+
+function showApplyToast(title, detail) {
+  if (!toastEl || !toastTitleEl || !toastDetailEl) return;
+
+  if (toastHideTimer != null) {
+    clearTimeout(toastHideTimer);
+    toastHideTimer = null;
+  }
+
+  toastTitleEl.textContent = title;
+  toastDetailEl.textContent = detail || '';
+  toastDetailEl.hidden = !detail;
+
+  toastEl.hidden = false;
+  toastEl.classList.remove('is-leaving');
+  toastEl.classList.remove('is-visible');
+  void toastEl.offsetWidth;
+  toastEl.classList.add('is-visible');
+
+  toastHideTimer = window.setTimeout(() => {
+    toastHideTimer = null;
+    hideApplyToast();
+  }, TOAST_VISIBLE_MS);
 }
 
 // ── Apply template → athlete ─────────────────────────────────────────
@@ -417,18 +486,31 @@ async function confirmApplyTemplate() {
   setApplyStatus('');
 
   try {
-    const res = await applyCoachTemplate(templateId, athleteIds);
-    const applied = Array.isArray(res?.applied) ? res.applied.map(String) : [];
-    const skipped = Array.isArray(res?.skipped) ? res.skipped.map(String) : [];
-    const failed = Array.isArray(res?.failed) ? res.failed.map(String) : [];
+    const res = await applyCoachTemplates({
+      templateIds: [templateId],
+      athleteIds,
+    });
+    const appliedPairs = applyPairs(res?.applied);
+    const skippedPairs = applyPairs(res?.skipped);
+    const failedAthletes = Array.isArray(res?.failedAthletes)
+      ? res.failedAthletes.map(String)
+      : [];
+    const failedTemplates = Array.isArray(res?.failedTemplates)
+      ? res.failedTemplates.map(String)
+      : [];
 
-    syncAppliedAthletesLocally(templateSnapshot, applied);
+    const appliedAthleteIds = uniqueIds(appliedPairs.map((p) => p.athleteId));
+    const skippedAthleteIds = uniqueIds(skippedPairs.map((p) => p.athleteId))
+      .filter((id) => !appliedAthleteIds.includes(id));
 
-    const okCount = applied.length;
-    const skippedCount = skipped.length;
-    const failCount = failed.length;
+    if (appliedAthleteIds.length) {
+      syncFromApplyResponse(res);
+      store.refreshList();
+    }
 
-    if (okCount > 0) store.refreshList();
+    const okCount = appliedAthleteIds.length;
+    const skippedCount = skippedAthleteIds.length;
+    const failCount = failedAthletes.length + failedTemplates.length;
 
     if (okCount === 0 && failCount > 0 && skippedCount === 0) {
       setApplyStatus(ui('templateApplyFail'), 'error');
@@ -438,19 +520,28 @@ async function confirmApplyTemplate() {
     closeApplyTemplateModal();
 
     if (okCount === 0 && skippedCount > 0 && failCount === 0) {
-      setStatus(ui('templateApplyAllSkipped', templateName), 'ok');
+      showApplyToast(
+        ui('templateApplyToastTitleSkipped'),
+        ui('templateApplyToastAllSkipped', templateName),
+      );
     } else if (okCount === 1 && skippedCount === 0 && failCount === 0) {
       const name = athleteDisplayName(
-        resolveAthleteForApply(applied[0]) || { id: applied[0] },
+        resolveAthleteForApply(appliedAthleteIds[0]) || { id: appliedAthleteIds[0] },
       );
-      setStatus(ui('templateApplyOk', templateName, name), 'ok');
+      showApplyToast(
+        ui('templateApplyToastTitle'),
+        ui('templateApplyToastOne', templateName, name),
+      );
     } else if (skippedCount > 0 || failCount > 0) {
-      setStatus(
-        ui('templateApplyOkWithSkips', templateName, okCount, skippedCount + failCount),
-        'ok',
+      showApplyToast(
+        ui('templateApplyToastTitle'),
+        ui('templateApplyToastWithSkips', templateName, okCount, skippedCount + failCount),
       );
     } else {
-      setStatus(ui('templateApplyOkMany', templateName, okCount), 'ok');
+      showApplyToast(
+        ui('templateApplyToastTitle'),
+        ui('templateApplyToastMany', templateName, okCount),
+      );
     }
   } catch (err) {
     console.error(err);
@@ -461,25 +552,67 @@ async function confirmApplyTemplate() {
   }
 }
 
-/** Keep Mis alumnos store in sync after a successful server apply. */
-function syncAppliedAthletesLocally(template, appliedIds) {
-  const templateId = String(template?.id || '').trim();
-  if (!templateId) return;
+function applyPairs(list) {
+  return (Array.isArray(list) ? list : [])
+    .map((row) => ({
+      athleteId: String(row?.athleteId || '').trim(),
+      templateId: String(row?.templateId || '').trim(),
+    }))
+    .filter((row) => row.athleteId && row.templateId);
+}
+
+function uniqueIds(ids) {
+  return [...new Set((ids || []).map(String).filter(Boolean))];
+}
+
+/** Merge server apply result into Mis alumnos store. */
+function syncFromApplyResponse(res) {
+  const sessions = Array.isArray(res?.sessions) ? res.sessions : [];
+  const byTemplateId = new Map(
+    sessions
+      .map((session) => [String(session?.id || '').trim(), session])
+      .filter(([id]) => id),
+  );
+  const byAthlete = new Map();
+
+  for (const { athleteId, templateId } of applyPairs(res?.applied)) {
+    const session = byTemplateId.get(templateId);
+    if (!session) continue;
+    if (!byAthlete.has(athleteId)) byAthlete.set(athleteId, []);
+    byAthlete.get(athleteId).push(session);
+  }
+
+  for (const [athleteId, athleteSessions] of byAthlete) {
+    syncAppliedAthletesLocally(athleteSessions, [athleteId]);
+  }
+}
+
+/** Merge server-returned session(s) into Mis alumnos store after apply. */
+function syncAppliedAthletesLocally(sessionOrSessions, appliedIds) {
+  const sessions = Array.isArray(sessionOrSessions)
+    ? sessionOrSessions
+    : sessionOrSessions
+      ? [sessionOrSessions]
+      : [];
+  if (!sessions.length) return;
 
   for (const athleteId of appliedIds) {
     const target = findAthlete(athleteId);
     if (!target) continue;
-    const sessions = ensureAthleteSessions(target);
-    if (sessions.some((s) => String(s?.id || '') === templateId)) {
-      clearAthleteDirty(athleteId);
-      continue;
+    const plan = ensureAthleteSessions(target);
+
+    for (const session of sessions) {
+      const sessionId = String(session?.id || '').trim();
+      if (!sessionId) continue;
+      if (plan.some((s) => String(s?.id || '') === sessionId)) continue;
+      plan.push({
+        id: sessionId,
+        name: String(session?.name || '').trim() || ui('addSessionDefault', plan.length + 1),
+        order: plan.length,
+        items: Array.isArray(session?.items) ? session.items : [],
+      });
     }
-    sessions.push({
-      id: templateId,
-      name: String(template?.name || '').trim() || ui('addSessionDefault', sessions.length + 1),
-      order: sessions.length,
-      items: mapTemplateItems(template),
-    });
+
     clearAthleteDirty(athleteId);
   }
 }
@@ -665,36 +798,26 @@ async function confirmUseTemplates() {
   syncUseConfirm();
   setUseStatus('');
 
-  let okCount = 0;
-  let skippedCount = 0;
-  let failCount = 0;
-  /** @type {any[]} */
-  const appliedTemplates = [];
-
   try {
-    for (const templateId of templateIds) {
-      const template = useTemplates.find((t) => String(t?.id) === templateId);
-      const res = await applyCoachTemplate(templateId, [athleteId]);
-      const applied = Array.isArray(res?.applied) ? res.applied.map(String) : [];
-      const skipped = Array.isArray(res?.skipped) ? res.skipped.map(String) : [];
-      const failed = Array.isArray(res?.failed) ? res.failed.map(String) : [];
+    const res = await applyCoachTemplates({
+      templateIds,
+      athleteIds: [athleteId],
+    });
+    const appliedPairs = applyPairs(res?.applied);
+    const skippedPairs = applyPairs(res?.skipped);
+    const failedAthletes = Array.isArray(res?.failedAthletes)
+      ? res.failedAthletes.map(String)
+      : [];
+    const failedTemplates = Array.isArray(res?.failedTemplates)
+      ? res.failedTemplates.map(String)
+      : [];
 
-      if (applied.includes(athleteId)) {
-        okCount += 1;
-        if (template) appliedTemplates.push(template);
-      } else if (skipped.includes(athleteId)) {
-        skippedCount += 1;
-      } else if (failed.includes(athleteId) || failed.length || !applied.length) {
-        failCount += 1;
-      } else {
-        skippedCount += 1;
-      }
-    }
+    const okCount = uniqueIds(appliedPairs.map((p) => p.templateId)).length;
+    const skippedCount = uniqueIds(skippedPairs.map((p) => p.templateId)).length;
+    const failCount = failedAthletes.length + failedTemplates.length;
 
-    if (appliedTemplates.length) {
-      for (const template of appliedTemplates) {
-        syncAppliedAthletesLocally(template, [athleteId]);
-      }
+    if (okCount > 0) {
+      syncFromApplyResponse(res);
       store.refreshList();
     }
 
@@ -813,25 +936,4 @@ function createPickerRow({ id, selected, primary, secondary, onClick }) {
   btn.addEventListener('click', () => onClick?.(id));
   li.append(btn);
   return li;
-}
-
-function mapTemplateItems(template) {
-  return (Array.isArray(template?.items) ? template.items : [])
-    .map((item, index) => {
-      const exerciseId = String(item?.exercise?.id || item?.exerciseId || '').trim();
-      if (!exerciseId) return null;
-      const payload = {
-        exerciseId,
-        order: item?.order ?? index,
-      };
-      if (item?.sets != null) payload.sets = item.sets;
-      if (item?.reps) payload.reps = String(item.reps);
-      if (item?.rest != null) payload.rest = item.rest;
-      if (item?.notes != null && String(item.notes).trim() !== '') {
-        payload.notes = String(item.notes).trim();
-      }
-      if (item?.exercise) payload.exercise = item.exercise;
-      return payload;
-    })
-    .filter(Boolean);
 }

@@ -39,7 +39,7 @@ Si el boot falla → mensaje de error en el contador de resultados.
 - Overlay auth: backdrop / Escape cierran; errores mapeados (401, 409, etc.).
 - Password min 6; autocomplete distinto login vs register.
 - **Menú de cuenta** (`session-ui.js` / `#sidebar-user`): avatar con iniciales, nombre corto (`Humberto L`), badge de rol, chevron → dropdown.
-  - **Mi perfil**: activo → vista `#profile-view`. Header split (identidad azul + información personal) con botón **Editar** en el panel derecho: el formulario reemplaza el contenido derecho in-place (nombre, body stats, goal, contraseña) → `PATCH /users/me`. Avatar → Ver/Subir foto. **Darse de baja** modal email → `DELETE /users/me`. Al entrar, `refreshUser()`.
+  - **Mi perfil**: activo → vista `#profile-view`. Header split (identidad azul + información personal) con botón **Editar** en el panel derecho: el formulario reemplaza el contenido derecho in-place (nombre, body stats, goal, contraseña) → `PATCH /users/me`. El grid de información personal **siempre** muestra los labels (rol, plan, fechas, sexo, nacimiento, edad, objetivo, + cupo si coach); valores faltantes → “—”. Avatar → Ver/Subir foto. **Darse de baja** modal email → `DELETE /users/me`. Al entrar, `refreshUser()`.
   - **Configuración**: visible pero `disabled` (tooltip “Próximamente”).
   - **Cerrar sesión**: activo (rojo).
   - Cierra con click afuera o Escape.
@@ -61,12 +61,12 @@ Si el boot falla → mensaje de error en el contador de resultados.
 | `coach-plan` | Plan del coach (`coachTrainingProgram`; empty sin coach / sin plan; columna centrada ~720px) |
 | `athlete-avances` | Atleta: upload (mes actual o backfill) + historial timeline + comparar |
 | `coach-panel` | Resumen informativo (`coach-panel-ui`): total alumnos + sin pauta + historial invites |
-| `coach-templates` | Biblioteca de plantillas (`coach-templates-ui`): crear/editar/guardar + aplicar a alumnos / Usar plantilla desde Mis alumnos |
+| `coach-templates` | Biblioteca de plantillas (`coach-templates-ui` + `js/api/coach-templates.js`): crear (`POST /coach/templates`), editar/guardar (`PUT`), aplicar 1..N ↔ 1..N (`POST /coach/templates/apply`). Toast de éxito (~3s, cerrable) al aplicar desde Plantillas; **Usar plantilla** desde Mis alumnos |
 | `students` | Mis alumnos (`students-ui` + cupo `coachQuota.canInvite` + `coach-sessions-ui` + `students-download-ui` + store) |
 | `avances` | Coach: lista de alumnos → abrir fotos de progreso |
 | `progress-photos` | Coach: timeline + comparar fotos de un alumno (lightbox) |
 | `session-editor` | Editor de una sesión del atleta (coach; drag para reordenar ejercicios) |
-| `profile` | Mi perfil (header split, editar in-place, foto, darse de baja; resto “Pronto”) |
+| `profile` | Mi perfil (header split, editar in-place, foto, darse de baja; grid de info personal siempre muestra labels con “—” si falta dato; resto “Pronto”) |
 
 - Post-login: coach/admin → `coach-panel`; athlete → `training`.
 - Recomendar: nav locked + tooltip si no es Pro.
@@ -205,7 +205,19 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 - Vista `session-editor`: cards, Editar / ✕, Agregar ejercicios; modal confirmar quitar sesión.
 - Catálogo en modo asignar: banner + “Agregar a la sesión” + lápiz pauta (local); guardar vuelve al editor.
 - Sesiones en `athlete.coachTrainingProgram`; **Guardar plan** → `PUT /users/coach/athletes/:id/training-program` (replace; respuesta enriquecida).
+- **Usar plantilla**: desde el plan del alumno → modal multi-select de plantillas con ejercicios que el alumno aún no tiene → `POST /coach/templates/apply` (`templateIds` + `athleteIds: [id]`) en un solo request; sync local con `sessions` del response.
 - Fila alumno: botón **Avances** → `progress-photos` (return a Mis alumnos).
+
+---
+
+## 9b. Plantillas (coach)
+
+Vista `coach-templates` (`coach-templates-ui.js`, API `js/api/coach-templates.js`).
+
+- Lista / crear / editar ejercicios (scope virtual `TEMPLATES_SCOPE_ID`) / guardar → `GET|POST|PUT /coach/templates`.
+- **Aplicar a alumno** (desde una plantilla): modal multi-select de alumnos que aún no la tienen → `POST /coach/templates/apply` (`templateIds: [id]`, `athleteIds`).
+- Éxito → toast fijo inferior (~3s, botón ✕) con título + detalle; errores inline en status.
+- Response apply: `{ applied, skipped, failedAthletes, failedTemplates, sessions }` (pares y sesiones enriquecidas).
 
 ---
 
@@ -285,6 +297,10 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 | GET | `/users/coach/invites` | Sí | Historial invites coach (`status` opcional) |
 | PUT | `/users/coach/athletes/:athleteId/training-program` | Sí | Guardar plan (replace sesiones) |
 | POST | `/users/coach/training-program/export` | Sí | Export Excel/PDF/zip (binary; body `format`) |
+| GET | `/coach/templates` | Sí | Lista plantillas del coach (enriquecidas) |
+| POST | `/coach/templates` | Sí | Crear plantilla (id server-owned) |
+| PUT | `/coach/templates` | Sí | Reemplazar biblioteca de plantillas |
+| POST | `/coach/templates/apply` | Sí | Aplicar 1..N plantillas a 1..N alumnos (`templateIds` + `athleteIds`) |
 
 ---
 
@@ -317,6 +333,7 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 | Auth / recommend overlay | Abrir esos modales |
 
 | Hint Avances pulse | Vista atleta Avances |
+| Plantillas apply toast | Tras aplicar plantilla a alumnos (~3s / ✕) |
 
 `prefers-reduced-motion: reduce` apaga o simplifica casi todo lo anterior.
 
