@@ -914,11 +914,19 @@
     </div>
 
     <div id="coach-templates-view" class="recommend-view" hidden>
-      <div class="recommend-panel">
-        <h2 class="recommend-title" data-ui="coachTemplates">Plantillas</h2>
-        <p class="recommend-lead" data-ui="coachTemplatesLead">
-          Acá vas a armar rutinas reutilizables para asignar a tus alumnos.
-        </p>
+      <div class="coach-templates-shell">
+        <header class="coach-templates-header">
+          <h2 class="coach-templates-title" data-ui="coachTemplates">Plantillas</h2>
+          <p class="coach-templates-lead" data-ui="coachTemplatesLead">
+            Crea sesiones reutilizables (ej. Upper Body). Más adelante podrás aplicarlas a tus alumnos.
+          </p>
+        </header>
+        <div class="coach-templates-loading" id="coach-templates-loading" hidden>
+          <div class="load-spinner visible" aria-hidden="true"></div>
+          <span data-ui="coachTemplatesLoading">Cargando plantillas…</span>
+        </div>
+        <p class="coach-templates-status" id="coach-templates-status" hidden></p>
+        <div class="coach-templates-body" id="coach-templates-body"></div>
       </div>
     </div>
 
@@ -1264,6 +1272,100 @@
         <span class="recommend-submit-label" data-ui="addSessionSubmit">Crear sesión</span>
       </button>
     </form>
+  </div>
+</div>
+
+<!-- ═══ MODAL aplicar plantilla → alumno — js/features/coach-templates-ui.js ═══ -->
+<div class="recommend-overlay" id="apply-template-overlay" role="dialog" aria-modal="true" aria-labelledby="apply-template-title">
+  <div class="recommend-modal">
+    <div class="recommend-modal-header">
+      <h2 class="recommend-modal-title" id="apply-template-title" data-ui="templateApplyTitle">Aplicar plantilla</h2>
+      <button type="button" class="modal-close" id="apply-template-close" aria-label="Close">✕</button>
+    </div>
+    <p class="recommend-hint" id="apply-template-lead"></p>
+    <div class="apply-template-search-block">
+      <span class="recommend-label" id="apply-template-search-label" data-ui="templateApplySearch">Buscar alumnos</span>
+      <div class="search-wrapper apply-template-search">
+        <svg class="search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <circle cx="6.5" cy="6.5" r="4.5"/>
+          <path d="M10.5 10.5L14 14" stroke-linecap="round"/>
+        </svg>
+        <input
+          type="text"
+          class="search-box"
+          id="apply-template-search"
+          name="search"
+          autocomplete="off"
+          aria-labelledby="apply-template-search-label"
+          placeholder="Nombre o email…"
+        />
+      </div>
+    </div>
+    <div class="apply-template-results" id="apply-template-results">
+      <ul class="apply-template-skeleton" id="apply-template-skeleton" hidden aria-hidden="true">
+        <li class="apply-template-skeleton-item"><span class="apply-template-skeleton-line is-name"></span><span class="apply-template-skeleton-line is-email"></span></li>
+        <li class="apply-template-skeleton-item"><span class="apply-template-skeleton-line is-name"></span><span class="apply-template-skeleton-line is-email"></span></li>
+        <li class="apply-template-skeleton-item"><span class="apply-template-skeleton-line is-name"></span><span class="apply-template-skeleton-line is-email"></span></li>
+        <li class="apply-template-skeleton-item"><span class="apply-template-skeleton-line is-name"></span><span class="apply-template-skeleton-line is-email"></span></li>
+        <li class="apply-template-skeleton-item"><span class="apply-template-skeleton-line is-name"></span><span class="apply-template-skeleton-line is-email"></span></li>
+      </ul>
+      <ul class="apply-template-list" id="apply-template-list"></ul>
+      <p class="apply-template-empty" id="apply-template-empty" hidden data-ui="templateApplyEmpty">
+        No hay alumnos para mostrar.
+      </p>
+    </div>
+    <p class="recommend-status" id="apply-template-status" hidden></p>
+    <div class="confirm-modal-actions">
+      <button type="button" class="confirm-modal-cancel" id="apply-template-cancel" data-ui="templateApplyCancel">Cancelar</button>
+      <button type="button" class="recommend-submit" id="apply-template-confirm" disabled data-ui="templateApplyConfirm">Aplicar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL usar plantillas → alumno (desde Mis alumnos) — js/features/coach-templates-ui.js ═══ -->
+<div class="recommend-overlay" id="use-template-overlay" role="dialog" aria-modal="true" aria-labelledby="use-template-title">
+  <div class="recommend-modal">
+    <div class="recommend-modal-header">
+      <h2 class="recommend-modal-title" id="use-template-title" data-ui="useTemplateTitle">Usar plantilla</h2>
+      <button type="button" class="modal-close" id="use-template-close" aria-label="Close">✕</button>
+    </div>
+    <p class="recommend-hint" id="use-template-lead"></p>
+    <div class="apply-template-search-block">
+      <span class="recommend-label" id="use-template-search-label" data-ui="useTemplateSearch">Buscar plantilla</span>
+      <div class="search-wrapper apply-template-search">
+        <svg class="search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <circle cx="6.5" cy="6.5" r="4.5"/>
+          <path d="M10.5 10.5L14 14" stroke-linecap="round"/>
+        </svg>
+        <input
+          type="text"
+          class="search-box"
+          id="use-template-search"
+          name="search"
+          autocomplete="off"
+          aria-labelledby="use-template-search-label"
+          placeholder="Nombre…"
+        />
+      </div>
+    </div>
+    <div class="apply-template-results" id="use-template-results">
+      <ul class="apply-template-skeleton" id="use-template-skeleton" hidden aria-hidden="true">
+        <li class="apply-template-skeleton-item"><span class="apply-template-skeleton-line is-name"></span><span class="apply-template-skeleton-line is-email"></span></li>
+        <li class="apply-template-skeleton-item"><span class="apply-template-skeleton-line is-name"></span><span class="apply-template-skeleton-line is-email"></span></li>
+        <li class="apply-template-skeleton-item"><span class="apply-template-skeleton-line is-name"></span><span class="apply-template-skeleton-line is-email"></span></li>
+        <li class="apply-template-skeleton-item"><span class="apply-template-skeleton-line is-name"></span><span class="apply-template-skeleton-line is-email"></span></li>
+        <li class="apply-template-skeleton-item"><span class="apply-template-skeleton-line is-name"></span><span class="apply-template-skeleton-line is-email"></span></li>
+      </ul>
+      <ul class="apply-template-list" id="use-template-list"></ul>
+      <p class="apply-template-empty" id="use-template-empty" hidden data-ui="useTemplateEmpty">
+        No hay plantillas para mostrar.
+      </p>
+    </div>
+    <p class="recommend-status" id="use-template-status" hidden></p>
+    <div class="confirm-modal-actions">
+      <button type="button" class="confirm-modal-cancel" id="use-template-cancel" data-ui="templateApplyCancel">Cancelar</button>
+      <button type="button" class="recommend-submit" id="use-template-confirm" disabled data-ui="templateApplyConfirm">Aplicar</button>
+    </div>
   </div>
 </div>
 

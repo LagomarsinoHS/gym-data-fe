@@ -46,6 +46,12 @@ import {
   updateSessionExercise,
   removeExerciseFromSession,
 } from './features/coach-sessions-ui.js';
+import {
+  initCoachTemplatesUi,
+  loadCoachTemplates,
+  syncCoachTemplatesLabels,
+  resetCoachTemplatesUi,
+} from './features/coach-templates-ui.js';
 import { store as coachStore } from './features/coach-athletes-store.js';
 import { initCoachInviteUi, syncCoachInviteBanner } from './features/coach-invite-ui.js';
 import {
@@ -156,6 +162,9 @@ async function init() {
       else if (view === 'students') {
         void refreshUser().finally(() => void loadCoachAthletes());
       }
+      else if (view === 'coach-templates') {
+        void loadCoachTemplates();
+      }
       else if (view === 'profile') {
         void refreshUser().catch(() => {});
       }
@@ -185,6 +194,7 @@ async function init() {
   initAdminUsersUi();
   initCoachPanelUi();
   initCoachInviteUi();
+  initCoachTemplatesUi();
   initRecommendUi({
     getFilterLabels: () => state.labels,
     onSubmit: async ({ zone, equipment }) => {
@@ -364,6 +374,7 @@ function syncChromeLabels() {
   syncAdminUsersLabels();
   syncCoachPanelLabels();
   syncCoachInviteBanner();
+  syncCoachTemplatesLabels();
 }
 
 function revealFilters() {

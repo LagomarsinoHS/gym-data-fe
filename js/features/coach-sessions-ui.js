@@ -3,7 +3,7 @@
  * Markup: #session-editor-view, #add-session-overlay, #session-assign-banner
  * State: coach-athletes-store.js · List shell: students-ui.js
  */
-import { putCoachAthleteTrainingProgram } from '../api/users.js';
+import { putCoachAthleteTrainingProgram, putCoachTemplates, postCoachTemplate } from '../api/users.js';
 import { assetUrl } from '../utils/assets.js';
 import {
   createFeatureHint,
@@ -21,6 +21,7 @@ import {
   isAthleteDirty,
   markAthleteDirty,
   clearAthleteDirty,
+  isTemplatesScope,
 } from './coach-athletes-store.js';
 
 const ICON_CLOSE_SVG = `
@@ -59,9 +60,10 @@ export function initCoachSessionsUi() {
   document.getElementById('remove-session-cancel')?.addEventListener('click', closeRemoveSessionModal);
   document.getElementById('remove-session-confirm')?.addEventListener('click', confirmRemoveSession);
   document.getElementById('session-editor-back')?.addEventListener('click', () => {
+    const fromTemplates = isTemplatesScope(store.editorAthleteId);
     store.editorAthleteId = null;
     store.editorSessionId = null;
-    store.navigateTo('students');
+    store.navigateTo(fromTemplates ? 'coach-templates' : 'students');
   });
   document.getElementById('session-editor-add')?.addEventListener('click', () => {
     if (store.editorAthleteId && store.editorSessionId) {
@@ -84,7 +86,7 @@ export function initCoachSessionsUi() {
   document.getElementById('session-assign-done')?.addEventListener('click', () => {
     clearSessionAssignTarget();
     if (store.editorAthleteId && store.editorSessionId) store.navigateTo('session-editor');
-    else store.navigateTo('students');
+    else store.navigateTo(isTemplatesScope(store.editorAthleteId) ? 'coach-templates' : 'students');
   });
   sessionOverlay?.addEventListener('click', e => {
     if (e.target === sessionOverlay) closeAddSessionModal();
@@ -123,6 +125,12 @@ export function syncCoachSessionsLabels() {
     sessionNameEditor.setAttribute('aria-label', ui('addSessionName'));
     sessionNameEditor.placeholder = ui('addSessionNamePlaceholder');
   }
+  const backLabel = document.querySelector('#session-editor-back [data-ui="sessionEditorBack"]');
+  if (backLabel) {
+    backLabel.textContent = isTemplatesScope(store.editorAthleteId)
+      ? ui('coachTemplates')
+      : ui('sessionEditorBack');
+  }
   if (removeSessionOverlay?.classList.contains('open') && pendingRemoveSession) {
     syncRemoveSessionCopy(pendingRemoveSession.name);
   }
@@ -151,7 +159,9 @@ export function createAthletePlan(athlete) {
 
   const planTitle = document.createElement('span');
   planTitle.className = 'student-plan-title';
-  planTitle.textContent = ui('sessionsHeading');
+  planTitle.textContent = isTemplatesScope(id)
+    ? ui('coachTemplatesListHeading')
+    : ui('sessionsHeading');
 
   const planHeadActions = document.createElement('div');
   planHeadActions.className = 'student-plan-head-actions';
@@ -159,17 +169,35 @@ export function createAthletePlan(athlete) {
   const addSessionBtn = document.createElement('button');
   addSessionBtn.type = 'button';
   addSessionBtn.className = 'student-plan-add';
-  addSessionBtn.textContent = ui('addSession');
+  addSessionBtn.textContent = isTemplatesScope(id)
+    ? ui('addTemplate')
+    : ui('addSession');
   addSessionBtn.addEventListener('click', e => {
     e.stopPropagation();
     openAddSessionModal(id);
   });
   planHeadActions.append(addSessionBtn);
 
+  if (!isTemplatesScope(id)) {
+    const useTemplateBtn = document.createElement('button');
+    useTemplateBtn.type = 'button';
+    useTemplateBtn.className = 'student-plan-use-template';
+    useTemplateBtn.textContent = ui('useTemplate');
+    useTemplateBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (typeof store.requestUseTemplatesForAthlete === 'function') {
+        store.requestUseTemplatesForAthlete(athlete);
+      }
+    });
+    planHeadActions.append(useTemplateBtn);
+  }
+
   if (isAthleteDirty(id)) {
     const dirty = document.createElement('span');
     dirty.className = 'student-plan-dirty';
-    dirty.textContent = ui('athletePlanUnsaved');
+    dirty.textContent = isTemplatesScope(id)
+      ? ui('coachTemplatesUnsaved')
+      : ui('athletePlanUnsaved');
     planHeadActions.prepend(dirty);
   }
 
@@ -181,7 +209,9 @@ export function createAthletePlan(athlete) {
   if (sessions.length === 0) {
     const empty = document.createElement('p');
     empty.className = 'student-plan-empty';
-    empty.textContent = ui('sessionsEmpty');
+    empty.textContent = isTemplatesScope(id)
+      ? ui('coachTemplatesEmpty')
+      : ui('sessionsEmpty');
     sessionList.append(empty);
   } else {
     for (const session of sessions) {
@@ -218,19 +248,40 @@ export function collapseOpenSessionsIn(row) {
 // ── Add session modal ─────────────────────────────────────────────────
 export function openAddSessionModal(athleteId) {
   if (!sessionOverlay || !sessionForm) return;
-  const athlete = store.athletes.find(a => String(a?.id) === String(athleteId));
+  const athlete = findAthlete(athleteId);
   if (!athlete) return;
 
   sessionAthleteId = String(athleteId);
   setSessionStatus('');
   sessionForm.reset();
   const next = getAthleteSessions(athlete).length + 1;
-  const defaultName = ui('addSessionDefault', next);
+  const defaultName = isTemplatesScope(athleteId)
+    ? ui('addTemplateDefault', next)
+    : ui('addSessionDefault', next);
   if (sessionNameInput) {
     sessionNameInput.placeholder = defaultName;
     sessionNameInput.value = defaultName;
   }
-  if (sessionSubmitBtn) sessionSubmitBtn.disabled = false;
+  if (sessionSubmitBtn) {
+    sessionSubmitBtn.disabled = false;
+    const label = sessionSubmitBtn.querySelector('[data-ui]') || sessionSubmitBtn;
+    if (sessionSubmitBtn.querySelector('[data-ui]')) {
+      label.dataset.ui = isTemplatesScope(athleteId) ? 'addTemplateSubmit' : 'addSessionSubmit';
+      label.textContent = ui(label.dataset.ui);
+    }
+  }
+  const titleEl = sessionOverlay.querySelector('[data-ui="addSessionTitle"]');
+  if (titleEl) {
+    titleEl.textContent = isTemplatesScope(athleteId)
+      ? ui('addTemplateTitle')
+      : ui('addSessionTitle');
+  }
+  const hintEl = sessionOverlay.querySelector('[data-ui="addSessionHint"]');
+  if (hintEl) {
+    hintEl.textContent = isTemplatesScope(athleteId)
+      ? ui('addTemplateHint')
+      : ui('addSessionHint');
+  }
   sessionOverlay.classList.add('open');
   sessionNameInput?.focus();
   sessionNameInput?.select();
@@ -244,14 +295,19 @@ export function closeAddSessionModal() {
   if (sessionSubmitBtn) sessionSubmitBtn.disabled = false;
 }
 
-function onAddSessionSubmit(e) {
+async function onAddSessionSubmit(e) {
   e.preventDefault();
   const athleteId = sessionAthleteId;
-  const athlete = store.athletes.find(a => String(a?.id) === String(athleteId));
+  const athlete = findAthlete(athleteId);
   if (!athlete) return;
 
   const name = (sessionNameInput?.value || '').trim();
   if (!name) return;
+
+  if (isTemplatesScope(athleteId)) {
+    await createTemplateOnServer(athleteId, name);
+    return;
+  }
 
   const sessions = ensureAthleteSessions(athlete);
   const session = {
@@ -267,6 +323,29 @@ function onAddSessionSubmit(e) {
   store.openSessionId = session.id;
   closeAddSessionModal();
   store.refreshList();
+}
+
+async function createTemplateOnServer(athleteId, name) {
+  if (sessionSubmitBtn) sessionSubmitBtn.disabled = true;
+  setSessionStatus('');
+  try {
+    const res = await postCoachTemplate({ name });
+    const created = res?.template;
+    if (!created?.id) throw new Error('template_missing');
+
+    const current = Array.isArray(store.templates) ? store.templates : [];
+    store.templates = [...current, created];
+    clearAthleteDirty(athleteId);
+    store.openAthleteId = String(athleteId);
+    store.openSessionId = String(created.id);
+    closeAddSessionModal();
+    store.refreshTemplatesList?.();
+  } catch (err) {
+    console.error(err);
+    setSessionStatus(ui('addTemplateCreateFail'), 'error');
+  } finally {
+    if (sessionSubmitBtn) sessionSubmitBtn.disabled = false;
+  }
 }
 
 function setSessionStatus(message, kind = '') {
@@ -400,6 +479,23 @@ function createSessionRow(session, athleteId) {
     openSessionEditor(athleteId, id);
   });
   actions.append(editBtn);
+
+  if (isTemplatesScope(athleteId)) {
+    const applyBtn = document.createElement('button');
+    applyBtn.type = 'button';
+    applyBtn.className = 'student-session-apply';
+    applyBtn.textContent = ui('templateApply');
+    applyBtn.disabled = items.length === 0;
+    applyBtn.title = items.length ? ui('templateApply') : ui('templateApplyNeedsExercises');
+    applyBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (typeof store.requestApplyTemplate === 'function') {
+        store.requestApplyTemplate(session);
+      }
+    });
+    actions.append(applyBtn);
+  }
+
   body.append(actions);
 
   const onToggle = e => {
@@ -573,7 +669,23 @@ export function syncSessionEditorView() {
   }
   if (subtitleEl) {
     const items = Array.isArray(session.items) ? session.items : [];
-    subtitleEl.textContent = `${athleteDisplayName(athlete)} · ${sessionAccordionMeta(items)}`;
+    const meta = sessionAccordionMeta(items);
+    subtitleEl.textContent = isTemplatesScope(store.editorAthleteId)
+      ? `${ui('coachTemplatesKicker')} · ${meta}`
+      : `${athleteDisplayName(athlete)} · ${meta}`;
+  }
+
+  const backLabel = document.querySelector('#session-editor-back [data-ui="sessionEditorBack"]');
+  if (backLabel) {
+    backLabel.textContent = isTemplatesScope(store.editorAthleteId)
+      ? ui('coachTemplates')
+      : ui('sessionEditorBack');
+  }
+  const kicker = document.querySelector('#session-editor-view [data-ui="sessionEditorKicker"]');
+  if (kicker) {
+    kicker.textContent = isTemplatesScope(store.editorAthleteId)
+      ? ui('coachTemplatesKicker')
+      : ui('sessionEditorKicker');
   }
 
   syncSessionEditorReorderHint(
@@ -772,6 +884,9 @@ export function getSessionAssignLabel() {
   const athlete = findAthlete(target.athleteId);
   const session = findSession(target.athleteId, target.sessionId);
   if (!athlete || !session) return '';
+  if (isTemplatesScope(target.athleteId)) {
+    return ui('sessionAssignToTemplate', session.name);
+  }
   const athleteName = athleteDisplayName(athlete);
   return ui('sessionAssignTo', session.name, athleteName);
 }
@@ -1112,7 +1227,9 @@ function createPlanSaveBar(athleteId) {
   btn.type = 'button';
   btn.className = 'student-plan-save';
   btn.disabled = saving;
-  btn.textContent = saving ? ui('savingAthletePlan') : ui('saveAthletePlan');
+  btn.textContent = saving
+    ? (isTemplatesScope(id) ? ui('savingCoachTemplates') : ui('savingAthletePlan'))
+    : (isTemplatesScope(id) ? ui('saveCoachTemplates') : ui('saveAthletePlan'));
   btn.addEventListener('click', e => {
     e.stopPropagation();
     void saveAthletePlan(athleteId);
@@ -1122,32 +1239,44 @@ function createPlanSaveBar(athleteId) {
   return bar;
 }
 
-/** PUT /users/coach/store.athletes/:id/training-program — full replace. */
+/** PUT full replace — athlete training-program or coach templates. */
 async function saveAthletePlan(athleteId) {
   const id = String(athleteId || '');
   const athlete = findAthlete(id);
   if (!athlete || store.savingAthleteIds.has(id)) return;
 
-  const coachTrainingProgram = serializeCoachTrainingProgram(athlete);
+  const payload = serializeCoachTrainingProgram(athlete);
 
   store.savingAthleteIds.add(id);
   store.saveErrorByAthleteId.delete(id);
   syncSessionEditorView();
   store.refreshList();
+  store.refreshTemplatesList();
 
   try {
-    const updated = await putCoachAthleteTrainingProgram(id, coachTrainingProgram);
-    if (Array.isArray(updated?.coachTrainingProgram)) {
-      athlete.coachTrainingProgram = updated.coachTrainingProgram;
+    if (isTemplatesScope(id)) {
+      const updated = await putCoachTemplates(payload);
+      if (Array.isArray(updated?.coachTemplates)) {
+        store.templates = updated.coachTemplates;
+      }
+    } else {
+      const updated = await putCoachAthleteTrainingProgram(id, payload);
+      if (Array.isArray(updated?.coachTrainingProgram)) {
+        athlete.coachTrainingProgram = updated.coachTrainingProgram;
+      }
     }
     clearAthleteDirty(id);
   } catch (err) {
     console.error(err);
-    store.saveErrorByAthleteId.set(id, ui('athletePlanSaveFail'));
+    store.saveErrorByAthleteId.set(
+      id,
+      isTemplatesScope(id) ? ui('coachTemplatesSaveFail') : ui('athletePlanSaveFail'),
+    );
   } finally {
     store.savingAthleteIds.delete(id);
     syncSessionEditorView();
     store.refreshList();
+    store.refreshTemplatesList();
   }
 }
 
@@ -1156,14 +1285,13 @@ function touchPlanUi(athleteId) {
   markAthleteDirty(athleteId);
   syncSessionEditorView();
   store.refreshList();
+  if (isTemplatesScope(athleteId)) store.refreshTemplatesList();
 }
 
 /** Move existing session cards in place (avoids accordion flash). */
 function reorderSessionRowsInDom(athleteId) {
   const athlete = findAthlete(athleteId);
-  const list = document.querySelector(
-    `#students-list .student-row[data-id="${cssEscape(athleteId)}"] .student-session-list`,
-  );
+  const list = findSessionListEl(athleteId);
   if (!athlete || !list) return false;
 
   for (const session of getAthleteSessions(athlete)) {
@@ -1191,12 +1319,30 @@ function reorderExerciseRowsInDom(sessionId) {
   return true;
 }
 
+function findSessionListEl(athleteId) {
+  const id = String(athleteId || '');
+  if (isTemplatesScope(id)) {
+    return document.querySelector('#coach-templates-body .student-session-list');
+  }
+  return document.querySelector(
+    `#students-list .student-row[data-id="${cssEscape(id)}"] .student-session-list`,
+  );
+}
+
+function findPlanEl(athleteId) {
+  const id = String(athleteId || '');
+  if (isTemplatesScope(id)) {
+    return document.querySelector('#coach-templates-body .student-plan');
+  }
+  return document.querySelector(
+    `#students-list .student-row[data-id="${cssEscape(id)}"] .student-plan`,
+  );
+}
+
 /** Dirty chip + save bar without rebuilding session cards. */
 function syncPlanDirtyChrome(athleteId) {
   const id = String(athleteId || '');
-  const plan = document.querySelector(
-    `#students-list .student-row[data-id="${cssEscape(id)}"] .student-plan`,
-  );
+  const plan = findPlanEl(id);
   if (!plan) return;
 
   const headActions = plan.querySelector('.student-plan-head-actions');
@@ -1206,7 +1352,9 @@ function syncPlanDirtyChrome(athleteId) {
       if (!dirty) {
         dirty = document.createElement('span');
         dirty.className = 'student-plan-dirty';
-        dirty.textContent = ui('athletePlanUnsaved');
+        dirty.textContent = isTemplatesScope(id)
+          ? ui('coachTemplatesUnsaved')
+          : ui('athletePlanUnsaved');
         headActions.prepend(dirty);
       }
     } else {

@@ -30,6 +30,7 @@ import {
   createAthletePlan,
   collapseOpenSessionsIn,
 } from './coach-sessions-ui.js';
+import { resetCoachTemplatesUi } from './coach-templates-ui.js';
 import {
   initStudentsDownloadUi,
   syncDownloadAllState,
@@ -173,6 +174,7 @@ export function syncStudentsLabels() {
 export function clearCoachAthletesCache() {
   resetCoachAthletesStore();
   resetCoachSessionsUi();
+  resetCoachTemplatesUi();
   resetStudentsSearch({ keepInput: false });
   studentsSort = 'default';
   recentAcceptedIds = new Set();
@@ -478,6 +480,8 @@ function inviteErrorMessage(err) {
       [ApiErrorCode.CoachAthleteQuotaFull]: 'inviteQuotaFull',
       [ApiErrorCode.EmailNotAnAthlete]: 'inviteNotAthlete',
       [ApiErrorCode.AthleteHasPendingInvite]: 'invitePending',
+      [ApiErrorCode.AlreadyYourAthlete]: 'inviteAlreadyYours',
+      [ApiErrorCode.AthleteAlreadyHasCoach]: 'inviteAlreadyHasCoach',
     },
     fallback: 'inviteFail',
   });

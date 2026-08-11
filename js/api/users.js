@@ -191,6 +191,53 @@ export function putCoachAthleteTrainingProgram(athleteId, coachTrainingProgram) 
 }
 
 /**
+ * GET /coach/templates
+ * Reusable session templates for the authenticated coach (enriched).
+ * Returns { coachTemplates }
+ */
+export function getCoachTemplates() {
+  return get('/coach/templates', undefined, { auth: true });
+}
+
+/**
+ * POST /coach/templates
+ * Creates a template; server assigns id. Body: { name, order?, items? }
+ * Returns { template } enriched.
+ */
+export function postCoachTemplate({ name, order, items } = {}) {
+  const body = { name };
+  if (order != null) body.order = order;
+  if (items != null) body.items = items;
+  return post('/coach/templates', body, { auth: true });
+}
+
+/**
+ * PUT /coach/templates
+ * Replaces coachTemplates (full array). Items with exerciseId only.
+ * Returns { coachTemplates } enriched.
+ */
+export function putCoachTemplates(coachTemplates) {
+  return put(
+    '/coach/templates',
+    { coachTemplates },
+    { auth: true },
+  );
+}
+
+/**
+ * POST /coach/templates/:id/apply
+ * Copies template onto athlete plans. Body: { athleteIds: string[] }
+ * Returns { applied, skipped, failed }.
+ */
+export function applyCoachTemplate(templateId, athleteIds) {
+  return post(
+    `/coach/templates/${templateId}/apply`,
+    { athleteIds },
+    { auth: true },
+  );
+}
+
+/**
  * POST /users/coach/training-program/export
  * Exports coach training programs (xlsx | pdf | zip) as a binary file.
  * Body: { athleteIds: string[], locale?: 'es'|'en', format?: 'xlsx'|'pdf' }

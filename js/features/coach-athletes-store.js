@@ -4,6 +4,9 @@
  */
 import { userProfile } from '../utils/helpers.js';
 
+/** Virtual athlete id for coachTemplates edit via the session editor. */
+export const TEMPLATES_SCOPE_ID = '__coach_templates__';
+
 export const store = {
   athletes: [],
   athletesLoaded: false,
@@ -28,13 +31,49 @@ export const store = {
   savingAthleteIds: new Set(),
   /** @type {Map<string, string>} */
   saveErrorByAthleteId: new Map(),
+  /** Coach reusable session templates (same shape as coachTrainingProgram). */
+  templates: [],
+  templatesLoaded: false,
+  loadingTemplates: false,
   navigateTo: () => {},
   openExercise: () => {},
   /** Re-render Mis alumnos list (wired by students-ui). */
   refreshList: () => {},
+  /** Re-render plantillas list (wired by coach-templates-ui). */
+  refreshTemplatesList: () => {},
+  /** Open apply-template modal (wired by coach-templates-ui). */
+  requestApplyTemplate: null,
+  /** Open use-templates modal for an athlete (wired by coach-templates-ui). */
+  requestUseTemplatesForAthlete: null,
 };
 
+/** Stable proxy so `athlete.coachTrainingProgram = …` updates store.templates. */
+let templatesAthleteProxy = null;
+
+export function isTemplatesScope(athleteId) {
+  return String(athleteId || '') === TEMPLATES_SCOPE_ID;
+}
+
+export function getTemplatesAthlete() {
+  if (!Array.isArray(store.templates)) store.templates = [];
+  if (!templatesAthleteProxy) {
+    templatesAthleteProxy = {
+      id: TEMPLATES_SCOPE_ID,
+      email: '',
+      profile: { firstName: '', lastName: '' },
+      get coachTrainingProgram() {
+        return store.templates;
+      },
+      set coachTrainingProgram(value) {
+        store.templates = Array.isArray(value) ? value : [];
+      },
+    };
+  }
+  return templatesAthleteProxy;
+}
+
 export function findAthlete(athleteId) {
+  if (isTemplatesScope(athleteId)) return getTemplatesAthlete();
   const id = String(athleteId || '');
   return (
     store.athletes.find(a => String(a?.id) === id)
@@ -51,6 +90,7 @@ export function findSession(athleteId, sessionId) {
 }
 
 export function athleteDisplayName(athlete) {
+  if (isTemplatesScope(athlete?.id)) return '';
   const profile = userProfile(athlete);
   const first = String(profile.firstName || '').trim();
   const last = String(profile.lastName || '').trim();
@@ -108,4 +148,8 @@ export function resetCoachAthletesStore() {
   store.dirtyAthleteIds.clear();
   store.savingAthleteIds.clear();
   store.saveErrorByAthleteId.clear();
+  store.templates = [];
+  store.templatesLoaded = false;
+  store.loadingTemplates = false;
+  templatesAthleteProxy = null;
 }
