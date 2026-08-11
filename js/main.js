@@ -50,7 +50,6 @@ import {
   initCoachTemplatesUi,
   loadCoachTemplates,
   syncCoachTemplatesLabels,
-  resetCoachTemplatesUi,
 } from './features/coach-templates-ui.js';
 import { store as coachStore } from './features/coach-athletes-store.js';
 import { initCoachInviteUi, syncCoachInviteBanner } from './features/coach-invite-ui.js';

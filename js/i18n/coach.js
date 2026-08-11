@@ -29,11 +29,11 @@ export const coach = {
     coachPanelInvitesRespondedAt: 'Responded',
     coachTemplates: 'Templates',
     coachTemplatesLead:
-      'Create reusable sessions (e.g. Upper Body). Applying them to athletes comes later.',
+      'Create reusable sessions (e.g. Upper Body), then apply them to your athletes from here or Mis alumnos.',
     coachTemplatesLoading: 'Loading templates…',
     coachTemplatesLoadFail: 'Could not load templates.',
     coachTemplatesListHeading: 'Your templates',
-    coachTemplatesEmpty: 'No templates yet. Create one to reuse across athletes later.',
+    coachTemplatesEmpty: 'No templates yet. Create one to reuse across athletes.',
     coachTemplatesUnsaved: 'Unsaved changes',
     coachTemplatesSaveFail: 'Could not save templates.',
     saveCoachTemplates: 'Save templates',
@@ -53,7 +53,6 @@ export const coach = {
     templateApplyLeadAfter: '” as a new session on the selected athletes’ plans.',
     templateApplySearch: 'Search athletes',
     templateApplySearchPlaceholder: 'Name or email…',
-    templateApplyLoading: 'Loading athletes…',
     templateApplyEmpty: 'No athletes to show.',
     templateApplyEmptyAllHaveIt: 'Every athlete already has this template.',
     templateApplyLoadAthletesFail: 'Could not load athletes.',
@@ -70,8 +69,6 @@ export const coach = {
     templateApplyAllSkipped: (templateName) =>
       `“${templateName}” was already on every selected athlete’s plan.`,
     templateApplyFail: 'Could not apply the template.',
-    templateApplyPartialFail: (ok, total) =>
-      `Applied to ${ok} of ${total} athletes. Check the rest and try again.`,
     useTemplate: 'Use template',
     useTemplateTitle: 'Use template',
     useTemplateLeadBefore: 'Add templates as new sessions on ',
@@ -81,7 +78,6 @@ export const coach = {
     useTemplateEmpty: 'No templates to show.',
     useTemplateEmptyNoneLeft: 'This athlete already has every available template.',
     useTemplateLoadFail: 'Could not load templates.',
-    useTemplateNeedsExercises: 'Add exercises to this template first.',
     useTemplateExerciseCount: (n) => (n === 1 ? '1 exercise' : `${n} exercises`),
     useTemplateOk: (count, athleteName) =>
       `${count} template(s) added to ${athleteName}.`,
@@ -238,11 +234,11 @@ export const coach = {
     coachPanelInvitesRespondedAt: 'Respondida',
     coachTemplates: 'Plantillas',
     coachTemplatesLead:
-      'Crea sesiones reutilizables (ej. Upper Body). Más adelante podrás aplicarlas a tus alumnos.',
+      'Crea sesiones reutilizables (ej. Upper Body) y aplícalas a tus alumnos desde aquí o Mis alumnos.',
     coachTemplatesLoading: 'Cargando plantillas…',
     coachTemplatesLoadFail: 'No se pudieron cargar las plantillas.',
     coachTemplatesListHeading: 'Tus plantillas',
-    coachTemplatesEmpty: 'Aún no hay plantillas. Crea una para reutilizarla después.',
+    coachTemplatesEmpty: 'Aún no hay plantillas. Crea una para reutilizarla con tus alumnos.',
     coachTemplatesUnsaved: 'Cambios sin guardar',
     coachTemplatesSaveFail: 'No se pudieron guardar las plantillas.',
     saveCoachTemplates: 'Guardar plantillas',
@@ -262,7 +258,6 @@ export const coach = {
     templateApplyLeadAfter: '” como sesión nueva al plan de los alumnos seleccionados.',
     templateApplySearch: 'Buscar alumnos',
     templateApplySearchPlaceholder: 'Nombre o email…',
-    templateApplyLoading: 'Cargando alumnos…',
     templateApplyEmpty: 'No hay alumnos para mostrar.',
     templateApplyEmptyAllHaveIt: 'Todos los alumnos ya tienen esta plantilla.',
     templateApplyLoadAthletesFail: 'No se pudieron cargar los alumnos.',
@@ -279,8 +274,6 @@ export const coach = {
     templateApplyAllSkipped: (templateName) =>
       `“${templateName}” ya estaba en el plan de todos los seleccionados.`,
     templateApplyFail: 'No se pudo aplicar la plantilla.',
-    templateApplyPartialFail: (ok, total) =>
-      `Se aplicó a ${ok} de ${total} alumnos. Revisa el resto e intenta de nuevo.`,
     useTemplate: 'Usar plantilla',
     useTemplateTitle: 'Usar plantilla',
     useTemplateLeadBefore: 'Agregar plantillas como sesiones nuevas al plan de ',
@@ -290,7 +283,6 @@ export const coach = {
     useTemplateEmpty: 'No hay plantillas para mostrar.',
     useTemplateEmptyNoneLeft: 'Este alumno ya tiene todas las plantillas disponibles.',
     useTemplateLoadFail: 'No se pudieron cargar las plantillas.',
-    useTemplateNeedsExercises: 'Agrega ejercicios a esta plantilla primero.',
     useTemplateExerciseCount: (n) => (n === 1 ? '1 ejercicio' : `${n} ejercicios`),
     useTemplateOk: (count, athleteName) =>
       `${count} plantilla(s) agregada(s) a ${athleteName}.`,

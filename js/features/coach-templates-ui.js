@@ -1,7 +1,7 @@
 /**
- * Coach — session templates library (MVP: list / create / edit / save).
- * Apply template → POST /coach/templates/:id/apply (server copies + dedupes).
- * Markup: #coach-templates-view, #apply-template-overlay
+ * Coach — session templates library (list / create / edit / save).
+ * Apply from Plantillas → athletes; Use template from Mis alumnos → POST /coach/templates/:id/apply.
+ * Markup: #coach-templates-view, #apply-template-overlay, #use-template-overlay
  */
 import { getCoachAthletes, getCoachTemplates, applyCoachTemplate } from '../api/users.js';
 import { ui } from '../utils/labels.js';
@@ -27,7 +27,6 @@ let loadSeq = 0;
 let applyOverlay;
 let applyLeadEl;
 let applySearchInput;
-let applyResultsEl;
 let applyListEl;
 let applyEmptyEl;
 let applySkeletonEl;
@@ -47,7 +46,6 @@ let applyBusy = false;
 let useOverlay;
 let useLeadEl;
 let useSearchInput;
-let useResultsEl;
 let useListEl;
 let useEmptyEl;
 let useSkeletonEl;
@@ -71,7 +69,6 @@ export function initCoachTemplatesUi() {
   applyOverlay = document.getElementById('apply-template-overlay');
   applyLeadEl = document.getElementById('apply-template-lead');
   applySearchInput = document.getElementById('apply-template-search');
-  applyResultsEl = document.getElementById('apply-template-results');
   applyListEl = document.getElementById('apply-template-list');
   applyEmptyEl = document.getElementById('apply-template-empty');
   applySkeletonEl = document.getElementById('apply-template-skeleton');
@@ -81,7 +78,6 @@ export function initCoachTemplatesUi() {
   useOverlay = document.getElementById('use-template-overlay');
   useLeadEl = document.getElementById('use-template-lead');
   useSearchInput = document.getElementById('use-template-search');
-  useResultsEl = document.getElementById('use-template-results');
   useListEl = document.getElementById('use-template-list');
   useEmptyEl = document.getElementById('use-template-empty');
   useSkeletonEl = document.getElementById('use-template-skeleton');
@@ -257,7 +253,6 @@ function closeApplyTemplateModal() {
   setApplyStatus('');
   if (applySearchInput) applySearchInput.value = '';
   applyListEl?.replaceChildren();
-  applyResultsEl?.classList.remove('is-loading');
   if (applyEmptyEl) applyEmptyEl.hidden = true;
   if (applySkeletonEl) applySkeletonEl.hidden = true;
   if (applyListEl) applyListEl.hidden = false;
@@ -325,7 +320,6 @@ function athleteHasTemplate(athlete, templateId) {
 }
 
 function setApplyLoading(on) {
-  applyResultsEl?.classList.toggle('is-loading', on);
   if (applySkeletonEl) applySkeletonEl.hidden = !on;
   if (on) {
     if (applyEmptyEl) applyEmptyEl.hidden = true;
@@ -575,7 +569,6 @@ function closeUseTemplatesModal() {
   setUseStatus('');
   if (useSearchInput) useSearchInput.value = '';
   useListEl?.replaceChildren();
-  useResultsEl?.classList.remove('is-loading');
   if (useEmptyEl) useEmptyEl.hidden = true;
   if (useSkeletonEl) useSkeletonEl.hidden = true;
   if (useListEl) useListEl.hidden = false;
@@ -639,7 +632,6 @@ function assignableTemplatesForAthlete(athlete) {
 }
 
 function setUseLoading(on) {
-  useResultsEl?.classList.toggle('is-loading', on);
   if (useSkeletonEl) useSkeletonEl.hidden = !on;
   if (on) {
     if (useEmptyEl) useEmptyEl.hidden = true;

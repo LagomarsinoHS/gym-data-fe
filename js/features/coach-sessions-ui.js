@@ -245,7 +245,6 @@ export function collapseOpenSessionsIn(row) {
 }
 
 // ── Add session modal ─────────────────────────────────────────────────
-// ── Add session modal ─────────────────────────────────────────────────
 export function openAddSessionModal(athleteId) {
   if (!sessionOverlay || !sessionForm) return;
   const athlete = findAthlete(athleteId);
@@ -403,7 +402,6 @@ function confirmRemoveSession() {
   removeSessionFromAthlete(athleteId, sessionId);
 }
 
-// ── Session accordion ─────────────────────────────────────────────────
 // ── Session accordion ─────────────────────────────────────────────────
 function createSessionRow(session, athleteId) {
   const id = String(session?.id || '');
@@ -628,7 +626,6 @@ function closeSessionRow(row) {
 }
 
 // ── Session editor ────────────────────────────────────────────────────
-// ── Session editor ────────────────────────────────────────────────────
 export function openSessionEditor(athleteId, sessionId) {
   const athlete = findAthlete(athleteId);
   const session = findSession(athleteId, sessionId);
@@ -834,7 +831,6 @@ export function renameSession(athleteId, sessionId, name) {
 }
 
 // ── Catalog assign mode ───────────────────────────────────────────────
-// ── Catalog assign mode ───────────────────────────────────────────────
 export function beginSessionAssign(athleteId, sessionId) {
   const athlete = findAthlete(athleteId);
   const session = findSession(athleteId, sessionId);
@@ -902,7 +898,6 @@ function syncSessionAssignBanner() {
   if (textEl) textEl.textContent = label;
 }
 
-// ── Session mutations (local + dirty) ─────────────────────────────────
 // ── Session mutations (local + dirty) ─────────────────────────────────
 export function isExerciseInSession(athleteId, sessionId, exerciseId) {
   return Boolean(getSessionExerciseItem(athleteId, sessionId, exerciseId));
