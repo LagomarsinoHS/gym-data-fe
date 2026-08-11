@@ -8,6 +8,7 @@
 import { getCoachAthletes, getCoachInvites, inviteCoachAthlete } from '../api/users.js';
 import { ui } from '../utils/labels.js';
 import { ApiErrorCode, mapApiError } from '../utils/api-errors.js';
+import { userProfile } from '../utils/helpers.js';
 import { openProgressPhotos } from './progress-photos-ui.js';
 import {
   canInviteAthlete,
@@ -20,6 +21,7 @@ import {
   athleteDisplayName,
   findAthlete,
   resetCoachAthletesStore,
+  isAthleteDirty,
 } from './coach-athletes-store.js';
 import {
   initCoachSessionsUi,
@@ -28,6 +30,7 @@ import {
   createAthletePlan,
   collapseOpenSessionsIn,
 } from './coach-sessions-ui.js';
+import { resetCoachTemplatesUi } from './coach-templates-ui.js';
 import {
   initStudentsDownloadUi,
   syncDownloadAllState,
@@ -39,7 +42,7 @@ const ATHLETE_PAGE_SIZE = 5;
 const SEARCH_DEBOUNCE_MS = 500;
 /** Highlight athletes who accepted an invite within this window. */
 const NEW_ACCEPT_MS = 48 * 60 * 60 * 1000;
-const SEEN_NEW_ATHLETES_KEY = 'FLEX_SEEN_NEW_ATHLETES';
+const SEEN_NEW_ATHLETES_KEY = 'steelPulse.seenNewAthletes';
 
 let overlay;
 let form;
@@ -48,6 +51,7 @@ let statusEl;
 let submitBtn;
 let submitLabel;
 let submitFill;
+let whatsappBtn;
 let loadMoreBtn;
 let searchInput;
 let searchClearBtn;
@@ -76,6 +80,7 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
   submitBtn = document.getElementById('add-student-submit');
   submitLabel = submitBtn?.querySelector('.recommend-submit-label');
   submitFill = document.getElementById('add-student-submit-fill');
+  whatsappBtn = document.getElementById('add-student-whatsapp');
   loadMoreBtn = document.getElementById('students-load-more');
   searchInput = document.getElementById('students-search');
   searchClearBtn = document.getElementById('students-search-clear');
@@ -94,6 +99,7 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
     toggleInviteQuotaTip();
   });
   document.getElementById('add-student-close')?.addEventListener('click', closeAddStudentModal);
+  whatsappBtn?.addEventListener('click', () => void onSubmitInvite({ copyWhatsApp: true }));
   loadMoreBtn?.addEventListener('click', () => void loadMoreAthletes());
   searchInput?.addEventListener('input', onSearchInput);
   searchClearBtn?.addEventListener('click', clearStudentsSearch);
@@ -168,6 +174,7 @@ export function syncStudentsLabels() {
 export function clearCoachAthletesCache() {
   resetCoachAthletesStore();
   resetCoachSessionsUi();
+  resetCoachTemplatesUi();
   resetStudentsSearch({ keepInput: false });
   studentsSort = 'default';
   recentAcceptedIds = new Set();
@@ -310,7 +317,11 @@ function mergeLocalSessions(nextItems) {
     const old = prev.get(id);
     const apiSessions = Array.isArray(a?.coachTrainingProgram) ? a.coachTrainingProgram : [];
     const oldSessions = Array.isArray(old?.coachTrainingProgram) ? old.coachTrainingProgram : [];
-    // Prefer API when it has sessions; otherwise keep local (e.g. unsaved dirty plan).
+    // Keep local edits while the plan has unsaved changes.
+    if (id && isAthleteDirty(id) && oldSessions.length) {
+      return { ...a, coachTrainingProgram: oldSessions };
+    }
+    // Prefer API when it has sessions; otherwise keep local (e.g. brand-new unsaved plan).
     if (apiSessions.length) return { ...a, coachTrainingProgram: apiSessions };
     if (oldSessions.length) return { ...a, coachTrainingProgram: oldSessions };
     return { ...a, coachTrainingProgram: [] };
@@ -394,24 +405,43 @@ export function closeAddStudentModal() {
 
 async function onSubmit(e) {
   e.preventDefault();
+  await onSubmitInvite({ copyWhatsApp: false });
+}
+
+/**
+ * @param {{ copyWhatsApp?: boolean }} [opts]
+ */
+async function onSubmitInvite({ copyWhatsApp = false } = {}) {
   const email = emailInput?.value.trim() ?? '';
-  if (!email) return;
+  if (!email) {
+    emailInput?.focus();
+    return;
+  }
 
   clearCloseTimer();
   setStatus('');
-  if (submitBtn) submitBtn.disabled = true;
+  setInviteButtonsDisabled(true);
 
   try {
     await inviteCoachAthlete(email);
     void loadCoachAthletes({ force: true });
     void refreshUser().then(() => syncInviteStudentButtons());
+
+    let copied = false;
+    if (copyWhatsApp) {
+      copied = await copyWhatsAppInviteMessage(email);
+      if (!copied) setStatus(ui('inviteSentButCopyFail'), 'error');
+    }
+
     if (submitBtn) {
       submitBtn.classList.add('is-sent');
       submitBtn.disabled = true;
     }
+    if (whatsappBtn) whatsappBtn.disabled = true;
     if (submitLabel) {
-      submitLabel.dataset.ui = 'inviteSent';
-      submitLabel.textContent = ui('inviteSent');
+      const key = copyWhatsApp && copied ? 'inviteSentAndCopied' : 'inviteSent';
+      submitLabel.dataset.ui = key;
+      submitLabel.textContent = ui(key);
     }
     startSubmitFill();
     closeTimer = window.setTimeout(() => {
@@ -425,12 +455,33 @@ async function onSubmit(e) {
   }
 }
 
+/**
+ * @param {string} email
+ * @returns {Promise<boolean>}
+ */
+async function copyWhatsAppInviteMessage(email) {
+  const user = getUser();
+  const profile = userProfile(user);
+  const coachName =
+    [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim() || 'Tu coach';
+  const message = ui('inviteWhatsAppMessage', coachName, email, window.location.origin);
+  try {
+    await navigator.clipboard.writeText(message);
+    return true;
+  } catch (err) {
+    console.error(err);
+    return false;
+  }
+}
+
 function inviteErrorMessage(err) {
   return mapApiError(err, {
     byCode: {
       [ApiErrorCode.CoachAthleteQuotaFull]: 'inviteQuotaFull',
-      [ApiErrorCode.AthleteNotFoundByEmail]: 'inviteNotFound',
+      [ApiErrorCode.EmailNotAnAthlete]: 'inviteNotAthlete',
       [ApiErrorCode.AthleteHasPendingInvite]: 'invitePending',
+      [ApiErrorCode.AlreadyYourAthlete]: 'inviteAlreadyYours',
+      [ApiErrorCode.AthleteAlreadyHasCoach]: 'inviteAlreadyHasCoach',
     },
     fallback: 'inviteFail',
   });
@@ -450,9 +501,14 @@ function setStatus(message, kind = '') {
   statusEl.classList.toggle('is-ok', kind === 'ok');
 }
 
+function setInviteButtonsDisabled(disabled) {
+  if (submitBtn) submitBtn.disabled = disabled;
+  if (whatsappBtn) whatsappBtn.disabled = disabled;
+}
+
 function resetSubmitBtn() {
+  setInviteButtonsDisabled(false);
   if (!submitBtn) return;
-  submitBtn.disabled = false;
   submitBtn.classList.remove('is-sent');
   if (submitLabel) {
     submitLabel.dataset.ui = 'addStudentSubmit';
@@ -601,7 +657,7 @@ function syncLoadMoreBtn() {
   if (label) label.textContent = ui('studentsLoadMore');
 }
 
-function createDetail(label, value) {
+function createDetail(label, value, { trailing = null } = {}) {
   const row = document.createElement('div');
   row.className = 'student-row-detail';
 
@@ -609,11 +665,17 @@ function createDetail(label, value) {
   labelEl.className = 'student-row-detail-label';
   labelEl.textContent = label;
 
+  const valueWrap = document.createElement('span');
+  valueWrap.className = 'student-row-detail-value-wrap';
+
   const valueEl = document.createElement('span');
   valueEl.className = 'student-row-detail-value';
   valueEl.textContent = value;
+  valueWrap.append(valueEl);
 
-  row.append(labelEl, valueEl);
+  if (trailing) valueWrap.append(trailing);
+
+  row.append(labelEl, valueWrap);
   return row;
 }
 
@@ -641,8 +703,9 @@ function openStudentRow(row) {
 
 function createStudentRow(athlete) {
   const id = String(athlete?.id || '');
-  const first = String(athlete?.firstName || '').trim();
-  const last = String(athlete?.lastName || '').trim();
+  const profile = userProfile(athlete);
+  const first = String(profile.firstName || '').trim();
+  const last = String(profile.lastName || '').trim();
   const email = String(athlete?.email || '').trim();
   const full = athleteDisplayName(athlete);
   const isNew = Boolean(id && recentAcceptedIds.has(id));
@@ -711,12 +774,11 @@ function createStudentRow(athlete) {
     createAthleteDownloadMenu(id),
   );
 
-  body.append(
-    createDetail(ui('firstName'), first || '—'),
-    createDetail(ui('lastName'), last || '—'),
-    emailLine,
-    createAthletePlan(athlete),
-  );
+  body.append(createDetail(ui('firstName'), first || '—', {
+    trailing: createGoalPill(athlete?.goal),
+  }));
+  body.append(createDetail(ui('lastName'), last || '—'));
+  body.append(emailLine, createAthletePlan(athlete));
 
   header.addEventListener('click', () => toggleStudentRow(row));
   row.append(header, body);
@@ -810,4 +872,38 @@ function closeStudentRow(row) {
     store.openAthleteId = null;
     store.openSessionId = null;
   }
+}
+
+function formatAthleteGoal(goal) {
+  switch (String(goal || '')) {
+    case 'strength':
+      return ui('profileGoalStrength');
+    case 'hypertrophy':
+      return ui('profileGoalHypertrophy');
+    case 'fat_loss':
+      return ui('profileGoalFatLoss');
+    case 'general':
+      return ui('profileGoalGeneral');
+    default:
+      return '';
+  }
+}
+
+function createGoalPill(goal) {
+  const goalLabel = formatAthleteGoal(goal);
+  if (!goalLabel) return null;
+
+  const group = document.createElement('span');
+  group.className = 'student-row-goal';
+
+  const lab = document.createElement('span');
+  lab.className = 'student-row-goal-label';
+  lab.textContent = ui('profileGoal');
+
+  const pill = document.createElement('span');
+  pill.className = 'student-row-goal-pill';
+  pill.textContent = goalLabel;
+
+  group.append(lab, pill);
+  return group;
 }

@@ -9,12 +9,12 @@ API: `localhost:3000` en local · `https://gym-data-8d3l.onrender.com` en prod.
 
 ## 1. Boot / arranque
 
-1. **`js/theme-boot.js`** (en `<head>`) — lee `FLEX_THEME` y pone `html[data-theme]` antes del paint (sin flash).
+1. **`js/theme-boot.js`** (en `<head>`) — migra keys legacy `FLEX_*` → `steelPulse.*`, lee `steelPulse.theme` y pone `html[data-theme]` antes del paint (sin flash).
 2. Carga CSS: `base.css` (tokens) → `app.css` (UI).
 3. **`init()` en `main.js`:**
    - Sincroniza labels `[data-ui]` según idioma guardado
    - `GET /exercises/labels` → chips de filtros
-   - Inicia sesión, auth, tema, drawer mobile, students, avances, progress photos, athlete avances, coach panel, coach invite, recommend
+   - Inicia sesión, auth, tema, drawer mobile, students, plantillas, avances, progress photos, athlete avances, coach panel, coach invite, recommend
    - Revela filtros (animación cascade)
    - En mobile: colapsa filtros + mueve results bar arriba
    - `restoreSession()` → si hay token, `GET /users/me` (+ `onUserSynced` → pending invite)
@@ -31,7 +31,7 @@ Si el boot falla → mensaje de error en el contador de resultados.
 
 | Acción | Qué pasa |
 |--------|----------|
-| Login | `POST /auth/login` → guarda `FLEX_TOKEN` → `GET /users/me` → (atleta) pending invite → vista según rol |
+| Login | `POST /auth/login` → guarda `steelPulse.token` → `GET /users/me` → (atleta) pending invite → vista según rol |
 | Register | Form extra: nombre, apellido, rol Atleta/Entrenador → `POST /auth/register` (mismo flujo de token) |
 | Logout | Menú cuenta → **Cerrar sesión** → borra token, user=null, vista catálogo, limpia recommend / cache alumnos / pending invite |
 | Restaurar sesión | Al boot / post-login: Bearer + `/users/me`; si falla → guest |
@@ -39,7 +39,7 @@ Si el boot falla → mensaje de error en el contador de resultados.
 - Overlay auth: backdrop / Escape cierran; errores mapeados (401, 409, etc.).
 - Password min 6; autocomplete distinto login vs register.
 - **Menú de cuenta** (`session-ui.js` / `#sidebar-user`): avatar con iniciales, nombre corto (`Humberto L`), badge de rol, chevron → dropdown.
-  - **Mi perfil**: activo → vista `#profile-view`. Avatar clickeable → Ver/Subir foto. **Editar perfil** abre sección inline (nombre, apellido, contraseña) + Guardar → `PATCH /users/me`. **Darse de baja** modal email → `DELETE /users/me`. Al entrar, `refreshUser()`.
+  - **Mi perfil**: activo → vista `#profile-view`. Header split (identidad azul + información personal) con botón **Editar** en el panel derecho: el formulario reemplaza el contenido derecho in-place (nombre, body stats, goal, contraseña) → `PATCH /users/me`. Avatar → Ver/Subir foto. **Darse de baja** modal email → `DELETE /users/me`. Al entrar, `refreshUser()`.
   - **Configuración**: visible pero `disabled` (tooltip “Próximamente”).
   - **Cerrar sesión**: activo (rojo).
   - Cierra con click afuera o Escape.
@@ -59,14 +59,14 @@ Si el boot falla → mensaje de error en el contador de resultados.
 | `training` | Plan personal (`trainingProgram`) |
 | `recommend` | Recomendar (solo si `subscription.plan === 'premium'`) |
 | `coach-plan` | Plan del coach (`coachTrainingProgram`; empty sin coach / sin plan; columna centrada ~720px) |
-| `athlete-avances` | Atleta: upload mes actual + historial timeline + comparar |
+| `athlete-avances` | Atleta: upload (mes actual o backfill) + historial timeline + comparar |
 | `coach-panel` | Resumen informativo (`coach-panel-ui`): total alumnos + sin pauta + historial invites |
-| `coach-templates` | Shell placeholder |
+| `coach-templates` | Biblioteca de plantillas (`coach-templates-ui`): crear/editar/guardar + aplicar a alumnos / Usar plantilla desde Mis alumnos |
 | `students` | Mis alumnos (`students-ui` + cupo `coachQuota.canInvite` + `coach-sessions-ui` + `students-download-ui` + store) |
 | `avances` | Coach: lista de alumnos → abrir fotos de progreso |
 | `progress-photos` | Coach: timeline + comparar fotos de un alumno (lightbox) |
-| `session-editor` | Editor de una sesión del atleta (coach) |
-| `profile` | Mi perfil (foto, editar inline, darse de baja; resto “Pronto”) |
+| `session-editor` | Editor de una sesión del atleta (coach; drag para reordenar ejercicios) |
+| `profile` | Mi perfil (header split, editar in-place, foto, darse de baja; resto “Pronto”) |
 
 - Post-login: coach/admin → `coach-panel`; athlete → `training`.
 - Recomendar: nav locked + tooltip si no es Pro.
@@ -187,15 +187,21 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 - Toolbar: buscar (debounce 500ms), **Ordenar** (menú: sin/con pauta primero), **Descargar**, Invitar alumno.
 - **Invitar** se deshabilita si `GET /users/me` → `coachQuota.canInvite === false` (tooltip con mensaje de cuota). Al entrar a Mis alumnos se refresca `/me`.
-- Modal email exacto → `POST /users/coach/invites`; errores por `code` (`mapApiError` → copy i18n).
+- Modal email → `POST /users/coach/invites` (atleta puede no existir aún; pending 24h). Errores por `code` (`EMAIL_NOT_AN_ATHLETE`, `ATHLETE_HAS_PENDING_INVITE`, cuota). Dos acciones: **Enviar** o **Enviar + copiar WhatsApp**.
 - Orden: client-side sobre alumnos **ya cargados** (incluye “Cargar más”); re-click de la opción activa quita el orden.
 - Badge **Nuevo**: invites `accepted` con `respondedAt` ≤ 48h (vía `GET /users/coach/invites`); al abrir la fila se guarda como visto en `localStorage` y no vuelve a marcarse (ni al recargar / re-login).
-- Descargar: menú toolbar “Descargar todos”; por alumno ⏬ → Excel (activo) / PDF (pronto).
-  - `POST /users/coach/training-program/export` binary (`athleteIds: []` = todos; `[id]` = uno) + `locale`.
+- Descargar: toolbar **Todos · Excel** / **Todos · PDF**; por alumno ⏬ → Excel / PDF.
+  - `POST /users/coach/training-program/export` binary (`athleteIds: []` = todos; `[id]` = uno) + `locale` + `format` (`xlsx` \| `pdf`).
+  - Varios alumnos → ZIP. Layout: sesiones en un archivo, bloques por categoría, total de series.
 - Loading spinner al primer fetch; empty / sin resultados sin flash raro.
 - Lista → `GET /users/coach/athletes` (paginado 5 + Cargar más); cache en memoria.
-- Acordeón alumno → info + plan; **Agregar sesión** (modal nombre, local).
+- Acordeón alumno → info + plan; al expandir: **Objetivo** en pill verde a la derecha de Nombre (si el atleta tiene `goal`).
+- **Agregar sesión** (modal nombre, local).
 - Sub-acordeón sesión → mini-cards (thumb, nombre, pauta) + Editar sesión.
+- **Reordenar**: drag & drop de la card completa.
+  - Sesiones en Mis alumnos: click abre/cierra; arrastrar reordena (sin re-render flash; dirty + Guardar plan).
+  - Ejercicios en `session-editor`: arrastrar la card; Editar / ✕ siguen activos.
+  - Tip contextual (localStorage `steelPulse.featureHints`, util `js/utils/feature-hints.js`): burbuja naranja compacta “Arrastra para reordenar” la primera vez que hay ≥2 sesiones/ejercicios; se cierra con “Entendido” o al reordenar.
 - Vista `session-editor`: cards, Editar / ✕, Agregar ejercicios; modal confirmar quitar sesión.
 - Catálogo en modo asignar: banner + “Agregar a la sesión” + lápiz pauta (local); guardar vuelve al editor.
 - Sesiones en `athlete.coachTrainingProgram`; **Guardar plan** → `PUT /users/coach/athletes/:id/training-program` (replace; respuesta enriquecida).
@@ -210,15 +216,17 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 ### Coach
 - Nav **Avances** (`avances-ui`): lista paginada de alumnos → abre `progress-photos`.
 - Vista `progress-photos` (`progress-photos-ui`): back a Avances o Mis alumnos; card alumno (nombre, correo, peso actual — en comparar, chip compacto).
-- Timeline cronológico (meses con foto/peso, más reciente arriba); cards usan thumb Cloudinary (`c_fill,w_480,h_640,q_auto,f_auto`); lightbox/descarga usan la URL original de Mongo.
-- **Comparar**: elegir ≥2 meses → **2 meses** lado a lado con tabs Frente/Espalda; **3+** doble carrusel (wrap). Δ peso entre el más viejo y el más nuevo.
+- Timeline cronológico (meses con foto/peso, más reciente arriba); cards usan thumb Cloudinary (`c_fit,w_480,h_640,q_auto,f_auto`); lightbox/descarga usan la URL original de Mongo.
+- **Comparar**: elegir ≥2 meses → **2 meses** lado a lado con tabs Frente/Espalda; **3+** doble carrusel (wrap). Métricas: Δ peso entre el más viejo y el más nuevo + **estatura** del perfil (`profile.heightCm`) si está cargada (coach y atleta; si no hay altura, no se muestra).
+- Con **2 meses**: botón **Analizar progreso** (Growth/Pro) → `POST` análisis IA; loading + resumen en UI.
 - `GET /users/:userId/progress-photos` → `{ currentWeightKg, years[] }` (un fetch; sin paginación de API).
 
 ### Atleta
-- Nav **Avances** (`athlete-avances-ui`): header fijo (título + hint mes actual + peso actual); scroll del cuerpo.
-- Upload: pickers `+` con preview, peso (20–400); Guardar enabled solo con ≥1 foto + peso; `POST /users/me/progress-photos` multipart (`weightKg` + `front`/`back`).
+- Nav **Avances** (`athlete-avances-ui`): header fijo (título + hint del mes seleccionado + peso actual); scroll del cuerpo.
+- Upload: pickers `+` con preview, peso (20–400); debajo del peso, caption “Mes actual · cambiar” (o el mes elegido) abre month-picker para backfill.
+- Guardar enabled solo con ≥1 foto + peso; `POST /users/me/progress-photos` multipart (`weightKg` + `front`/`back` + `yearMonth` opcional).
 - Historial: mismo timeline + comparar que el coach (vía `progress-history-ui`).
-- Re-subir el mismo mes **reemplaza** (upsert UTC); no hay UI de delete (API DELETE existe).
+- Re-subir el mismo mes **reemplaza** (upsert); no hay UI de delete (API DELETE existe).
 
 ### Lightbox compartido (`progress-photo-lightbox.js`)
 - Click en foto → modal con **URL original** (calidad completa); **Descargar** fetch→blob → `FirstName_LastName_Front|Back[_YYYY-MM].ext`.
@@ -242,8 +250,8 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 
 | Preferencia | Key | Valores |
 |-------------|-----|---------|
-| Tema | `FLEX_THEME` | `light` \| `dark` |
-| Idioma | `FLEX_LANG` | `es` (default) \| `en` |
+| Tema | `steelPulse.theme` | `light` \| `dark` |
+| Idioma | `steelPulse.lang` | `es` (default) \| `en` |
 
 - Toggle tema: emoji + clase `theme-animating` ~280ms.
 - Toggle idioma: re-pinta chrome, filtros, grids, modal abierto.
@@ -261,21 +269,22 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 | GET | `/exercises/recommend?zone&equipment&locale` | Sí | Submit recommend |
 | POST | `/auth/login` | No | Login |
 | POST | `/auth/register` | No | Register |
-| GET | `/users/me` | Sí | Sesión (user + programs + `subscription` + `coach` + `coachQuota` + `currentWeightKg`; **sin** invite ni `progressPhotos`) |
+| GET | `/users/me` | Sí | Sesión (user + programs + `subscription` + `coach` + `coachQuota` + `currentWeightKg` + `profile` + `goal`; **sin** invite ni `progressPhotos`) |
+| PATCH | `/users/me` | Sí | Editar perfil (`profile` / `goal` / password) |
+| POST | `/users/me/profile-photo` | Sí | Subir foto de perfil |
+| DELETE | `/users/me` | Sí | Soft-delete cuenta |
 | GET | `/users/me/pending-coach-invite` | Sí | Atleta: `{ invite }` (null o pendiente) |
 | POST | `/users/training-program` | Sí | Agregar al plan |
 | PUT | `/users/training-program/remove` | Sí | Confirmar quitar |
 | PUT | `/users/training-program/:exerciseId` | Sí | Guardar pauta |
-| POST | `/users/me/progress-photos` | Sí | Atleta: upload avance (multipart weight + fotos) |
+| POST | `/users/me/progress-photos` | Sí | Atleta: upload avance (multipart weight + fotos + `yearMonth?`) |
 | GET | `/users/:userId/progress-photos` | Sí | Atleta self o coach asignado: historial |
 | POST | `/users/coach/invites` | Sí | Coach invita atleta por email |
 | POST | `/users/me/pending-coach-invite/respond` | Sí | Atleta accept / reject |
 | GET | `/users/coach/athletes` | Sí | Lista paginada Mis alumnos / stats Panel |
 | GET | `/users/coach/invites` | Sí | Historial invites coach (`status` opcional) |
 | PUT | `/users/coach/athletes/:athleteId/training-program` | Sí | Guardar plan (replace sesiones) |
-| POST | `/users/coach/training-program/export` | Sí | Export Excel/zip (binary) |
-
-> BE también expone `DELETE /users/me/progress-photos` (sin UI FE aún).
+| POST | `/users/coach/training-program/export` | Sí | Export Excel/PDF/zip (binary; body `format`) |
 
 ---
 
@@ -317,8 +326,9 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 
 | Archivo | Rol |
 |---------|-----|
-| `helpers.js` | `debounce`, `normalizeSearch`, `dedupeById` |
-| `prefs.js` | tema / idioma en localStorage |
+| `helpers.js` | `debounce`, `normalizeSearch`, `dedupeById`, `userProfile` |
+| `prefs.js` | tema / idioma en localStorage (`steelPulse.theme` / `steelPulse.lang`) |
+| `feature-hints.js` | tips one-shot (`steelPulse.featureHints`); mark seen / create bubble |
 | `url.js` | share URL, leer/sync deep link |
 | `cards.js` | media, GIF hover, click delegado |
 | `labels.js` | `ui`, `label`, `exerciseName`, lang |
@@ -333,10 +343,14 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 
 | Key | Dónde | Contenido |
 |-----|-------|-----------|
-| `FLEX_TOKEN` | localStorage | JWT |
-| `FLEX_THEME` | localStorage | light/dark |
-| `FLEX_LANG` | localStorage | es/en |
+| `steelPulse.token` | localStorage | JWT |
+| `steelPulse.theme` | localStorage | light/dark |
+| `steelPulse.lang` | localStorage | es/en |
+| `steelPulse.featureHints` | localStorage | tips vistos |
+| `steelPulse.seenNewAthletes` | localStorage | alumnos “Nuevo” ya vistos |
 | `mister-l-flexes` | sessionStorage | contador del 💪 del footer |
+
+Al boot, `theme-boot.js` migra una vez keys legacy `FLEX_*` → `steelPulse.*` (token, theme, lang, featureHints, seenNewAthletes) para no perder sesión/prefs.
 
 ---
 
@@ -366,6 +380,7 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 | Students | `js/features/students-ui.js` |
 | Students download | `js/features/students-download-ui.js` |
 | Coach sessions / editor | `js/features/coach-sessions-ui.js` |
+| Coach templates | `js/features/coach-templates-ui.js` |
 | Athletes store | `js/features/coach-athletes-store.js` |
 | Avances coach (lista) | `js/features/avances-ui.js` |
 | Progress photos coach | `js/features/progress-photos-ui.js` |
@@ -375,7 +390,7 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 | Drawer | `js/features/nav-drawer.js` |
 | Tema | `theme-boot.js`, `theme-ui.js` |
 | Footer / eggs | `footer.js`, `easter-egg.js` |
-| API | `js/api/request.js` (`postMultipart`, `err.code`), `auth.js`, `users.js`, `exercises.js`, `token.js` |
+| API | `js/api/request.js` (`postMultipart`, `err.code`), `auth.js`, `users.js`, `coach-templates.js`, `exercises.js`, `token.js` |
 | Copy / i18n errors | `js/i18n/`, `js/utils/api-errors.js`, `js/utils/auth-errors.js` |
 | Estilos | `public/css/base.css`, `app.css` |
 
@@ -383,13 +398,12 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 
 ## 19. Stubs / aún no cableado
 
-- Plantillas (`coach-templates`) placeholder.
-- Export PDF (UI disabled “Pronto”).
 - Admin no se elige en register (solo DB); en nav se comporta como coach.
 - Sin refresh token; si `/me` falla, sesión guest.
 - Recommend exige `subscription.plan === 'premium'` del back (athletes).
 - Coach tiers (`growth` / `pro`) e invite quotas: ver `coachQuota` en `/me`.
 - Delete de progress photos: API lista, sin botón en FE.
+- Pauta nutricional (coach → atleta): pendiente; ver [TODO.md](./TODO.md).
 
 ---
 

@@ -9,7 +9,7 @@ export function getMe() {
 
 /**
  * PATCH /users/me
- * Partial update: firstName and/or lastName and/or password change.
+ * Partial update: profile (name/body stats), goal, and/or password.
  */
 export function updateProfile(body) {
   return patch(`${USERS}/me`, body, { auth: true });
@@ -110,7 +110,7 @@ export function respondCoachInvite(action) {
  * GET /users/coach/athletes
  * Athletes linked to the authenticated coach (coachId === me).
  * Returns PaginatedResponse<CoachAthleteDto>: { data, page, limit, pages, total }
- * Optional search matches firstName, lastName, or email.
+ * Optional search matches profile.firstName, profile.lastName, or email.
  */
 export function getCoachAthletes({ page = 1, limit = 50, search } = {}) {
   return get(
@@ -192,16 +192,16 @@ export function putCoachAthleteTrainingProgram(athleteId, coachTrainingProgram) 
 
 /**
  * POST /users/coach/training-program/export
- * Exports coach training programs (xlsx or zip) as a binary file.
- * Body: { athleteIds: string[], locale: 'es' | 'en' }
+ * Exports coach training programs (xlsx | pdf | zip) as a binary file.
+ * Body: { athleteIds: string[], locale?: 'es'|'en', format?: 'xlsx'|'pdf' }
  * athleteIds: [] = all athletes; [id] = one athlete.
  * Expects binary body + Content-Disposition filename (and Content-Type).
  * Returns { blob, filename, contentType }.
  */
-export function exportCoachTrainingProgram(athleteIds, locale) {
+export function exportCoachTrainingProgram(athleteIds, locale, format = 'xlsx') {
   return postBinary(
     `${USERS}/coach/training-program/export`,
-    { athleteIds, locale },
+    { athleteIds, locale, format },
     { auth: true },
   );
 }

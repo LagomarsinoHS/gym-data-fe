@@ -1,12 +1,13 @@
 /**
- * Profile view: identity + facts, then available actions, then coming-soon.
+ * Profile view: split identity card, then available actions, then coming-soon.
  * Active: profile photo (avatar menu) + darse de baja.
  * Markup: #profile-view, #deactivate-account-overlay
  */
 import { deleteAccount, uploadProfilePhoto, updateProfile } from '../api/users.js';
 import { formatDate } from '../utils/dates.js';
 import { ApiErrorCode, mapApiError } from '../utils/api-errors.js';
-import { ui } from '../utils/labels.js';
+import { userProfile } from '../utils/helpers.js';
+import { getLang, ui } from '../utils/labels.js';
 import { openProgressPhotoLightbox } from './progress-photo-lightbox.js';
 import {
   canInviteAthlete,
@@ -23,6 +24,15 @@ const ALLOWED_PROFILE_PHOTO_TYPES = new Set([
   'image/png',
   'image/webp',
 ]);
+
+const BIRTH_MIN_YEAR = 1920;
+/** @type {'year' | 'month' | 'day'} */
+let birthPickerStep = 'year';
+let birthPickerViewYear = null;
+let birthPickerViewMonth = null;
+let birthPanelOpen = false;
+/** Live draft YYYY-MM-DD (or '') for the birth picker — source of truth for save. */
+let birthDraftYmd = '';
 
 const PROFILE_ACTIONS = [
   {
@@ -85,9 +95,27 @@ let editBusy = false;
 let openAvatarMenu = null;
 
 let editPanel;
+/** @type {HTMLElement | null} */
+let editPark;
 let editForm;
 let editFirstName;
 let editLastName;
+let editHeight;
+let editHeightInput;
+let editHeightDecBtn;
+let editHeightIncBtn;
+let editHeightClearBtn;
+let editBirthDate;
+let editBirthPicker;
+let editBirthTrigger;
+let editBirthTriggerLabel;
+let editBirthPanel;
+let editBirthNavLabel;
+let editBirthPrevBtn;
+let editBirthNextBtn;
+let editBirthGrid;
+let editSex;
+let editGoal;
 let editCurrentPassword;
 let editCurrentPasswordField;
 let editNewPassword;
@@ -95,6 +123,11 @@ let editConfirmPassword;
 let editStatusEl;
 let editSaveBtn;
 let currentPasswordDefaultPlaceholder = '';
+let editOpen = false;
+
+const HEIGHT_STEPPER_MIN = 120;
+const HEIGHT_STEPPER_MAX = 230;
+const HEIGHT_STEPPER_DEFAULT = 170;
 
 export function initProfileUi() {
   overlay = document.getElementById('deactivate-account-overlay');
@@ -104,9 +137,26 @@ export function initProfileUi() {
   confirmBtn = document.getElementById('deactivate-account-confirm');
 
   editPanel = document.getElementById('profile-edit-panel');
+  editPark = document.getElementById('profile-edit-park');
   editForm = document.getElementById('profile-edit-form');
   editFirstName = document.getElementById('profile-edit-first-name');
   editLastName = document.getElementById('profile-edit-last-name');
+  editHeight = document.getElementById('profile-edit-height');
+  editHeightInput = document.getElementById('profile-edit-height-input');
+  editHeightDecBtn = document.getElementById('profile-edit-height-dec');
+  editHeightIncBtn = document.getElementById('profile-edit-height-inc');
+  editHeightClearBtn = document.getElementById('profile-edit-height-clear');
+  editBirthDate = document.getElementById('profile-edit-birth-date');
+  editBirthPicker = document.getElementById('profile-edit-birth-picker');
+  editBirthTrigger = document.getElementById('profile-edit-birth-trigger');
+  editBirthTriggerLabel = document.getElementById('profile-edit-birth-trigger-label');
+  editBirthPanel = document.getElementById('profile-edit-birth-panel');
+  editBirthNavLabel = document.getElementById('profile-edit-birth-nav-label');
+  editBirthPrevBtn = document.getElementById('profile-edit-birth-prev');
+  editBirthNextBtn = document.getElementById('profile-edit-birth-next');
+  editBirthGrid = document.getElementById('profile-edit-birth-grid');
+  editSex = document.getElementById('profile-edit-sex');
+  editGoal = document.getElementById('profile-edit-goal');
   editCurrentPassword = document.getElementById('profile-edit-current-password');
   editCurrentPasswordField = document.getElementById(
     'profile-edit-current-password-field',
@@ -117,6 +167,34 @@ export function initProfileUi() {
   editSaveBtn = document.getElementById('profile-edit-save');
   currentPasswordDefaultPlaceholder =
     editCurrentPassword?.getAttribute('placeholder') || '';
+
+  editHeightDecBtn?.addEventListener('click', () => stepHeight(-1));
+  editHeightIncBtn?.addEventListener('click', () => stepHeight(1));
+  editHeightClearBtn?.addEventListener('click', () => setHeightStepperValue(null));
+  editHeightInput?.addEventListener('input', onHeightInputTyping);
+  editHeightInput?.addEventListener('change', onHeightInputCommit);
+  editHeightInput?.addEventListener('blur', onHeightInputCommit);
+  editHeightInput?.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    onHeightInputCommit();
+    editHeightInput.blur();
+  });
+
+  editBirthTrigger?.addEventListener('click', () => {
+    if (birthPanelOpen) closeBirthPanel();
+    else openBirthPanel();
+  });
+  editBirthPrevBtn?.addEventListener('click', onBirthNavPrev);
+  editBirthNextBtn?.addEventListener('click', onBirthNavNext);
+  editBirthNavLabel?.addEventListener('click', onBirthNavLabelClick);
+  editBirthGrid?.addEventListener('click', onBirthGridClick);
+
+  document.addEventListener('click', (event) => {
+    if (!birthPanelOpen) return;
+    if (editBirthPicker?.contains(/** @type {Node} */ (event.target))) return;
+    closeBirthPanel();
+  });
 
   document
     .getElementById('deactivate-account-close')
@@ -129,8 +207,17 @@ export function initProfileUi() {
   });
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
+    if (birthPanelOpen) {
+      e.stopPropagation();
+      closeBirthPanel();
+      return;
+    }
     if (openAvatarMenu) {
       closeAvatarMenu();
+      return;
+    }
+    if (editOpen) {
+      closeEditPanel();
       return;
     }
     if (!overlay?.classList.contains('open')) return;
@@ -147,6 +234,9 @@ export function initProfileUi() {
   document
     .getElementById('profile-edit-cancel')
     ?.addEventListener('click', closeEditPanel);
+  editSaveBtn?.addEventListener('click', () => {
+    void saveProfileEdits();
+  });
   editForm?.addEventListener('input', () => {
     if (
       editCurrentPassword &&
@@ -156,15 +246,22 @@ export function initProfileUi() {
     }
     syncEditSaveEnabled();
   });
-  editForm?.addEventListener('submit', onEditSubmit);
+  editForm?.addEventListener('change', () => syncEditSaveEnabled());
+  editForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    void saveProfileEdits();
+  });
 }
 
 export function syncProfileLabels() {
   document
     .querySelectorAll('#profile-view [data-ui], #deactivate-account-overlay [data-ui]')
     .forEach((el) => {
+      if (el.id === 'profile-edit-birth-trigger-label') return;
       el.textContent = ui(el.dataset.ui);
     });
+  syncHeightStepperUi();
+  syncBirthPickerLabels();
 }
 
 export function syncProfileView() {
@@ -173,8 +270,10 @@ export function syncProfileView() {
 
   closeAvatarMenu();
   syncProfileLabels();
+  // While a save is in-flight, don't remount/reset the edit form.
+  if (editBusy) return;
   renderProfileBody();
-  if (editPanel && !editPanel.hidden) {
+  if (editOpen) {
     fillEditFormFromUser();
     syncEditSaveEnabled();
   }
@@ -182,18 +281,19 @@ export function syncProfileView() {
 
 function renderProfileBody() {
   const heroEl = document.getElementById('profile-hero');
-  const factsEl = document.getElementById('profile-facts');
   const availableEl = document.getElementById('profile-available-list');
   const soonEl = document.getElementById('profile-soon-list');
-  if (!heroEl || !factsEl || !availableEl || !soonEl) return;
+  if (!heroEl || !availableEl || !soonEl) return;
+
+  parkEditPanel();
 
   const user = getUser();
   heroEl.replaceChildren();
-  factsEl.replaceChildren();
   availableEl.replaceChildren();
   soonEl.replaceChildren();
 
   if (!user) {
+    editOpen = false;
     const empty = document.createElement('p');
     empty.className = 'profile-empty';
     empty.textContent = ui('profileNoUser');
@@ -201,34 +301,29 @@ function renderProfileBody() {
     return;
   }
 
-  const athleteCard = document.createElement('article');
-  athleteCard.className = 'profile-hero';
-  athleteCard.append(createHero(user));
-  heroEl.append(athleteCard);
-
-  if (isAthlete(user)) {
-    heroEl.append(createCoachSideCard(user));
-  }
-
-  for (const fact of buildFacts(user)) {
-    factsEl.append(createFactCard(fact));
-  }
+  heroEl.append(createSplitProfileCard(user, { editing: editOpen }));
+  if (editOpen) mountEditPanelInSplit();
 
   for (const action of PROFILE_ACTIONS) {
     if (action.athleteOnly && !isAthlete(user)) continue;
     const target = action.enabled ? availableEl : soonEl;
-    target.append(createActionButton(action));
+    const btn = createActionButton(action);
+    if (action.id === 'edit' && editOpen) btn.classList.add('is-active');
+    target.append(btn);
   }
 }
 
-function createHero(user) {
-  const wrap = document.createElement('div');
-  wrap.className = 'profile-hero-inner';
+function createSplitProfileCard(user, { editing = false } = {}) {
+  const card = document.createElement('article');
+  card.className = 'profile-split';
+  if (editing) card.classList.add('is-editing');
 
-  wrap.append(createAvatarControl(user));
+  const side = document.createElement('div');
+  side.className = 'profile-split-side';
 
-  const text = document.createElement('div');
-  text.className = 'profile-hero-text';
+  const identity = document.createElement('div');
+  identity.className = 'profile-split-identity';
+  identity.append(createAvatarControl(user));
 
   const name = document.createElement('h2');
   name.className = 'profile-name';
@@ -248,9 +343,70 @@ function createHero(user) {
     ),
   );
 
-  text.append(name, email, badges);
-  wrap.append(text);
-  return wrap;
+  identity.append(name, email, badges);
+  side.append(identity);
+
+  if (isAthlete(user)) {
+    side.append(createCoachBlock(user));
+  }
+
+  const main = document.createElement('div');
+  main.className = 'profile-split-main';
+  if (editing) main.classList.add('is-editing');
+
+  const view = document.createElement('div');
+  view.className = 'profile-split-view';
+  if (editing) view.hidden = true;
+
+  const head = document.createElement('div');
+  head.className = 'profile-split-head';
+
+  const title = document.createElement('h3');
+  title.className = 'profile-split-title';
+  title.textContent = ui('profilePersonalInfo');
+
+  const editBtn = document.createElement('button');
+  editBtn.type = 'button';
+  editBtn.className = 'profile-split-edit-btn';
+  editBtn.textContent = ui('profileEditShort');
+  editBtn.addEventListener('click', openEditPanel);
+
+  head.append(title, editBtn);
+
+  const factsGrid = document.createElement('div');
+  factsGrid.className = 'profile-split-facts';
+  for (const fact of buildDetailFacts(user)) {
+    factsGrid.append(createDetailFact(fact));
+  }
+
+  view.append(head, factsGrid);
+
+  const metrics = buildMetricFacts(user);
+  if (metrics.length > 0) {
+    const metricsRow = document.createElement('div');
+    metricsRow.className = 'profile-split-metrics';
+    for (const metric of metrics) {
+      metricsRow.append(createMetricCard(metric));
+    }
+    view.append(metricsRow);
+  }
+
+  main.append(view);
+  card.append(side, main);
+  return card;
+}
+
+function parkEditPanel() {
+  if (!editPanel || !editPark) return;
+  if (editPanel.parentElement !== editPark) editPark.append(editPanel);
+}
+
+function mountEditPanelInSplit() {
+  const main = document.querySelector('#profile-hero .profile-split-main');
+  if (!editPanel || !main) return;
+  main.classList.add('is-editing');
+  main.append(editPanel);
+  editPanel.hidden = false;
 }
 
 function createAvatarControl(user) {
@@ -286,8 +442,8 @@ function createAvatarControl(user) {
         openProgressPhotoLightbox({
           url: photoUrl,
           title: ui('profileAvatarViewTitle'),
-          firstName: user.firstName,
-          lastName: user.lastName,
+          firstName: userProfile(user).firstName,
+          lastName: userProfile(user).lastName,
           side: 'front',
         });
       }),
@@ -395,11 +551,11 @@ async function handleProfilePhotoUpload(file, avatarBtn) {
   }
 }
 
-function createCoachSideCard(user) {
-  const card = document.createElement('article');
-  card.className = 'profile-coach-card';
+function createCoachBlock(user) {
+  const block = document.createElement('div');
+  block.className = 'profile-split-coach';
   const linked = hasCoach(user);
-  if (!linked) card.classList.add('is-empty');
+  if (!linked) block.classList.add('is-empty');
 
   const kicker = document.createElement('p');
   kicker.className = 'profile-coach-kicker';
@@ -422,11 +578,11 @@ function createCoachSideCard(user) {
 
   text.append(name);
   body.append(avatar, text);
-  card.append(kicker, body);
-  return card;
+  block.append(kicker, body);
+  return block;
 }
 
-function buildFacts(user) {
+function buildDetailFacts(user) {
   /** @type {Array<{ label: string, value: string, tone?: string }>} */
   const facts = [
     { label: ui('profileRole'), value: roleLabel(user) },
@@ -451,12 +607,27 @@ function buildFacts(user) {
     });
   }
 
-  if (isAthlete(user)) {
+  const profile = userProfile(user);
+
+  const sexLabel = formatSex(profile.sex);
+  if (sexLabel) {
+    facts.push({ label: ui('profileSex'), value: sexLabel });
+  }
+
+  if (profile.birthDate) {
     facts.push({
-      label: ui('profileWeight'),
-      value: formatWeight(user.currentWeightKg),
-      tone: 'weight',
+      label: ui('profileBirthDate'),
+      value: formatDate(profile.birthDate),
     });
+    const age = ageFromBirthDate(profile.birthDate);
+    if (age != null) {
+      facts.push({ label: ui('profileAge'), value: String(age) });
+    }
+  }
+
+  const goalLabel = formatGoal(user.goal);
+  if (goalLabel) {
+    facts.push({ label: ui('profileGoal'), value: goalLabel });
   }
 
   if (isCoach(user) && user.coachQuota) {
@@ -478,20 +649,76 @@ function buildFacts(user) {
   return facts;
 }
 
-function createFactCard({ label, value, tone }) {
-  const card = document.createElement('article');
-  card.className = 'profile-fact';
-  if (tone) card.classList.add(`is-${tone}`);
+function buildMetricFacts(user) {
+  /** @type {Array<{ label: string, value: string, icon: string, tone: string }>} */
+  const metrics = [];
+  const profile = userProfile(user);
+
+  if (isAthlete(user)) {
+    metrics.push({
+      label: ui('profileWeight'),
+      value: formatWeight(user.currentWeightKg),
+      icon: 'weight',
+      tone: 'weight',
+    });
+  }
+
+  const height =
+    profile.heightCm != null && Number.isFinite(Number(profile.heightCm))
+      ? `${Number(profile.heightCm)} cm`
+      : null;
+  if (height || isAthlete(user)) {
+    metrics.push({
+      label: ui('profileHeight'),
+      value: height || '—',
+      icon: 'height',
+      tone: 'height',
+    });
+  }
+
+  return metrics;
+}
+
+function createDetailFact({ label, value, tone }) {
+  const row = document.createElement('div');
+  row.className = 'profile-detail';
+  if (tone) row.classList.add(`is-${tone}`);
 
   const lab = document.createElement('span');
-  lab.className = 'profile-fact-label';
+  lab.className = 'profile-detail-label';
   lab.textContent = label;
 
   const val = document.createElement('span');
-  val.className = 'profile-fact-value';
+  val.className = 'profile-detail-value';
   val.textContent = value;
 
-  card.append(lab, val);
+  row.append(lab, val);
+  return row;
+}
+
+function createMetricCard({ label, value, icon, tone }) {
+  const card = document.createElement('article');
+  card.className = 'profile-metric';
+  if (tone) card.classList.add(`is-${tone}`);
+
+  const ico = document.createElement('span');
+  ico.className = 'profile-metric-ico';
+  ico.setAttribute('aria-hidden', 'true');
+  ico.innerHTML = metricIconSvg(icon);
+
+  const body = document.createElement('div');
+  body.className = 'profile-metric-body';
+
+  const lab = document.createElement('span');
+  lab.className = 'profile-metric-label';
+  lab.textContent = label;
+
+  const val = document.createElement('span');
+  val.className = 'profile-metric-value';
+  val.textContent = value;
+
+  body.append(lab, val);
+  card.append(ico, body);
   return card;
 }
 
@@ -557,8 +784,8 @@ function openDeactivateModal() {
 
 function toggleEditPanel() {
   if (!editPanel) return;
-  if (editPanel.hidden) openEditPanel();
-  else closeEditPanel();
+  if (editOpen) closeEditPanel();
+  else openEditPanel();
 }
 
 function openEditPanel() {
@@ -566,18 +793,46 @@ function openEditPanel() {
   const user = getUser();
   if (!user) return;
 
+  const main = document.querySelector('#profile-hero .profile-split-main');
+  const view = main?.querySelector('.profile-split-view');
+  if (!main || !view) return;
+
+  editOpen = true;
   setEditStatus('');
   fillEditFormFromUser();
   syncEditSaveEnabled();
   syncProfileLabels();
+
+  view.hidden = true;
+  main.classList.add('is-editing');
+  main.closest('.profile-split')?.classList.add('is-editing');
+  main.append(editPanel);
   editPanel.hidden = false;
+
+  document
+    .querySelector('#profile-available-list [data-action="edit"]')
+    ?.classList.add('is-active');
+
   editFirstName?.focus();
-  editPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  main.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function closeEditPanel() {
   if (editBusy) return;
+  closeBirthPanel();
+  editOpen = false;
   if (editPanel) editPanel.hidden = true;
+  parkEditPanel();
+
+  const main = document.querySelector('#profile-hero .profile-split-main');
+  const view = main?.querySelector('.profile-split-view');
+  if (view) view.hidden = false;
+  main?.classList.remove('is-editing');
+  main?.closest('.profile-split')?.classList.remove('is-editing');
+  document
+    .querySelector('#profile-available-list [data-action="edit"]')
+    ?.classList.remove('is-active');
+
   setEditStatus('');
   clearCurrentPasswordError();
   clearPasswordFields();
@@ -587,8 +842,19 @@ function closeEditPanel() {
 function fillEditFormFromUser() {
   const user = getUser();
   if (!user) return;
-  if (editFirstName) editFirstName.value = String(user.firstName || '').trim();
-  if (editLastName) editLastName.value = String(user.lastName || '').trim();
+  const profile = userProfile(user);
+  if (editFirstName) editFirstName.value = String(profile.firstName || '').trim();
+  if (editLastName) editLastName.value = String(profile.lastName || '').trim();
+  setHeightStepperValue(
+    profile.heightCm != null && Number.isFinite(Number(profile.heightCm))
+      ? Number(profile.heightCm)
+      : null,
+  );
+  setBirthDateValue(normalizeBirthDate(profile.birthDate), {
+    silent: true,
+  });
+  if (editSex) editSex.value = String(profile.sex || '');
+  if (editGoal) editGoal.value = String(user.goal || '');
   clearCurrentPasswordError();
   clearPasswordFields();
 }
@@ -599,25 +865,464 @@ function clearPasswordFields() {
   if (editConfirmPassword) editConfirmPassword.value = '';
 }
 
+function stepHeight(delta) {
+  const raw = String(editHeight?.value || '').trim();
+  const current = raw === '' ? HEIGHT_STEPPER_DEFAULT : Number(raw);
+  const next = Math.min(
+    HEIGHT_STEPPER_MAX,
+    Math.max(HEIGHT_STEPPER_MIN, Math.round(current) + delta),
+  );
+  setHeightStepperValue(next);
+}
+
+function onHeightInputTyping() {
+  const raw = String(editHeightInput?.value || '').trim();
+  if (editHeight) editHeight.value = raw;
+  if (editHeightClearBtn) editHeightClearBtn.hidden = raw === '';
+  syncEditSaveEnabled();
+}
+
+function onHeightInputCommit() {
+  const raw = String(editHeightInput?.value || '').trim();
+  if (raw === '') {
+    setHeightStepperValue(null);
+    return;
+  }
+  const n = Number(raw);
+  if (!Number.isFinite(n)) {
+    setHeightStepperValue(null);
+    return;
+  }
+  setHeightStepperValue(Math.round(n));
+}
+
+/**
+ * @param {number | null} cm
+ */
+function setHeightStepperValue(cm) {
+  let value = '';
+  if (cm != null && Number.isFinite(cm)) {
+    value = String(
+      Math.min(HEIGHT_STEPPER_MAX, Math.max(HEIGHT_STEPPER_MIN, Math.round(cm))),
+    );
+  }
+  if (editHeight) {
+    const changed = editHeight.value !== value;
+    editHeight.value = value;
+    if (changed) {
+      editHeight.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  }
+  if (editHeightInput && editHeightInput.value !== value) {
+    editHeightInput.value = value;
+  }
+  syncHeightStepperUi();
+  syncEditSaveEnabled();
+}
+
+function syncHeightStepperUi() {
+  const raw = String(editHeight?.value || '').trim();
+  if (editHeightInput && document.activeElement !== editHeightInput) {
+    editHeightInput.value = raw;
+  }
+  const cm = raw === '' ? null : Number(raw);
+  if (editHeightDecBtn) {
+    editHeightDecBtn.disabled = cm != null && cm <= HEIGHT_STEPPER_MIN;
+  }
+  if (editHeightIncBtn) {
+    editHeightIncBtn.disabled = cm != null && cm >= HEIGHT_STEPPER_MAX;
+  }
+  if (editHeightClearBtn) {
+    editHeightClearBtn.hidden = cm == null && String(editHeightInput?.value || '').trim() === '';
+  }
+}
+
+function todayLocalParts() {
+  const now = new Date();
+  return {
+    y: now.getFullYear(),
+    m: now.getMonth() + 1,
+    d: now.getDate(),
+  };
+}
+
+/** Normalize API / form birth values to YYYY-MM-DD or ''. */
+function normalizeBirthDate(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw || raw === 'null' || raw === 'undefined') return '';
+  const ymd = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+  return ymd ? ymd[1] : '';
+}
+
+function parseBirthYmd(value) {
+  const match = normalizeBirthDate(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  const y = Number(match[1]);
+  const m = Number(match[2]);
+  const d = Number(match[3]);
+  if (!y || m < 1 || m > 12 || d < 1 || d > 31) return null;
+  return { y, m, d };
+}
+
+function daysInMonth(year, month) {
+  return new Date(year, month, 0).getDate();
+}
+
+function isFutureBirthParts(y, m, d) {
+  const today = todayLocalParts();
+  return (
+    y > today.y ||
+    (y === today.y && m > today.m) ||
+    (y === today.y && m === today.m && d > today.d)
+  );
+}
+
+function monthShortLabels() {
+  const locale = getLang() === 'en' ? 'en-US' : 'es-ES';
+  return Array.from({ length: 12 }, (_, index) => {
+    const raw = new Intl.DateTimeFormat(locale, { month: 'short' }).format(
+      new Date(2020, index, 1),
+    );
+    const cleaned = raw.replace(/\.$/, '');
+    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  });
+}
+
+function monthLongLabel(month) {
+  const locale = getLang() === 'en' ? 'en-US' : 'es-ES';
+  const raw = new Intl.DateTimeFormat(locale, { month: 'long' }).format(
+    new Date(2020, month - 1, 1),
+  );
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+function formatBirthLabel(ymd) {
+  const parts = parseBirthYmd(ymd);
+  if (!parts) return ui('profileEditBirthChoose');
+  const locale = getLang() === 'en' ? 'en-US' : 'es-ES';
+  const raw = new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(parts.y, parts.m - 1, parts.d));
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+function decadeStart(year) {
+  const offset = Math.max(0, year - BIRTH_MIN_YEAR);
+  return BIRTH_MIN_YEAR + Math.floor(offset / 12) * 12;
+}
+
+function syncBirthPickerLabels() {
+  if (editBirthPrevBtn) {
+    editBirthPrevBtn.setAttribute('aria-label', ui('profileEditBirthPrev'));
+  }
+  if (editBirthNextBtn) {
+    editBirthNextBtn.setAttribute('aria-label', ui('profileEditBirthNext'));
+  }
+  if (editBirthNavLabel) {
+    editBirthNavLabel.setAttribute('aria-label', ui('profileEditBirthBack'));
+  }
+  if (editBirthPanel) {
+    editBirthPanel.setAttribute('aria-label', ui('profileEditBirthDate'));
+  }
+  syncBirthTriggerLabel();
+  if (birthPanelOpen) renderBirthPanel();
+}
+
+function syncBirthTriggerLabel() {
+  if (!editBirthTriggerLabel) {
+    editBirthTriggerLabel = document.getElementById(
+      'profile-edit-birth-trigger-label',
+    );
+  }
+  if (!editBirthTriggerLabel) return;
+  editBirthTriggerLabel.textContent = formatBirthLabel(birthDraftYmd);
+}
+
+function setBirthDateValue(ymd, { silent = false } = {}) {
+  const parts = parseBirthYmd(ymd);
+  let value = '';
+  if (
+    parts &&
+    parts.y >= BIRTH_MIN_YEAR &&
+    !isFutureBirthParts(parts.y, parts.m, parts.d)
+  ) {
+    const safeDay = Math.min(parts.d, daysInMonth(parts.y, parts.m));
+    value = `${parts.y}-${String(parts.m).padStart(2, '0')}-${String(safeDay).padStart(2, '0')}`;
+  }
+  birthDraftYmd = value;
+  if (!editBirthDate) {
+    editBirthDate = document.getElementById('profile-edit-birth-date');
+  }
+  if (editBirthDate) editBirthDate.value = value;
+  syncBirthTriggerLabel();
+  if (!silent) syncEditSaveEnabled();
+}
+
+function openBirthPanel() {
+  if (!editBirthPanel || !editBirthTrigger) return;
+  const selected = parseBirthYmd(birthDraftYmd || editBirthDate?.value);
+  const today = todayLocalParts();
+  birthPickerViewYear = selected?.y ?? today.y - 25;
+  birthPickerViewMonth = selected?.m ?? 1;
+  if (birthPickerViewYear < BIRTH_MIN_YEAR) birthPickerViewYear = BIRTH_MIN_YEAR;
+  if (birthPickerViewYear > today.y) birthPickerViewYear = today.y;
+  birthPickerStep = 'year';
+  birthPanelOpen = true;
+  editBirthPanel.hidden = false;
+  editBirthTrigger.setAttribute('aria-expanded', 'true');
+  renderBirthPanel();
+}
+
+function closeBirthPanel() {
+  birthPanelOpen = false;
+  if (editBirthPanel) editBirthPanel.hidden = true;
+  editBirthTrigger?.setAttribute('aria-expanded', 'false');
+}
+
+function onBirthNavPrev() {
+  if (birthPickerStep === 'year') {
+    birthPickerViewYear = Math.max(
+      BIRTH_MIN_YEAR,
+      decadeStart(birthPickerViewYear) - 12,
+    );
+  } else if (birthPickerStep === 'month') {
+    birthPickerViewYear = Math.max(BIRTH_MIN_YEAR, birthPickerViewYear - 1);
+  } else if (birthPickerStep === 'day') {
+    if (birthPickerViewMonth <= 1) {
+      if (birthPickerViewYear <= BIRTH_MIN_YEAR) return;
+      birthPickerViewYear -= 1;
+      birthPickerViewMonth = 12;
+    } else {
+      birthPickerViewMonth -= 1;
+    }
+  }
+  renderBirthPanel();
+}
+
+function onBirthNavNext() {
+  const today = todayLocalParts();
+  if (birthPickerStep === 'year') {
+    const next = decadeStart(birthPickerViewYear) + 12;
+    if (next > today.y) return;
+    birthPickerViewYear = next;
+  } else if (birthPickerStep === 'month') {
+    if (birthPickerViewYear >= today.y) return;
+    birthPickerViewYear += 1;
+  } else if (birthPickerStep === 'day') {
+    if (birthPickerViewMonth >= 12) {
+      if (birthPickerViewYear >= today.y) return;
+      birthPickerViewYear += 1;
+      birthPickerViewMonth = 1;
+    } else {
+      const nextMonth = birthPickerViewMonth + 1;
+      if (
+        birthPickerViewYear === today.y &&
+        nextMonth > today.m
+      ) {
+        return;
+      }
+      birthPickerViewMonth = nextMonth;
+    }
+  }
+  renderBirthPanel();
+}
+
+function onBirthNavLabelClick() {
+  if (birthPickerStep === 'day') {
+    birthPickerStep = 'month';
+    renderBirthPanel();
+    return;
+  }
+  if (birthPickerStep === 'month') {
+    birthPickerStep = 'year';
+    renderBirthPanel();
+  }
+}
+
+function onBirthGridClick(event) {
+  const btn = /** @type {HTMLButtonElement | null} */ (
+    event.target instanceof Element
+      ? event.target.closest('button[data-birth-value]')
+      : null
+  );
+  if (!btn || btn.disabled) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const raw = String(btn.dataset.birthValue || '');
+  if (birthPickerStep === 'year') {
+    birthPickerViewYear = Number(raw);
+    birthPickerStep = 'month';
+    renderBirthPanel();
+    return;
+  }
+  if (birthPickerStep === 'month') {
+    birthPickerViewMonth = Number(raw);
+    birthPickerStep = 'day';
+    renderBirthPanel();
+    return;
+  }
+  const day = Number(raw);
+  const y = birthPickerViewYear;
+  const m = birthPickerViewMonth;
+  if (!y || !m || !day) return;
+  setBirthDateValue(
+    `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+  );
+  closeBirthPanel();
+}
+
+function renderBirthPanel() {
+  if (!editBirthGrid || birthPickerViewYear == null) return;
+  const today = todayLocalParts();
+  const selected = parseBirthYmd(birthDraftYmd);
+  editBirthGrid.classList.toggle('is-days', birthPickerStep === 'day');
+  editBirthGrid.replaceChildren();
+
+  if (birthPickerStep === 'year') {
+    const start = decadeStart(birthPickerViewYear);
+    const end = start + 11;
+    if (editBirthNavLabel) {
+      editBirthNavLabel.textContent = `${start}–${end}`;
+      editBirthNavLabel.disabled = true;
+    }
+    if (editBirthPrevBtn) editBirthPrevBtn.disabled = start <= BIRTH_MIN_YEAR;
+    if (editBirthNextBtn) editBirthNextBtn.disabled = start + 12 > today.y;
+
+    for (let year = start; year <= end; year += 1) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'month-picker-month';
+      btn.dataset.birthValue = String(year);
+      btn.textContent = String(year);
+      btn.disabled = year < BIRTH_MIN_YEAR || year > today.y;
+      if (selected?.y === year) btn.classList.add('is-selected');
+      editBirthGrid.appendChild(btn);
+    }
+    return;
+  }
+
+  if (birthPickerStep === 'month') {
+    if (editBirthNavLabel) {
+      editBirthNavLabel.textContent = String(birthPickerViewYear);
+      editBirthNavLabel.disabled = false;
+    }
+    if (editBirthPrevBtn) {
+      editBirthPrevBtn.disabled = birthPickerViewYear <= BIRTH_MIN_YEAR;
+    }
+    if (editBirthNextBtn) {
+      editBirthNextBtn.disabled = birthPickerViewYear >= today.y;
+    }
+    monthShortLabels().forEach((label, index) => {
+      const month = index + 1;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'month-picker-month';
+      btn.dataset.birthValue = String(month);
+      btn.textContent = label;
+      btn.disabled =
+        birthPickerViewYear > today.y ||
+        (birthPickerViewYear === today.y && month > today.m);
+      if (selected?.y === birthPickerViewYear && selected?.m === month) {
+        btn.classList.add('is-selected');
+      }
+      editBirthGrid.appendChild(btn);
+    });
+    return;
+  }
+
+  if (editBirthNavLabel) {
+    editBirthNavLabel.textContent = `${monthLongLabel(birthPickerViewMonth)} ${birthPickerViewYear}`;
+    editBirthNavLabel.disabled = false;
+  }
+  const canPrevMonth =
+    birthPickerViewYear > BIRTH_MIN_YEAR || birthPickerViewMonth > 1;
+  const canNextMonth =
+    birthPickerViewYear < today.y ||
+    (birthPickerViewYear === today.y && birthPickerViewMonth < today.m);
+  if (editBirthPrevBtn) editBirthPrevBtn.disabled = !canPrevMonth;
+  if (editBirthNextBtn) editBirthNextBtn.disabled = !canNextMonth;
+
+  const maxDay = daysInMonth(birthPickerViewYear, birthPickerViewMonth);
+  for (let day = 1; day <= maxDay; day += 1) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'month-picker-month';
+    btn.dataset.birthValue = String(day);
+    btn.textContent = String(day);
+    btn.disabled = isFutureBirthParts(
+      birthPickerViewYear,
+      birthPickerViewMonth,
+      day,
+    );
+    if (
+      selected?.y === birthPickerViewYear &&
+      selected?.m === birthPickerViewMonth &&
+      selected?.d === day
+    ) {
+      btn.classList.add('is-selected');
+    }
+    editBirthGrid.appendChild(btn);
+  }
+}
+
 function buildEditPayload() {
   const user = getUser();
   if (!user) return { error: ui('profileEditError') };
 
-  /** @type {Record<string, string>} */
+  const profile = userProfile(user);
+  /** @type {Record<string, unknown>} */
   const body = {};
+  /** @type {Record<string, string | number | null>} */
+  const profilePatch = {};
+
   const firstName = String(editFirstName?.value || '').trim();
   const lastName = String(editLastName?.value || '').trim();
-  const currentName = String(user.firstName || '').trim();
-  const currentLast = String(user.lastName || '').trim();
+  const currentName = String(profile.firstName || '').trim();
+  const currentLast = String(profile.lastName || '').trim();
 
-  if (firstName && firstName !== currentName) body.firstName = firstName;
-  if (lastName && lastName !== currentLast) body.lastName = lastName;
+  if (firstName && firstName !== currentName) profilePatch.firstName = firstName;
+  if (lastName && lastName !== currentLast) profilePatch.lastName = lastName;
+
+  const heightRaw = String(editHeight?.value || '').trim();
+  const nextHeight = heightRaw === '' ? null : Number(heightRaw);
+  if (
+    heightRaw !== '' &&
+    (!Number.isInteger(nextHeight) ||
+      nextHeight < HEIGHT_STEPPER_MIN ||
+      nextHeight > HEIGHT_STEPPER_MAX)
+  ) {
+    return { error: ui('profileEditHeightInvalid') };
+  }
+  const currentHeight =
+    profile.heightCm != null && Number.isFinite(Number(profile.heightCm))
+      ? Number(profile.heightCm)
+      : null;
+  if (nextHeight !== currentHeight) profilePatch.heightCm = nextHeight;
+
+  const nextBirth = normalizeBirthDate(birthDraftYmd) || null;
+  const currentBirth = normalizeBirthDate(profile.birthDate) || null;
+  if (nextBirth !== currentBirth) profilePatch.birthDate = nextBirth;
+
+  const nextSex = String(editSex?.value || '').trim() || null;
+  const currentSex = profile.sex || null;
+  if (nextSex !== currentSex) profilePatch.sex = nextSex;
+
+  if (Object.keys(profilePatch).length > 0) {
+    body.profile = profilePatch;
+  }
+
+  const nextGoal = String(editGoal?.value || '').trim() || null;
+  const currentGoal = user.goal || null;
+  if (nextGoal !== currentGoal) body.goal = nextGoal;
 
   const currentPassword = String(editCurrentPassword?.value || '');
   const newPassword = String(editNewPassword?.value || '');
   const confirmNewPassword = String(editConfirmPassword?.value || '');
-  const passwordTouched =
-    Boolean(currentPassword) || Boolean(newPassword) || Boolean(confirmNewPassword);
+  // Ignore autofilled currentPassword alone — password change only when
+  // new and/or confirm are filled.
+  const passwordTouched = Boolean(newPassword) || Boolean(confirmNewPassword);
 
   if (passwordTouched) {
     if (!currentPassword || !newPassword || !confirmNewPassword) {
@@ -634,7 +1339,7 @@ function buildEditPayload() {
     body.confirmNewPassword = confirmNewPassword;
   }
 
-  if (!body.firstName && !body.lastName && !body.newPassword) {
+  if (!body.profile && body.goal === undefined && !body.newPassword) {
     return { error: ui('profileEditNothing') };
   }
 
@@ -648,18 +1353,43 @@ function syncEditSaveEnabled() {
     return;
   }
   const user = getUser();
+  const profile = userProfile(user);
   const firstName = String(editFirstName?.value || '').trim();
   const lastName = String(editLastName?.value || '').trim();
   const nameChanged =
     Boolean(user) &&
-    ((firstName && firstName !== String(user.firstName || '').trim()) ||
-      (lastName && lastName !== String(user.lastName || '').trim()));
-  const passwordAny =
-    Boolean(editCurrentPassword?.value) ||
-    Boolean(editNewPassword?.value) ||
-    Boolean(editConfirmPassword?.value);
+    ((firstName && firstName !== String(profile.firstName || '').trim()) ||
+      (lastName && lastName !== String(profile.lastName || '').trim()));
 
-  editSaveBtn.disabled = !(nameChanged || passwordAny);
+  const heightRaw = String(editHeight?.value || '').trim();
+  const nextHeight = heightRaw === '' ? null : Number(heightRaw);
+  const currentHeight =
+    profile.heightCm != null && Number.isFinite(Number(profile.heightCm))
+      ? Number(profile.heightCm)
+      : null;
+  const heightChanged = Boolean(user) && nextHeight !== currentHeight;
+
+  const nextBirth = normalizeBirthDate(birthDraftYmd) || null;
+  const currentBirth = normalizeBirthDate(profile.birthDate) || null;
+  const birthChanged = Boolean(user) && nextBirth !== currentBirth;
+
+  const nextSex = String(editSex?.value || '').trim() || null;
+  const sexChanged = Boolean(user) && nextSex !== (profile.sex || null);
+
+  const nextGoal = String(editGoal?.value || '').trim() || null;
+  const goalChanged = Boolean(user) && nextGoal !== (user.goal || null);
+
+  const passwordIntent =
+    Boolean(editNewPassword?.value) || Boolean(editConfirmPassword?.value);
+
+  editSaveBtn.disabled = !(
+    nameChanged ||
+    heightChanged ||
+    birthChanged ||
+    sexChanged ||
+    goalChanged ||
+    passwordIntent
+  );
 }
 
 function setEditStatus(message, kind = '') {
@@ -699,9 +1429,9 @@ function clearCurrentPasswordError() {
   }
 }
 
-async function onEditSubmit(e) {
-  e.preventDefault();
+async function saveProfileEdits() {
   if (editBusy) return;
+  if (editSaveBtn?.disabled) return;
 
   clearCurrentPasswordError();
   const { body, error } = buildEditPayload();
@@ -828,8 +1558,9 @@ function createBadge(text, kind) {
 }
 
 function fullName(user) {
-  const first = String(user.firstName || '').trim();
-  const last = String(user.lastName || '').trim();
+  const profile = userProfile(user);
+  const first = String(profile.firstName || '').trim();
+  const last = String(profile.lastName || '').trim();
   return [first, last].filter(Boolean).join(' ') || user.email || '—';
 }
 
@@ -852,8 +1583,9 @@ function initialsForCoach(coach) {
 }
 
 function initialsFor(user) {
-  const first = String(user.firstName || '').trim();
-  const last = String(user.lastName || '').trim();
+  const profile = userProfile(user);
+  const first = String(profile.firstName || '').trim();
+  const last = String(profile.lastName || '').trim();
   const initials = `${first.charAt(0)}${last.charAt(0)}`.toUpperCase();
   if (initials.trim()) return initials;
   return String(user.email || '?').charAt(0).toUpperCase();
@@ -888,6 +1620,60 @@ function formatWeight(weight) {
   if (typeof weight === 'number' && Number.isFinite(weight)) return `${weight} kg`;
   const text = String(weight).trim();
   return text || '—';
+}
+
+function formatSex(sex) {
+  switch (String(sex || '')) {
+    case 'male':
+      return ui('profileSexMale');
+    case 'female':
+      return ui('profileSexFemale');
+    case 'other':
+      return ui('profileSexOther');
+    case 'prefer_not_to_say':
+      return ui('profileSexPreferNot');
+    default:
+      return '';
+  }
+}
+
+function formatGoal(goal) {
+  switch (String(goal || '')) {
+    case 'strength':
+      return ui('profileGoalStrength');
+    case 'hypertrophy':
+      return ui('profileGoalHypertrophy');
+    case 'fat_loss':
+      return ui('profileGoalFatLoss');
+    case 'general':
+      return ui('profileGoalGeneral');
+    default:
+      return '';
+  }
+}
+
+/** @returns {number | null} */
+function ageFromBirthDate(birthDate) {
+  const raw = String(birthDate || '').slice(0, 10);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const today = new Date();
+  let age = today.getFullYear() - year;
+  const m = today.getMonth() + 1 - month;
+  if (m < 0 || (m === 0 && today.getDate() < day)) age -= 1;
+  return age >= 0 && age < 130 ? age : null;
+}
+
+function metricIconSvg(kind) {
+  const common =
+    'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
+  if (kind === 'height') {
+    return `<svg ${common}><path d="M12 3v18"/><path d="M8 6h8"/><path d="M9 21h6"/><path d="M7 12h4"/><path d="M13 16h4"/></svg>`;
+  }
+  return `<svg ${common}><rect x="4" y="5" width="16" height="12" rx="2"/><path d="M8 17v2"/><path d="M16 17v2"/><path d="M8 11h8"/><circle cx="12" cy="9" r="1.2"/></svg>`;
 }
 
 function actionIconSvg(kind) {

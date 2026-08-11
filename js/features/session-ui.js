@@ -1,11 +1,12 @@
 /**
- * Session shell: guest vs logged-in sidebar; role-based nav (athlete | coach).
- * Markup: #sidebar-guest, #sidebar-auth, #nav-athlete, #nav-coach,
- * views: catalog | training | recommend | coach-plan | coach-panel | coach-templates | students | avances | athlete-avances | session-editor | progress-photos | profile
+ * Session shell: guest vs logged-in sidebar; role-based nav (athlete | coach | admin).
+ * Markup: #sidebar-guest, #sidebar-auth, #nav-athlete, #nav-coach, #nav-admin,
+ * views: catalog | training | recommend | coach-plan | coach-panel | coach-templates | students | avances | athlete-avances | session-editor | progress-photos | profile | admin-overview | admin-users
  */
 import { getMe } from '../api/users.js';
 import { clearToken, isLoggedIn } from '../api/token.js';
 import { ui } from '../utils/labels.js';
+import { userProfile } from '../utils/helpers.js';
 import { clearRecommendPlan } from './recommend-ui.js';
 import { clearCoachAthletesCache } from './students-ui.js';
 import {
@@ -30,6 +31,8 @@ const VIEWS = new Set([
   'session-editor',
   'progress-photos',
   'profile',
+  'admin-overview',
+  'admin-users',
 ]);
 const ATHLETE_VIEWS = new Set(['training', 'recommend', 'coach-plan', 'athlete-avances']);
 const COACH_VIEWS = new Set([
@@ -40,6 +43,7 @@ const COACH_VIEWS = new Set([
   'session-editor',
   'progress-photos',
 ]);
+const ADMIN_VIEWS = new Set(['admin-overview', 'admin-users']);
 
 let view = 'catalog';
 let user = null;
@@ -66,12 +70,17 @@ async function notifyUserSynced() {
 
 export function isCoach(u = user) {
   if (!u) return false;
-  return u.role === 'coach' || u.role === 'admin';
+  return u.role === 'coach';
+}
+
+export function isAdmin(u = user) {
+  if (!u) return false;
+  return u.role === 'admin';
 }
 
 export function isAthlete(u = user) {
   if (!u) return false;
-  return !isCoach(u);
+  return u.role === 'athlete';
 }
 
 export function hasCoach(u = user) {
@@ -132,6 +141,14 @@ export function initSessionUi({ onViewChange: cb } = {}) {
   document.getElementById('nav-coach-panel')?.addEventListener('click', () => {
     if (!isCoach()) return;
     setView('coach-panel');
+  });
+  document.getElementById('nav-admin-overview')?.addEventListener('click', () => {
+    if (!isAdmin()) return;
+    setView('admin-overview');
+  });
+  document.getElementById('nav-admin-users')?.addEventListener('click', () => {
+    if (!isAdmin()) return;
+    setView('admin-users');
   });
   document.getElementById('nav-coach-templates')?.addEventListener('click', () => {
     if (!isCoach()) return;
@@ -270,10 +287,12 @@ export function getView() {
 
 export function setView(next) {
   if (!VIEWS.has(next)) return;
+  if (isAdmin() && next === 'catalog') next = 'admin-overview';
   if (next === 'recommend' && !canAccessRecommendPlan()) return;
   if (next === 'coach-plan' && !isAthlete()) return;
   if (ATHLETE_VIEWS.has(next) && !isAthlete()) return;
   if (COACH_VIEWS.has(next) && !isCoach()) return;
+  if (ADMIN_VIEWS.has(next) && !isAdmin()) return;
   if (next !== 'catalog') clearSessionAssignTarget();
   view = next;
   renderSessionChrome();
@@ -294,7 +313,7 @@ export function logout() {
 
 export function syncSessionLabels() {
   document.querySelectorAll(
-    '#sidebar-guest [data-ui], #sidebar-auth [data-ui], #recommend-view [data-ui], #coach-plan-view [data-ui], #coach-panel-view [data-ui], #coach-templates-view [data-ui], #students-view [data-ui], #avances-view [data-ui], #athlete-avances-view [data-ui], #session-editor-view [data-ui], #progress-photos-view [data-ui], #profile-view [data-ui], #session-assign-banner [data-ui]',
+    '#sidebar-guest [data-ui], #sidebar-auth [data-ui], #recommend-view [data-ui], #coach-plan-view [data-ui], #coach-panel-view [data-ui], #coach-templates-view [data-ui], #students-view [data-ui], #avances-view [data-ui], #athlete-avances-view [data-ui], #session-editor-view [data-ui], #progress-photos-view [data-ui], #profile-view [data-ui], #admin-overview-view [data-ui], #admin-users-view [data-ui], #session-assign-banner [data-ui]',
   ).forEach(el => {
     el.textContent = ui(el.dataset.ui);
   });
@@ -321,8 +340,9 @@ function renderUserName() {
   const roleEl = document.getElementById('sidebar-user-role');
   if (!user) return;
 
-  const first = String(user.firstName || '').trim();
-  const last = String(user.lastName || '').trim();
+  const profile = userProfile(user);
+  const first = String(profile.firstName || '').trim();
+  const last = String(profile.lastName || '').trim();
   const full = [first, last].filter(Boolean).join(' ');
   const shortName = last
     ? `${first} ${last.charAt(0)}.`.trim()
@@ -412,10 +432,15 @@ function hasCoachTrainingProgram(u = user) {
 function syncRoleNav() {
   const athleteNav = document.getElementById('nav-athlete');
   const coachNav = document.getElementById('nav-coach');
+  const adminNav = document.getElementById('nav-admin');
+  const exploreNav = document.getElementById('nav-explore');
   const loggedIn = Boolean(user);
 
   if (athleteNav) athleteNav.hidden = !(loggedIn && isAthlete());
   if (coachNav) coachNav.hidden = !(loggedIn && isCoach());
+  if (adminNav) adminNav.hidden = !(loggedIn && isAdmin());
+  // Admin stays in the admin panel — no catalog / explore chrome.
+  if (exploreNav) exploreNav.hidden = loggedIn && isAdmin();
 }
 
 function syncNavActive() {
@@ -424,6 +449,8 @@ function syncNavActive() {
   const coachPlan = document.getElementById('nav-coach-plan');
   const athleteAvances = document.getElementById('nav-athlete-avances');
   const coachPanel = document.getElementById('nav-coach-panel');
+  const adminOverview = document.getElementById('nav-admin-overview');
+  const adminUsers = document.getElementById('nav-admin-users');
   const coachTemplates = document.getElementById('nav-coach-templates');
   const students = document.getElementById('nav-students');
   const avances = document.getElementById('nav-avances');
@@ -435,6 +462,8 @@ function syncNavActive() {
     [coachPlan, view === 'coach-plan'],
     [athleteAvances, view === 'athlete-avances'],
     [coachPanel, view === 'coach-panel'],
+    [adminOverview, view === 'admin-overview'],
+    [adminUsers, view === 'admin-users'],
     [coachTemplates, view === 'coach-templates'],
     [students, view === 'students' || view === 'session-editor'],
     [avances, view === 'avances' || view === 'progress-photos'],
@@ -451,6 +480,13 @@ function syncNavActive() {
 function normalizeViewForRole() {
   if (!user) {
     view = 'catalog';
+    return;
+  }
+
+  if (isAdmin()) {
+    // Profile still available via account menu; everything else → admin panel.
+    if (view === 'profile') return;
+    if (!ADMIN_VIEWS.has(view)) view = 'admin-overview';
     return;
   }
 
@@ -471,6 +507,11 @@ function normalizeViewForRole() {
 
   if (COACH_VIEWS.has(view) && !isCoach()) {
     view = 'catalog';
+    return;
+  }
+
+  if (ADMIN_VIEWS.has(view) && !isAdmin()) {
+    view = 'catalog';
   }
 }
 
@@ -489,6 +530,8 @@ function renderSessionChrome() {
   const sessionEditorView = document.getElementById('session-editor-view');
   const progressPhotosView = document.getElementById('progress-photos-view');
   const profileView = document.getElementById('profile-view');
+  const adminOverviewView = document.getElementById('admin-overview-view');
+  const adminUsersView = document.getElementById('admin-users-view');
   const catalogBar = document.getElementById('catalog-bar-extras');
   const catalogFilters = document.getElementById('sidebar-catalog-filters');
   const wodBtn = document.getElementById('wod-btn');
@@ -513,6 +556,8 @@ function renderSessionChrome() {
   const showSessionEditor = loggedIn && view === 'session-editor';
   const showProgressPhotos = loggedIn && view === 'progress-photos';
   const showProfile = loggedIn && view === 'profile';
+  const showAdminOverview = loggedIn && view === 'admin-overview';
+  const showAdminUsers = loggedIn && view === 'admin-users';
   const hideCatalogChrome = showTraining
     || showRecommend
     || showCoachPlan
@@ -523,7 +568,9 @@ function renderSessionChrome() {
     || showAthleteAvances
     || showSessionEditor
     || showProgressPhotos
-    || showProfile;
+    || showProfile
+    || showAdminOverview
+    || showAdminUsers;
   const hideSearch = showRecommend
     || showCoachPlan
     || showCoachPanel
@@ -533,7 +580,9 @@ function renderSessionChrome() {
     || showAthleteAvances
     || showSessionEditor
     || showProgressPhotos
-    || showProfile;
+    || showProfile
+    || showAdminOverview
+    || showAdminUsers;
 
   if (catalogView) catalogView.hidden = hideCatalogChrome;
   if (trainingView) trainingView.hidden = !showTraining;
@@ -547,6 +596,8 @@ function renderSessionChrome() {
   if (sessionEditorView) sessionEditorView.hidden = !showSessionEditor;
   if (progressPhotosView) progressPhotosView.hidden = !showProgressPhotos;
   if (profileView) profileView.hidden = !showProfile;
+  if (adminOverviewView) adminOverviewView.hidden = !showAdminOverview;
+  if (adminUsersView) adminUsersView.hidden = !showAdminUsers;
   if (catalogBar) catalogBar.hidden = hideCatalogChrome;
   if (wodBtn) wodBtn.hidden = hideCatalogChrome;
   if (catalogFilters) catalogFilters.hidden = hideCatalogChrome;

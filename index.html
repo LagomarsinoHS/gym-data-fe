@@ -22,8 +22,11 @@
     · #athlete-avances-view → js/features/athlete-avances-ui.js
     · #progress-photos-view → js/features/progress-photos-ui.js
     · #profile-view → js/features/profile-ui.js
+    · #admin-overview-view → js/features/admin-overview-ui.js
+    · #admin-users-view → js/features/admin-users-ui.js
     · #coach-panel-view → js/features/coach-panel-ui.js
     · #session-editor-view / session overlays → js/features/coach-sessions-ui.js
+    · #coach-templates-view / apply|use template overlays → js/features/coach-templates-ui.js
     · #coach-invite-banner                             → js/features/coach-invite-ui.js
     · #training-grid                               → js/features/training-ui.js
     · Footer                                       → js/features/footer.js
@@ -162,7 +165,20 @@
               </button>
             </div>
           </div>
-          <div class="sidebar-nav-group">
+          <div id="nav-admin" class="sidebar-nav-group" hidden>
+            <div class="sidebar-nav-label" data-ui="navGroupAdmin">Admin</div>
+            <div class="sidebar-nav-group-items">
+              <button type="button" class="sidebar-nav-btn" id="nav-admin-overview" data-view="admin-overview">
+                <span class="sidebar-nav-marker" aria-hidden="true"></span>
+                <span data-ui="adminOverview">Overview</span>
+              </button>
+              <button type="button" class="sidebar-nav-btn" id="nav-admin-users" data-view="admin-users">
+                <span class="sidebar-nav-marker" aria-hidden="true"></span>
+                <span data-ui="adminUsers">Usuarios</span>
+              </button>
+            </div>
+          </div>
+          <div id="nav-explore" class="sidebar-nav-group">
             <div class="sidebar-nav-label" data-ui="navGroupExplore">Explorar</div>
             <button type="button" class="sidebar-nav-btn is-active" id="nav-catalog" data-view="catalog" aria-current="page">
               <span class="sidebar-nav-marker" aria-hidden="true"></span>
@@ -442,16 +458,15 @@
 
         <section class="profile-hero-row" id="profile-hero" aria-live="polite"></section>
 
-        <section class="profile-facts" id="profile-facts" aria-label="Account details"></section>
-
+        <div id="profile-edit-park" class="profile-edit-park" hidden>
         <section class="profile-edit" id="profile-edit-panel" hidden aria-labelledby="profile-edit-title">
           <div class="profile-edit-head">
             <h3 class="profile-edit-title" id="profile-edit-title" data-ui="profileEditTitle">Editar perfil</h3>
             <p class="profile-edit-lead" data-ui="profileEditLead">
-              Cambia nombre, apellido y/ o contraseña. Guarda con al menos un cambio.
+              Actualiza nombre, datos opcionales del cuerpo y / o contraseña. Guarda con al menos un cambio.
             </p>
           </div>
-          <form class="profile-edit-form" id="profile-edit-form">
+          <form class="profile-edit-form" id="profile-edit-form" novalidate>
             <div class="profile-edit-grid">
               <label class="profile-edit-field">
                 <span class="profile-edit-label" data-ui="profileEditFirstName">Nombre</span>
@@ -461,13 +476,91 @@
                 <span class="profile-edit-label" data-ui="profileEditLastName">Apellido</span>
                 <input type="text" id="profile-edit-last-name" name="lastName" autocomplete="family-name" />
               </label>
+              <div class="profile-edit-field profile-edit-field--height">
+                <span class="profile-edit-label" id="profile-edit-height-label" data-ui="profileEditHeight">Estatura (cm)</span>
+                <div class="height-stepper" id="profile-edit-height-stepper" role="group" aria-labelledby="profile-edit-height-label">
+                  <button type="button" class="height-stepper-btn" id="profile-edit-height-dec" aria-label="-1 cm">−</button>
+                  <label class="height-stepper-value">
+                    <input
+                      type="number"
+                      class="height-stepper-input"
+                      id="profile-edit-height-input"
+                      name="heightCmVisible"
+                      inputmode="numeric"
+                      min="120"
+                      max="230"
+                      step="1"
+                      placeholder="—"
+                      aria-labelledby="profile-edit-height-label"
+                    />
+                    <span class="height-stepper-unit">cm</span>
+                  </label>
+                  <button type="button" class="height-stepper-btn" id="profile-edit-height-inc" aria-label="+1 cm">+</button>
+                </div>
+                <input type="hidden" id="profile-edit-height" name="heightCm" value="" />
+                <button type="button" class="height-stepper-clear" id="profile-edit-height-clear" data-ui="profileEditOptionalEmpty">Sin especificar</button>
+              </div>
+              <div class="profile-edit-field profile-edit-field--birth">
+                <span class="profile-edit-label" id="profile-edit-birth-label" data-ui="profileEditBirthDate">Fecha de nacimiento</span>
+                <div class="month-picker birth-picker" id="profile-edit-birth-picker">
+                  <input type="hidden" id="profile-edit-birth-date" value="" />
+                  <button
+                    type="button"
+                    class="month-picker-trigger"
+                    id="profile-edit-birth-trigger"
+                    aria-haspopup="dialog"
+                    aria-expanded="false"
+                    aria-controls="profile-edit-birth-panel"
+                    aria-labelledby="profile-edit-birth-label"
+                  >
+                    <span class="month-picker-trigger-label" id="profile-edit-birth-trigger-label" data-ui="profileEditBirthChoose">Elegir fecha</span>
+                    <span class="month-picker-trigger-ico" aria-hidden="true">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                    </span>
+                  </button>
+                  <div
+                    class="month-picker-panel birth-picker-panel"
+                    id="profile-edit-birth-panel"
+                    role="dialog"
+                    aria-label="Date of birth"
+                    hidden
+                  >
+                    <div class="month-picker-year">
+                      <button type="button" class="month-picker-year-btn" id="profile-edit-birth-prev" aria-label="Previous">‹</button>
+                      <button type="button" class="birth-picker-nav-label" id="profile-edit-birth-nav-label"></button>
+                      <button type="button" class="month-picker-year-btn" id="profile-edit-birth-next" aria-label="Next">›</button>
+                    </div>
+                    <div class="month-picker-grid birth-picker-grid" id="profile-edit-birth-grid"></div>
+                  </div>
+                </div>
+              </div>
+              <label class="profile-edit-field">
+                <span class="profile-edit-label" data-ui="profileEditSex">Sexo</span>
+                <select id="profile-edit-sex" name="sex">
+                  <option value="" data-ui="profileEditOptionalEmpty">Sin especificar</option>
+                  <option value="male" data-ui="profileSexMale">Masculino</option>
+                  <option value="female" data-ui="profileSexFemale">Femenino</option>
+                  <option value="other" data-ui="profileSexOther">Otro</option>
+                  <option value="prefer_not_to_say" data-ui="profileSexPreferNot">Prefiero no decir</option>
+                </select>
+              </label>
+              <label class="profile-edit-field">
+                <span class="profile-edit-label" data-ui="profileEditGoal">Objetivo</span>
+                <select id="profile-edit-goal" name="goal">
+                  <option value="" data-ui="profileEditOptionalEmpty">Sin especificar</option>
+                  <option value="strength" data-ui="profileGoalStrength">Fuerza</option>
+                  <option value="hypertrophy" data-ui="profileGoalHypertrophy">Hipertrofia</option>
+                  <option value="fat_loss" data-ui="profileGoalFatLoss">Pérdida de grasa</option>
+                  <option value="general" data-ui="profileGoalGeneral">Salud / general</option>
+                </select>
+              </label>
             </div>
             <div class="profile-edit-password">
               <p class="profile-edit-subtitle" data-ui="profileEditPasswordTitle">Cambiar contraseña</p>
               <div class="profile-edit-grid profile-edit-grid--password">
                 <label class="profile-edit-field" id="profile-edit-current-password-field">
                   <span class="profile-edit-label" data-ui="profileEditCurrentPassword">Contraseña actual</span>
-                  <input type="password" id="profile-edit-current-password" name="currentPassword" autocomplete="current-password" />
+                  <input type="password" id="profile-edit-current-password" name="currentPassword" autocomplete="off" />
                 </label>
                 <label class="profile-edit-field">
                   <span class="profile-edit-label" data-ui="profileEditNewPassword">Nueva contraseña</span>
@@ -482,10 +575,11 @@
             <p class="profile-edit-status" id="profile-edit-status" hidden></p>
             <div class="profile-edit-actions">
               <button type="button" class="profile-edit-cancel" id="profile-edit-cancel" data-ui="profileEditCancel">Cancelar</button>
-              <button type="submit" class="profile-edit-save" id="profile-edit-save" disabled data-ui="profileEditSave">Guardar</button>
+              <button type="button" class="profile-edit-save" id="profile-edit-save" disabled data-ui="profileEditSave">Guardar</button>
             </div>
           </form>
         </section>
+        </div>
 
         <section class="profile-actions profile-actions--available" aria-labelledby="profile-available-title">
           <div class="profile-actions-head">
@@ -590,6 +684,162 @@
       </div>
     </div>
 
+    <div id="admin-overview-view" class="recommend-view" hidden>
+      <div class="admin-overview">
+        <header class="admin-overview-header">
+          <h2 class="admin-overview-title" data-ui="adminOverview">Overview</h2>
+          <p class="admin-overview-lead" data-ui="adminOverviewLead">
+            Estado general de la plataforma
+          </p>
+        </header>
+
+        <div class="admin-overview-loading" id="admin-overview-loading" hidden>
+          <div class="load-spinner visible" aria-hidden="true"></div>
+          <span data-ui="adminOverviewLoading">Cargando estadísticas…</span>
+        </div>
+
+        <p class="admin-overview-status" id="admin-overview-status" hidden></p>
+
+        <div class="admin-overview-body" id="admin-overview-body" hidden>
+          <section class="admin-overview-panel" id="admin-overview-users" aria-labelledby="admin-overview-users-title">
+            <h3 class="admin-overview-panel-title" id="admin-overview-users-title" data-ui="adminSectionUsers">Usuarios</h3>
+            <div class="admin-overview-kpi-row">
+              <div class="admin-overview-kpi">
+                <p class="admin-overview-kpi-value" id="admin-stat-total"></p>
+                <p class="admin-overview-kpi-label" data-ui="adminUsersTotalShort">Total</p>
+              </div>
+              <div class="admin-overview-kpi">
+                <p class="admin-overview-kpi-value" id="admin-stat-athletes"></p>
+                <p class="admin-overview-kpi-label" data-ui="adminUsersAthletes">Atletas</p>
+              </div>
+              <div class="admin-overview-kpi">
+                <p class="admin-overview-kpi-value" id="admin-stat-coaches"></p>
+                <p class="admin-overview-kpi-label" data-ui="adminUsersCoaches">Coaches</p>
+              </div>
+              <div class="admin-overview-kpi">
+                <p class="admin-overview-kpi-value" id="admin-stat-admins"></p>
+                <p class="admin-overview-kpi-label" data-ui="adminUsersAdmins">Admins</p>
+              </div>
+            </div>
+            <p class="admin-overview-panel-foot" id="admin-stat-users-delta-30"></p>
+          </section>
+
+          <div class="admin-overview-split">
+            <section class="admin-overview-panel" id="admin-overview-subs" aria-labelledby="admin-overview-subs-title">
+              <h3 class="admin-overview-panel-title is-start" id="admin-overview-subs-title" data-ui="adminSectionSubs">Suscripciones</h3>
+              <ul class="admin-overview-plan-list">
+                <li>
+                  <span class="admin-overview-plan-count" id="admin-stat-free"></span>
+                  <span data-ui="adminPlanFree">Free</span>
+                </li>
+                <li>
+                  <span class="admin-overview-plan-count" id="admin-stat-premium"></span>
+                  <span data-ui="adminPlanPremium">Premium</span>
+                </li>
+                <li>
+                  <span class="admin-overview-plan-count" id="admin-stat-growth"></span>
+                  <span data-ui="adminPlanGrowth">Growth</span>
+                </li>
+                <li>
+                  <span class="admin-overview-plan-count" id="admin-stat-pro"></span>
+                  <span data-ui="adminPlanPro">Pro</span>
+                </li>
+              </ul>
+              <button type="button" class="admin-overview-link" id="admin-overview-open-users">
+                <span data-ui="adminOverviewOpenUsers">Ver usuarios</span>
+                <span aria-hidden="true">→</span>
+              </button>
+            </section>
+
+            <section class="admin-overview-panel" id="admin-overview-activity" aria-labelledby="admin-overview-activity-title">
+              <h3 class="admin-overview-panel-title is-start" id="admin-overview-activity-title" data-ui="adminSectionActivity">Actividad</h3>
+              <ul class="admin-overview-activity-list">
+                <li id="admin-stat-activity-30"></li>
+                <li id="admin-stat-activity-7"></li>
+              </ul>
+            </section>
+          </div>
+
+          <section class="admin-overview-panel admin-overview-panel--attention" id="admin-overview-attention" hidden aria-labelledby="admin-overview-attention-title">
+            <h3 class="admin-overview-panel-title is-start" id="admin-overview-attention-title" data-ui="adminSectionAttention">Requiere atención</h3>
+            <p class="admin-overview-attention-copy" id="admin-stat-attention-copy"></p>
+            <button type="button" class="admin-overview-link admin-overview-link--end" id="admin-overview-open-expiring">
+              <span data-ui="adminOverviewOpenExpiring">Ver usuarios</span>
+              <span aria-hidden="true">→</span>
+            </button>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <div id="admin-users-view" class="students-view" hidden>
+      <div class="recommend-results students-shell admin-users-shell">
+        <header class="admin-users-header">
+          <h2 class="admin-users-title" data-ui="adminUsers">Usuarios</h2>
+          <p class="admin-users-lead" data-ui="adminUsersLead">
+            Busca cuentas, revisa datos y otorga o revoca planes.
+          </p>
+        </header>
+
+        <div class="recommend-toolbar students-toolbar admin-users-toolbar">
+          <div class="search-wrapper students-search">
+            <svg class="search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <circle cx="6.5" cy="6.5" r="4.5"/>
+              <path d="M10.5 10.5L14 14" stroke-linecap="round"/>
+            </svg>
+            <input type="text" class="search-box" id="admin-users-search" placeholder="Buscar por nombre o email…" autocomplete="off" />
+            <button type="button" class="search-clear" id="admin-users-search-clear" aria-label="Limpiar búsqueda">×</button>
+          </div>
+          <div class="admin-users-filters">
+            <label class="admin-users-filter">
+              <span class="admin-users-filter-label" data-ui="adminUsersFilterRole">Rol</span>
+              <select id="admin-users-filter-role" class="admin-users-select">
+                <option value="" data-ui="adminUsersFilterAll">Todos</option>
+                <option value="athlete" data-ui="roleAthlete">Athlete</option>
+                <option value="coach" data-ui="roleCoach">Coach</option>
+                <option value="admin" data-ui="roleAdmin">Admin</option>
+              </select>
+            </label>
+            <label class="admin-users-filter">
+              <span class="admin-users-filter-label" data-ui="adminUsersFilterPlan">Plan</span>
+              <select id="admin-users-filter-plan" class="admin-users-select">
+                <option value="" data-ui="adminUsersFilterAll">Todos</option>
+                <option value="free" data-ui="adminPlanFree">Free</option>
+                <option value="premium" data-ui="adminPlanPremium">Premium</option>
+                <option value="growth" data-ui="adminPlanGrowth">Growth</option>
+                <option value="pro" data-ui="adminPlanPro">Pro</option>
+              </select>
+            </label>
+            <label class="admin-users-filter admin-users-filter--check">
+              <input type="checkbox" id="admin-users-filter-expiring" />
+              <span data-ui="adminUsersFilterExpiring">Por vencer en 7 días</span>
+            </label>
+          </div>
+        </div>
+
+        <p class="admin-users-meta" id="admin-users-meta" hidden></p>
+        <p class="admin-overview-status" id="admin-users-status" hidden></p>
+
+        <div class="admin-overview-loading students-loading" id="admin-users-loading" hidden>
+          <div class="load-spinner visible" aria-hidden="true"></div>
+          <span data-ui="adminUsersLoading">Cargando usuarios…</span>
+        </div>
+
+        <div class="students-empty" id="admin-users-empty" hidden>
+          <p class="students-empty-title admin-users-empty-title" data-ui="adminUsersEmptyTitle">Aún no hay usuarios</p>
+          <p class="students-empty-lead admin-users-empty-lead" data-ui="adminUsersEmptyLead">
+            Cuando las personas se registren, aparecerán aquí.
+          </p>
+        </div>
+
+        <div class="students-list" id="admin-users-list" hidden></div>
+
+        <button type="button" class="students-load-more" id="admin-users-load-more" hidden>
+          <span data-ui="adminUsersLoadMore">Cargar más</span>
+        </button>
+      </div>
+    </div>
+
     <div id="coach-panel-view" class="recommend-view" hidden>
       <div class="coach-panel">
         <header class="coach-panel-header">
@@ -665,11 +915,19 @@
     </div>
 
     <div id="coach-templates-view" class="recommend-view" hidden>
-      <div class="recommend-panel">
-        <h2 class="recommend-title" data-ui="coachTemplates">Plantillas</h2>
-        <p class="recommend-lead" data-ui="coachTemplatesLead">
-          Acá vas a armar rutinas reutilizables para asignar a tus alumnos.
-        </p>
+      <div class="coach-templates-shell">
+        <header class="coach-templates-header">
+          <h2 class="coach-templates-title" data-ui="coachTemplates">Plantillas</h2>
+          <p class="coach-templates-lead" data-ui="coachTemplatesLead">
+            Crea sesiones reutilizables (ej. Upper Body) y aplícalas a tus alumnos desde aquí o Mis alumnos.
+          </p>
+        </header>
+        <div class="coach-templates-loading" id="coach-templates-loading" hidden>
+          <div class="load-spinner visible" aria-hidden="true"></div>
+          <span data-ui="coachTemplatesLoading">Cargando plantillas…</span>
+        </div>
+        <p class="coach-templates-status" id="coach-templates-status" hidden></p>
+        <div class="coach-templates-body" id="coach-templates-body"></div>
       </div>
     </div>
 
@@ -703,6 +961,7 @@
             </button>
           </header>
         </div>
+        <div id="session-editor-hint" class="session-editor-hint-host" hidden></div>
         <div class="session-editor-list" id="session-editor-list"></div>
       </div>
     </div>
@@ -833,8 +1092,11 @@
                 <span class="students-download-caret" aria-hidden="true"></span>
               </button>
               <div class="students-download-menu" id="students-download-menu" role="menu" hidden>
-                <button type="button" class="students-download-item" role="menuitem" id="students-download-all">
-                  <span data-ui="studentsDownloadAll">Descargar todos</span>
+                <button type="button" class="students-download-item" role="menuitem" id="students-download-all-excel">
+                  <span data-ui="studentsDownloadAllExcel">Todos · Excel</span>
+                </button>
+                <button type="button" class="students-download-item" role="menuitem" id="students-download-all-pdf">
+                  <span data-ui="studentsDownloadAllPdf">Todos · PDF</span>
                 </button>
               </div>
             </div>
@@ -870,7 +1132,7 @@
         <div class="students-empty" id="students-empty" hidden>
           <p class="students-empty-title" data-ui="studentsEmptyTitle">Aún no tienes alumnos</p>
           <p class="students-empty-lead" data-ui="studentsEmptyLead">
-            Invita a un atleta por su email exacto. Cuando acepte, aparecerá acá.
+            Invita por email aunque aún no tenga cuenta. Al registrarse verá tu invitación (válida 24h).
           </p>
           <button type="button" class="recommend-cta" id="students-empty-add-btn">
             <span data-ui="addStudent">Invitar alumno</span>
@@ -975,13 +1237,18 @@
         <input type="email" id="add-student-email" name="email" required autocomplete="off" />
       </label>
       <p class="recommend-hint" data-ui="addStudentHint">
-        Escribe el email completo del atleta. No buscamos coincidencias parciales.
+        Si ya tiene cuenta, solo envía. Si no, usa Enviar + WhatsApp (válida 24h).
       </p>
       <p class="recommend-status" id="add-student-status" hidden></p>
-      <button type="submit" class="recommend-submit" id="add-student-submit">
-        <span class="recommend-submit-fill" id="add-student-submit-fill" hidden></span>
-        <span class="recommend-submit-label" data-ui="addStudentSubmit">Enviar invitación</span>
-      </button>
+      <div class="add-student-actions">
+        <button type="submit" class="recommend-submit" id="add-student-submit">
+          <span class="recommend-submit-fill" id="add-student-submit-fill" hidden></span>
+          <span class="recommend-submit-label" data-ui="addStudentSubmit">Enviar invitación</span>
+        </button>
+        <button type="button" class="add-student-whatsapp" id="add-student-whatsapp">
+          <span data-ui="inviteSendAndCopyWhatsApp">Enviar + copiar WhatsApp</span>
+        </button>
+      </div>
     </form>
   </div>
 </div>
@@ -1006,6 +1273,100 @@
         <span class="recommend-submit-label" data-ui="addSessionSubmit">Crear sesión</span>
       </button>
     </form>
+  </div>
+</div>
+
+<!-- ═══ MODAL aplicar plantilla → alumno — js/features/coach-templates-ui.js ═══ -->
+<div class="recommend-overlay" id="apply-template-overlay" role="dialog" aria-modal="true" aria-labelledby="apply-template-title">
+  <div class="recommend-modal">
+    <div class="recommend-modal-header">
+      <h2 class="recommend-modal-title" id="apply-template-title" data-ui="templateApplyTitle">Aplicar plantilla</h2>
+      <button type="button" class="modal-close" id="apply-template-close" aria-label="Close">✕</button>
+    </div>
+    <p class="recommend-hint" id="apply-template-lead"></p>
+    <div class="apply-template-search-block">
+      <span class="recommend-label" id="apply-template-search-label" data-ui="templateApplySearch">Buscar alumnos</span>
+      <div class="search-wrapper apply-template-search">
+        <svg class="search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <circle cx="6.5" cy="6.5" r="4.5"/>
+          <path d="M10.5 10.5L14 14" stroke-linecap="round"/>
+        </svg>
+        <input
+          type="text"
+          class="search-box"
+          id="apply-template-search"
+          name="search"
+          autocomplete="off"
+          aria-labelledby="apply-template-search-label"
+          placeholder="Nombre o email…"
+        />
+      </div>
+    </div>
+    <div class="apply-template-results" id="apply-template-results">
+      <ul class="apply-template-skeleton" id="apply-template-skeleton" hidden aria-hidden="true">
+        <li class="apply-template-skeleton-item"><span class="apply-template-skeleton-line is-name"></span><span class="apply-template-skeleton-line is-email"></span></li>
+        <li class="apply-template-skeleton-item"><span class="apply-template-skeleton-line is-name"></span><span class="apply-template-skeleton-line is-email"></span></li>
+        <li class="apply-template-skeleton-item"><span class="apply-template-skeleton-line is-name"></span><span class="apply-template-skeleton-line is-email"></span></li>
+        <li class="apply-template-skeleton-item"><span class="apply-template-skeleton-line is-name"></span><span class="apply-template-skeleton-line is-email"></span></li>
+        <li class="apply-template-skeleton-item"><span class="apply-template-skeleton-line is-name"></span><span class="apply-template-skeleton-line is-email"></span></li>
+      </ul>
+      <ul class="apply-template-list" id="apply-template-list"></ul>
+      <p class="apply-template-empty" id="apply-template-empty" hidden data-ui="templateApplyEmpty">
+        No hay alumnos para mostrar.
+      </p>
+    </div>
+    <p class="recommend-status" id="apply-template-status" hidden></p>
+    <div class="confirm-modal-actions">
+      <button type="button" class="confirm-modal-cancel" id="apply-template-cancel" data-ui="templateApplyCancel">Cancelar</button>
+      <button type="button" class="recommend-submit" id="apply-template-confirm" disabled data-ui="templateApplyConfirm">Aplicar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL usar plantillas → alumno (desde Mis alumnos) — js/features/coach-templates-ui.js ═══ -->
+<div class="recommend-overlay" id="use-template-overlay" role="dialog" aria-modal="true" aria-labelledby="use-template-title">
+  <div class="recommend-modal">
+    <div class="recommend-modal-header">
+      <h2 class="recommend-modal-title" id="use-template-title" data-ui="useTemplateTitle">Usar plantilla</h2>
+      <button type="button" class="modal-close" id="use-template-close" aria-label="Close">✕</button>
+    </div>
+    <p class="recommend-hint" id="use-template-lead"></p>
+    <div class="apply-template-search-block">
+      <span class="recommend-label" id="use-template-search-label" data-ui="useTemplateSearch">Buscar plantilla</span>
+      <div class="search-wrapper apply-template-search">
+        <svg class="search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <circle cx="6.5" cy="6.5" r="4.5"/>
+          <path d="M10.5 10.5L14 14" stroke-linecap="round"/>
+        </svg>
+        <input
+          type="text"
+          class="search-box"
+          id="use-template-search"
+          name="search"
+          autocomplete="off"
+          aria-labelledby="use-template-search-label"
+          placeholder="Nombre…"
+        />
+      </div>
+    </div>
+    <div class="apply-template-results" id="use-template-results">
+      <ul class="apply-template-skeleton" id="use-template-skeleton" hidden aria-hidden="true">
+        <li class="apply-template-skeleton-item"><span class="apply-template-skeleton-line is-name"></span><span class="apply-template-skeleton-line is-email"></span></li>
+        <li class="apply-template-skeleton-item"><span class="apply-template-skeleton-line is-name"></span><span class="apply-template-skeleton-line is-email"></span></li>
+        <li class="apply-template-skeleton-item"><span class="apply-template-skeleton-line is-name"></span><span class="apply-template-skeleton-line is-email"></span></li>
+        <li class="apply-template-skeleton-item"><span class="apply-template-skeleton-line is-name"></span><span class="apply-template-skeleton-line is-email"></span></li>
+        <li class="apply-template-skeleton-item"><span class="apply-template-skeleton-line is-name"></span><span class="apply-template-skeleton-line is-email"></span></li>
+      </ul>
+      <ul class="apply-template-list" id="use-template-list"></ul>
+      <p class="apply-template-empty" id="use-template-empty" hidden data-ui="useTemplateEmpty">
+        No hay plantillas para mostrar.
+      </p>
+    </div>
+    <p class="recommend-status" id="use-template-status" hidden></p>
+    <div class="confirm-modal-actions">
+      <button type="button" class="confirm-modal-cancel" id="use-template-cancel" data-ui="templateApplyCancel">Cancelar</button>
+      <button type="button" class="recommend-submit" id="use-template-confirm" disabled data-ui="templateApplyConfirm">Aplicar</button>
+    </div>
   </div>
 </div>
 
@@ -1047,6 +1408,24 @@
         <button type="submit" class="confirm-modal-danger" id="deactivate-account-confirm" disabled data-ui="profileDeactivateConfirm">Darme de baja</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- ═══ MODAL confirmar grant/revoke admin — js/features/admin-users-ui.js ═══ -->
+<div class="recommend-overlay" id="admin-sub-confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="admin-sub-confirm-title">
+  <div class="recommend-modal confirm-modal">
+    <div class="recommend-modal-header">
+      <h2 class="recommend-modal-title" id="admin-sub-confirm-title" data-ui="adminUsersRevokeTitle">¿Revocar plan?</h2>
+      <button type="button" class="modal-close" id="admin-sub-confirm-close" aria-label="Close">✕</button>
+    </div>
+    <p class="confirm-modal-name" id="admin-sub-confirm-user"></p>
+    <p class="confirm-modal-lead" id="admin-sub-confirm-lead" data-ui="adminUsersRevokeConfirm">
+      ¿Revocar el plan pago y dejar la cuenta en free?
+    </p>
+    <div class="confirm-modal-actions">
+      <button type="button" class="confirm-modal-cancel" id="admin-sub-confirm-cancel" data-ui="adminUsersConfirmCancel">Cancelar</button>
+      <button type="button" class="confirm-modal-danger" id="admin-sub-confirm-btn" data-ui="adminUsersRevoke">Revocar</button>
+    </div>
   </div>
 </div>
 
