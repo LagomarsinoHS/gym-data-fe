@@ -92,34 +92,34 @@ export function initCoachTemplatesUi() {
   store.requestApplyTemplate = openApplyTemplateModal;
   store.requestUseTemplatesForAthlete = openUseTemplatesModal;
 
-  document.getElementById('apply-template-close')?.addEventListener('click', closeApplyTemplateModal);
-  document.getElementById('apply-template-cancel')?.addEventListener('click', closeApplyTemplateModal);
-  applyOverlay?.addEventListener('click', (e) => {
-    if (e.target === applyOverlay) closeApplyTemplateModal();
-  });
-  applyConfirmBtn?.addEventListener('click', () => {
-    void confirmApplyTemplate();
-  });
-  applySearchInput?.addEventListener('input', () => {
-    window.clearTimeout(applySearchTimer);
-    applySearchTimer = window.setTimeout(() => {
-      void loadApplyAthletes({ replace: true });
-    }, SEARCH_DEBOUNCE_MS);
+  bindOverlayChrome({
+    overlay: applyOverlay,
+    closeIds: ['apply-template-close', 'apply-template-cancel'],
+    onClose: closeApplyTemplateModal,
+    confirmBtn: applyConfirmBtn,
+    onConfirm: () => void confirmApplyTemplate(),
+    searchInput: applySearchInput,
+    onSearch: () => {
+      window.clearTimeout(applySearchTimer);
+      applySearchTimer = window.setTimeout(() => {
+        void loadApplyAthletes({ replace: true });
+      }, SEARCH_DEBOUNCE_MS);
+    },
   });
 
-  document.getElementById('use-template-close')?.addEventListener('click', closeUseTemplatesModal);
-  document.getElementById('use-template-cancel')?.addEventListener('click', closeUseTemplatesModal);
-  useOverlay?.addEventListener('click', (e) => {
-    if (e.target === useOverlay) closeUseTemplatesModal();
-  });
-  useConfirmBtn?.addEventListener('click', () => {
-    void confirmUseTemplates();
-  });
-  useSearchInput?.addEventListener('input', () => {
-    window.clearTimeout(useSearchTimer);
-    useSearchTimer = window.setTimeout(() => {
-      renderUseTemplates();
-    }, SEARCH_DEBOUNCE_MS);
+  bindOverlayChrome({
+    overlay: useOverlay,
+    closeIds: ['use-template-close', 'use-template-cancel'],
+    onClose: closeUseTemplatesModal,
+    confirmBtn: useConfirmBtn,
+    onConfirm: () => void confirmUseTemplates(),
+    searchInput: useSearchInput,
+    onSearch: () => {
+      window.clearTimeout(useSearchTimer);
+      useSearchTimer = window.setTimeout(() => {
+        renderUseTemplates();
+      }, SEARCH_DEBOUNCE_MS);
+    },
   });
 
   document.addEventListener('keydown', (e) => {
@@ -266,11 +266,12 @@ function closeApplyTemplateModal() {
   applyAthletes = [];
   applyBusy = false;
   setApplyStatus('');
-  if (applySearchInput) applySearchInput.value = '';
-  applyListEl?.replaceChildren();
-  if (applyEmptyEl) applyEmptyEl.hidden = true;
-  if (applySkeletonEl) applySkeletonEl.hidden = true;
-  if (applyListEl) applyListEl.hidden = false;
+  resetPickerList({
+    list: applyListEl,
+    empty: applyEmptyEl,
+    skeleton: applySkeletonEl,
+    searchInput: applySearchInput,
+  });
   syncApplyConfirm();
 }
 
@@ -335,13 +336,11 @@ function athleteHasTemplate(athlete, templateId) {
 }
 
 function setApplyLoading(on) {
-  if (applySkeletonEl) applySkeletonEl.hidden = !on;
-  if (on) {
-    if (applyEmptyEl) applyEmptyEl.hidden = true;
-    if (applyListEl) applyListEl.hidden = true;
-  } else if (applyListEl) {
-    applyListEl.hidden = applyAthletes.length === 0;
-  }
+  setPickerLoading(
+    { skeleton: applySkeletonEl, empty: applyEmptyEl, list: applyListEl },
+    on,
+    applyAthletes.length === 0,
+  );
 }
 
 function renderApplyAthletes() {
@@ -362,38 +361,17 @@ function renderApplyAthletes() {
   applyListEl.hidden = false;
   const frag = document.createDocumentFragment();
   for (const athlete of applyAthletes) {
-    frag.appendChild(createApplyAthleteRow(athlete));
+    frag.appendChild(
+      createPickerRow({
+        id: String(athlete?.id || ''),
+        selected: selectedAthleteIds.has(String(athlete?.id || '')),
+        primary: athleteDisplayName(athlete),
+        secondary: String(athlete?.email || '').trim() || '—',
+        onClick: (id) => toggleApplyAthlete(id, athlete),
+      }),
+    );
   }
   applyListEl.append(frag);
-}
-
-function createApplyAthleteRow(athlete) {
-  const id = String(athlete?.id || '');
-  const selected = id && selectedAthleteIds.has(id);
-  const li = document.createElement('li');
-  li.className = 'apply-template-item';
-  if (selected) li.classList.add('is-selected');
-
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'apply-template-item-btn';
-  btn.setAttribute('aria-pressed', selected ? 'true' : 'false');
-
-  const nameEl = document.createElement('span');
-  nameEl.className = 'apply-template-item-name';
-  nameEl.textContent = athleteDisplayName(athlete);
-
-  const emailEl = document.createElement('span');
-  emailEl.className = 'apply-template-item-email';
-  emailEl.textContent = String(athlete?.email || '').trim() || '—';
-
-  btn.append(nameEl, emailEl);
-  btn.addEventListener('click', () => {
-    toggleApplyAthlete(id, athlete);
-  });
-
-  li.append(btn);
-  return li;
 }
 
 function toggleApplyAthlete(id, athlete) {
@@ -411,30 +389,15 @@ function toggleApplyAthlete(id, athlete) {
 }
 
 function syncApplyConfirm() {
-  if (!applyConfirmBtn) return;
-  const count = selectedAthleteIds.size;
-  applyConfirmBtn.disabled = applyBusy || !pendingTemplate || count === 0;
-  if (applyBusy) {
-    applyConfirmBtn.textContent = ui('templateApplySaving');
-  } else if (count > 1) {
-    applyConfirmBtn.textContent = ui('templateApplyConfirmCount', count);
-  } else {
-    applyConfirmBtn.textContent = ui('templateApplyConfirm');
-  }
+  syncPickerConfirm(applyConfirmBtn, {
+    busy: applyBusy,
+    canSubmit: Boolean(pendingTemplate),
+    count: selectedAthleteIds.size,
+  });
 }
 
 function setApplyStatus(message, kind = '') {
-  if (!applyStatusEl) return;
-  if (!message) {
-    applyStatusEl.hidden = true;
-    applyStatusEl.textContent = '';
-    applyStatusEl.classList.remove('is-error', 'is-ok');
-    return;
-  }
-  applyStatusEl.hidden = false;
-  applyStatusEl.textContent = message;
-  applyStatusEl.classList.toggle('is-error', kind === 'error');
-  applyStatusEl.classList.toggle('is-ok', kind === 'ok');
+  setPickerStatus(applyStatusEl, message, kind);
 }
 
 async function confirmApplyTemplate() {
@@ -515,24 +478,7 @@ function syncAppliedAthletesLocally(template, appliedIds) {
       id: templateId,
       name: String(template?.name || '').trim() || ui('addSessionDefault', sessions.length + 1),
       order: sessions.length,
-      items: (Array.isArray(template?.items) ? template.items : [])
-        .map((item, index) => {
-          const exerciseId = String(item?.exercise?.id || item?.exerciseId || '').trim();
-          if (!exerciseId) return null;
-          const payload = {
-            exerciseId,
-            order: item?.order ?? index,
-          };
-          if (item?.sets != null) payload.sets = item.sets;
-          if (item?.reps) payload.reps = String(item.reps);
-          if (item?.rest != null) payload.rest = item.rest;
-          if (item?.notes != null && String(item.notes).trim() !== '') {
-            payload.notes = String(item.notes).trim();
-          }
-          if (item?.exercise) payload.exercise = item.exercise;
-          return payload;
-        })
-        .filter(Boolean),
+      items: mapTemplateItems(template),
     });
     clearAthleteDirty(athleteId);
   }
@@ -574,11 +520,12 @@ function closeUseTemplatesModal() {
   useTemplates = [];
   useBusy = false;
   setUseStatus('');
-  if (useSearchInput) useSearchInput.value = '';
-  useListEl?.replaceChildren();
-  if (useEmptyEl) useEmptyEl.hidden = true;
-  if (useSkeletonEl) useSkeletonEl.hidden = true;
-  if (useListEl) useListEl.hidden = false;
+  resetPickerList({
+    list: useListEl,
+    empty: useEmptyEl,
+    skeleton: useSkeletonEl,
+    searchInput: useSearchInput,
+  });
   syncUseConfirm();
 }
 
@@ -634,13 +581,11 @@ function assignableTemplatesForAthlete(athlete) {
 }
 
 function setUseLoading(on) {
-  if (useSkeletonEl) useSkeletonEl.hidden = !on;
-  if (on) {
-    if (useEmptyEl) useEmptyEl.hidden = true;
-    if (useListEl) useListEl.hidden = true;
-  } else if (useListEl) {
-    useListEl.hidden = filteredUseTemplates().length === 0;
-  }
+  setPickerLoading(
+    { skeleton: useSkeletonEl, empty: useEmptyEl, list: useListEl },
+    on,
+    filteredUseTemplates().length === 0,
+  );
 }
 
 function filteredUseTemplates() {
@@ -674,40 +619,19 @@ function renderUseTemplates() {
   useListEl.hidden = false;
   const frag = document.createDocumentFragment();
   for (const template of list) {
-    frag.appendChild(createUseTemplateRow(template));
+    const id = String(template?.id || '');
+    const items = Array.isArray(template?.items) ? template.items : [];
+    frag.appendChild(
+      createPickerRow({
+        id,
+        selected: selectedTemplateIds.has(id),
+        primary: String(template?.name || '').trim() || '—',
+        secondary: ui('useTemplateExerciseCount', items.length),
+        onClick: (rowId) => toggleUseTemplate(rowId),
+      }),
+    );
   }
   useListEl.append(frag);
-}
-
-function createUseTemplateRow(template) {
-  const id = String(template?.id || '');
-  const items = Array.isArray(template?.items) ? template.items : [];
-  const selected = id && selectedTemplateIds.has(id);
-
-  const li = document.createElement('li');
-  li.className = 'apply-template-item';
-  if (selected) li.classList.add('is-selected');
-
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'apply-template-item-btn';
-  btn.setAttribute('aria-pressed', selected ? 'true' : 'false');
-
-  const nameEl = document.createElement('span');
-  nameEl.className = 'apply-template-item-name';
-  nameEl.textContent = String(template?.name || '').trim() || '—';
-
-  const metaEl = document.createElement('span');
-  metaEl.className = 'apply-template-item-email';
-  metaEl.textContent = ui('useTemplateExerciseCount', items.length);
-
-  btn.append(nameEl, metaEl);
-  btn.addEventListener('click', () => {
-    toggleUseTemplate(id);
-  });
-
-  li.append(btn);
-  return li;
 }
 
 function toggleUseTemplate(id) {
@@ -720,30 +644,15 @@ function toggleUseTemplate(id) {
 }
 
 function syncUseConfirm() {
-  if (!useConfirmBtn) return;
-  const count = selectedTemplateIds.size;
-  useConfirmBtn.disabled = useBusy || !useAthlete || count === 0;
-  if (useBusy) {
-    useConfirmBtn.textContent = ui('templateApplySaving');
-  } else if (count > 1) {
-    useConfirmBtn.textContent = ui('templateApplyConfirmCount', count);
-  } else {
-    useConfirmBtn.textContent = ui('templateApplyConfirm');
-  }
+  syncPickerConfirm(useConfirmBtn, {
+    busy: useBusy,
+    canSubmit: Boolean(useAthlete),
+    count: selectedTemplateIds.size,
+  });
 }
 
 function setUseStatus(message, kind = '') {
-  if (!useStatusEl) return;
-  if (!message) {
-    useStatusEl.hidden = true;
-    useStatusEl.textContent = '';
-    useStatusEl.classList.remove('is-error', 'is-ok');
-    return;
-  }
-  useStatusEl.hidden = false;
-  useStatusEl.textContent = message;
-  useStatusEl.classList.toggle('is-error', kind === 'error');
-  useStatusEl.classList.toggle('is-ok', kind === 'ok');
+  setPickerStatus(useStatusEl, message, kind);
 }
 
 async function confirmUseTemplates() {
@@ -814,4 +723,115 @@ async function confirmUseTemplates() {
     useBusy = false;
     syncUseConfirm();
   }
+}
+
+// ── Shared picker helpers (apply ↔ use modals) ───────────────────────
+
+function bindOverlayChrome({
+  overlay,
+  closeIds = [],
+  onClose,
+  confirmBtn,
+  onConfirm,
+  searchInput,
+  onSearch,
+}) {
+  for (const id of closeIds) {
+    document.getElementById(id)?.addEventListener('click', onClose);
+  }
+  overlay?.addEventListener('click', (e) => {
+    if (e.target === overlay) onClose();
+  });
+  confirmBtn?.addEventListener('click', onConfirm);
+  searchInput?.addEventListener('input', onSearch);
+}
+
+function setPickerStatus(el, message, kind = '') {
+  if (!el) return;
+  if (!message) {
+    el.hidden = true;
+    el.textContent = '';
+    el.classList.remove('is-error', 'is-ok');
+    return;
+  }
+  el.hidden = false;
+  el.textContent = message;
+  el.classList.toggle('is-error', kind === 'error');
+  el.classList.toggle('is-ok', kind === 'ok');
+}
+
+function setPickerLoading(parts, on, isEmpty) {
+  const { skeleton, empty, list } = parts || {};
+  if (skeleton) skeleton.hidden = !on;
+  if (on) {
+    if (empty) empty.hidden = true;
+    if (list) list.hidden = true;
+  } else if (list) {
+    list.hidden = isEmpty;
+  }
+}
+
+function syncPickerConfirm(btn, { busy, canSubmit, count }) {
+  if (!btn) return;
+  btn.disabled = busy || !canSubmit || count === 0;
+  if (busy) {
+    btn.textContent = ui('templateApplySaving');
+  } else if (count > 1) {
+    btn.textContent = ui('templateApplyConfirmCount', count);
+  } else {
+    btn.textContent = ui('templateApplyConfirm');
+  }
+}
+
+function resetPickerList({ list, empty, skeleton, searchInput }) {
+  if (searchInput) searchInput.value = '';
+  list?.replaceChildren();
+  if (empty) empty.hidden = true;
+  if (skeleton) skeleton.hidden = true;
+  if (list) list.hidden = false;
+}
+
+function createPickerRow({ id, selected, primary, secondary, onClick }) {
+  const li = document.createElement('li');
+  li.className = 'apply-template-item';
+  if (selected) li.classList.add('is-selected');
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'apply-template-item-btn';
+  btn.setAttribute('aria-pressed', selected ? 'true' : 'false');
+
+  const nameEl = document.createElement('span');
+  nameEl.className = 'apply-template-item-name';
+  nameEl.textContent = primary;
+
+  const metaEl = document.createElement('span');
+  metaEl.className = 'apply-template-item-email';
+  metaEl.textContent = secondary;
+
+  btn.append(nameEl, metaEl);
+  btn.addEventListener('click', () => onClick?.(id));
+  li.append(btn);
+  return li;
+}
+
+function mapTemplateItems(template) {
+  return (Array.isArray(template?.items) ? template.items : [])
+    .map((item, index) => {
+      const exerciseId = String(item?.exercise?.id || item?.exerciseId || '').trim();
+      if (!exerciseId) return null;
+      const payload = {
+        exerciseId,
+        order: item?.order ?? index,
+      };
+      if (item?.sets != null) payload.sets = item.sets;
+      if (item?.reps) payload.reps = String(item.reps);
+      if (item?.rest != null) payload.rest = item.rest;
+      if (item?.notes != null && String(item.notes).trim() !== '') {
+        payload.notes = String(item.notes).trim();
+      }
+      if (item?.exercise) payload.exercise = item.exercise;
+      return payload;
+    })
+    .filter(Boolean);
 }
