@@ -22,6 +22,8 @@
     · #athlete-avances-view → js/features/athlete-avances-ui.js
     · #progress-photos-view → js/features/progress-photos-ui.js
     · #profile-view → js/features/profile-ui.js
+    · #admin-overview-view → js/features/admin-overview-ui.js
+    · #admin-users-view → js/features/admin-users-ui.js
     · #coach-panel-view → js/features/coach-panel-ui.js
     · #session-editor-view / session overlays → js/features/coach-sessions-ui.js
     · #coach-invite-banner                             → js/features/coach-invite-ui.js
@@ -162,7 +164,20 @@
               </button>
             </div>
           </div>
-          <div class="sidebar-nav-group">
+          <div id="nav-admin" class="sidebar-nav-group" hidden>
+            <div class="sidebar-nav-label" data-ui="navGroupAdmin">Admin</div>
+            <div class="sidebar-nav-group-items">
+              <button type="button" class="sidebar-nav-btn" id="nav-admin-overview" data-view="admin-overview">
+                <span class="sidebar-nav-marker" aria-hidden="true"></span>
+                <span data-ui="adminOverview">Overview</span>
+              </button>
+              <button type="button" class="sidebar-nav-btn" id="nav-admin-users" data-view="admin-users">
+                <span class="sidebar-nav-marker" aria-hidden="true"></span>
+                <span data-ui="adminUsers">Usuarios</span>
+              </button>
+            </div>
+          </div>
+          <div id="nav-explore" class="sidebar-nav-group">
             <div class="sidebar-nav-label" data-ui="navGroupExplore">Explorar</div>
             <button type="button" class="sidebar-nav-btn is-active" id="nav-catalog" data-view="catalog" aria-current="page">
               <span class="sidebar-nav-marker" aria-hidden="true"></span>
@@ -668,6 +683,162 @@
       </div>
     </div>
 
+    <div id="admin-overview-view" class="recommend-view" hidden>
+      <div class="admin-overview">
+        <header class="admin-overview-header">
+          <h2 class="admin-overview-title" data-ui="adminOverview">Overview</h2>
+          <p class="admin-overview-lead" data-ui="adminOverviewLead">
+            Estado general de la plataforma
+          </p>
+        </header>
+
+        <div class="admin-overview-loading" id="admin-overview-loading" hidden>
+          <div class="load-spinner visible" aria-hidden="true"></div>
+          <span data-ui="adminOverviewLoading">Cargando estadísticas…</span>
+        </div>
+
+        <p class="admin-overview-status" id="admin-overview-status" hidden></p>
+
+        <div class="admin-overview-body" id="admin-overview-body" hidden>
+          <section class="admin-overview-panel" id="admin-overview-users" aria-labelledby="admin-overview-users-title">
+            <h3 class="admin-overview-panel-title" id="admin-overview-users-title" data-ui="adminSectionUsers">Usuarios</h3>
+            <div class="admin-overview-kpi-row">
+              <div class="admin-overview-kpi">
+                <p class="admin-overview-kpi-value" id="admin-stat-total"></p>
+                <p class="admin-overview-kpi-label" data-ui="adminUsersTotalShort">Total</p>
+              </div>
+              <div class="admin-overview-kpi">
+                <p class="admin-overview-kpi-value" id="admin-stat-athletes"></p>
+                <p class="admin-overview-kpi-label" data-ui="adminUsersAthletes">Atletas</p>
+              </div>
+              <div class="admin-overview-kpi">
+                <p class="admin-overview-kpi-value" id="admin-stat-coaches"></p>
+                <p class="admin-overview-kpi-label" data-ui="adminUsersCoaches">Coaches</p>
+              </div>
+              <div class="admin-overview-kpi">
+                <p class="admin-overview-kpi-value" id="admin-stat-admins"></p>
+                <p class="admin-overview-kpi-label" data-ui="adminUsersAdmins">Admins</p>
+              </div>
+            </div>
+            <p class="admin-overview-panel-foot" id="admin-stat-users-delta-30"></p>
+          </section>
+
+          <div class="admin-overview-split">
+            <section class="admin-overview-panel" id="admin-overview-subs" aria-labelledby="admin-overview-subs-title">
+              <h3 class="admin-overview-panel-title is-start" id="admin-overview-subs-title" data-ui="adminSectionSubs">Suscripciones</h3>
+              <ul class="admin-overview-plan-list">
+                <li>
+                  <span class="admin-overview-plan-count" id="admin-stat-free"></span>
+                  <span data-ui="adminPlanFree">Free</span>
+                </li>
+                <li>
+                  <span class="admin-overview-plan-count" id="admin-stat-premium"></span>
+                  <span data-ui="adminPlanPremium">Premium</span>
+                </li>
+                <li>
+                  <span class="admin-overview-plan-count" id="admin-stat-growth"></span>
+                  <span data-ui="adminPlanGrowth">Growth</span>
+                </li>
+                <li>
+                  <span class="admin-overview-plan-count" id="admin-stat-pro"></span>
+                  <span data-ui="adminPlanPro">Pro</span>
+                </li>
+              </ul>
+              <button type="button" class="admin-overview-link" id="admin-overview-open-users">
+                <span data-ui="adminOverviewOpenUsers">Ver usuarios</span>
+                <span aria-hidden="true">→</span>
+              </button>
+            </section>
+
+            <section class="admin-overview-panel" id="admin-overview-activity" aria-labelledby="admin-overview-activity-title">
+              <h3 class="admin-overview-panel-title is-start" id="admin-overview-activity-title" data-ui="adminSectionActivity">Actividad</h3>
+              <ul class="admin-overview-activity-list">
+                <li id="admin-stat-activity-30"></li>
+                <li id="admin-stat-activity-7"></li>
+              </ul>
+            </section>
+          </div>
+
+          <section class="admin-overview-panel admin-overview-panel--attention" id="admin-overview-attention" hidden aria-labelledby="admin-overview-attention-title">
+            <h3 class="admin-overview-panel-title is-start" id="admin-overview-attention-title" data-ui="adminSectionAttention">Requiere atención</h3>
+            <p class="admin-overview-attention-copy" id="admin-stat-attention-copy"></p>
+            <button type="button" class="admin-overview-link admin-overview-link--end" id="admin-overview-open-expiring">
+              <span data-ui="adminOverviewOpenExpiring">Ver usuarios</span>
+              <span aria-hidden="true">→</span>
+            </button>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <div id="admin-users-view" class="students-view" hidden>
+      <div class="recommend-results students-shell admin-users-shell">
+        <header class="admin-users-header">
+          <h2 class="admin-users-title" data-ui="adminUsers">Usuarios</h2>
+          <p class="admin-users-lead" data-ui="adminUsersLead">
+            Busca cuentas, revisa datos y otorga o revoca planes.
+          </p>
+        </header>
+
+        <div class="recommend-toolbar students-toolbar admin-users-toolbar">
+          <div class="search-wrapper students-search">
+            <svg class="search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <circle cx="6.5" cy="6.5" r="4.5"/>
+              <path d="M10.5 10.5L14 14" stroke-linecap="round"/>
+            </svg>
+            <input type="text" class="search-box" id="admin-users-search" placeholder="Buscar por nombre o email…" autocomplete="off" />
+            <button type="button" class="search-clear" id="admin-users-search-clear" aria-label="Limpiar búsqueda">×</button>
+          </div>
+          <div class="admin-users-filters">
+            <label class="admin-users-filter">
+              <span class="admin-users-filter-label" data-ui="adminUsersFilterRole">Rol</span>
+              <select id="admin-users-filter-role" class="admin-users-select">
+                <option value="" data-ui="adminUsersFilterAll">Todos</option>
+                <option value="athlete" data-ui="roleAthlete">Athlete</option>
+                <option value="coach" data-ui="roleCoach">Coach</option>
+                <option value="admin" data-ui="roleAdmin">Admin</option>
+              </select>
+            </label>
+            <label class="admin-users-filter">
+              <span class="admin-users-filter-label" data-ui="adminUsersFilterPlan">Plan</span>
+              <select id="admin-users-filter-plan" class="admin-users-select">
+                <option value="" data-ui="adminUsersFilterAll">Todos</option>
+                <option value="free" data-ui="adminPlanFree">Free</option>
+                <option value="premium" data-ui="adminPlanPremium">Premium</option>
+                <option value="growth" data-ui="adminPlanGrowth">Growth</option>
+                <option value="pro" data-ui="adminPlanPro">Pro</option>
+              </select>
+            </label>
+            <label class="admin-users-filter admin-users-filter--check">
+              <input type="checkbox" id="admin-users-filter-expiring" />
+              <span data-ui="adminUsersFilterExpiring">Por vencer en 7 días</span>
+            </label>
+          </div>
+        </div>
+
+        <p class="admin-users-meta" id="admin-users-meta" hidden></p>
+        <p class="admin-overview-status" id="admin-users-status" hidden></p>
+
+        <div class="admin-overview-loading students-loading" id="admin-users-loading" hidden>
+          <div class="load-spinner visible" aria-hidden="true"></div>
+          <span data-ui="adminUsersLoading">Cargando usuarios…</span>
+        </div>
+
+        <div class="students-empty" id="admin-users-empty" hidden>
+          <p class="students-empty-title admin-users-empty-title" data-ui="adminUsersEmptyTitle">Aún no hay usuarios</p>
+          <p class="students-empty-lead admin-users-empty-lead" data-ui="adminUsersEmptyLead">
+            Cuando las personas se registren, aparecerán aquí.
+          </p>
+        </div>
+
+        <div class="students-list" id="admin-users-list" hidden></div>
+
+        <button type="button" class="students-load-more" id="admin-users-load-more" hidden>
+          <span data-ui="adminUsersLoadMore">Cargar más</span>
+        </button>
+      </div>
+    </div>
+
     <div id="coach-panel-view" class="recommend-view" hidden>
       <div class="coach-panel">
         <header class="coach-panel-header">
@@ -1134,6 +1305,24 @@
         <button type="submit" class="confirm-modal-danger" id="deactivate-account-confirm" disabled data-ui="profileDeactivateConfirm">Darme de baja</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- ═══ MODAL confirmar grant/revoke admin — js/features/admin-users-ui.js ═══ -->
+<div class="recommend-overlay" id="admin-sub-confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="admin-sub-confirm-title">
+  <div class="recommend-modal confirm-modal">
+    <div class="recommend-modal-header">
+      <h2 class="recommend-modal-title" id="admin-sub-confirm-title" data-ui="adminUsersRevokeTitle">¿Revocar plan?</h2>
+      <button type="button" class="modal-close" id="admin-sub-confirm-close" aria-label="Close">✕</button>
+    </div>
+    <p class="confirm-modal-name" id="admin-sub-confirm-user"></p>
+    <p class="confirm-modal-lead" id="admin-sub-confirm-lead" data-ui="adminUsersRevokeConfirm">
+      ¿Revocar el plan pago y dejar la cuenta en free?
+    </p>
+    <div class="confirm-modal-actions">
+      <button type="button" class="confirm-modal-cancel" id="admin-sub-confirm-cancel" data-ui="adminUsersConfirmCancel">Cancelar</button>
+      <button type="button" class="confirm-modal-danger" id="admin-sub-confirm-btn" data-ui="adminUsersRevoke">Revocar</button>
+    </div>
   </div>
 </div>
 

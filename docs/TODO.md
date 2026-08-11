@@ -92,6 +92,49 @@ Menú de usuario en sidebar (iniciales o foto + nombre corto + dropdown).
 
 ---
 
+## Admin panel
+
+Entrada de nav solo si `role === 'admin'` (Overview + Usuarios; sin catálogo/coach UX).  
+BE: `GET /admin/stats`, `GET /admin/users`, `DELETE /admin/users/:userId`, grant/revoke por email.
+
+### Orden de entrega
+1. **Overview** ← hecho  
+2. **Usuarios** ← hecho  
+3. Suscripciones / ops  
+4. Coaches / sistema (después)
+
+### 1. Overview (primera)
+- [x] Vista `admin-overview`: salud del producto de un vistazo
+- [x] Contadores: usuarios totales, athletes, coaches, admins
+- [x] Suscripciones: free vs paid (`premium` / `growth` / `pro`); por vencer (< 7 días)
+- [x] Usuarios nuevos últimos 7/30 días
+- [x] Atajo a Usuarios (cuando exista la vista)
+- [x] (BE) `GET /admin/stats` — agregados slim para pintar el overview
+- [x] Gate: nav/item Admin solo con `role === 'admin'`
+
+### 2. Usuarios
+- [x] Lista paginada + buscador (email / nombre)
+- [x] Filtros: rol, plan, por vencer _(soft-deleted queda para después)_
+- [x] Fila acordeón denso (cards): cuenta, suscripción, rol/plan, coach, datos de perfil
+- [x] Barra de suscripción: tiempo restante inicio→vence (verde→amarillo→rojo); vacío sin período; “Empieza en X días” si aún no inició
+- [x] Acciones: grant / revoke subscription (reusar endpoints admin actuales; default 5 días en UI)
+- [x] Acción: soft-delete con confirmación (modal)
+- [x] (BE) `GET /admin/users` paginado + search/filters
+- [x] (BE) delete admin de usuario (soft-delete; distinto de `DELETE /users/me`)
+
+### 3. Suscripciones / billing ops
+- [ ] Cola / filtro: paid activos, por expirar, expirados
+- [x] Grant/revoke rápido desde fila
+- [ ] (Opc.) audit log: quién cambió qué y cuándo
+- [ ] (Opc.) mostrar nombre del coach (cuando el BE lo exponga)
+
+### 4. Coaches / sistema (más adelante)
+- [ ] Coaches: cuota, invites pendientes, “llenos”; ajustar límites si el BE lo permite
+- [ ] Sistema: flags / version / cleanup soft-delete (solo si hay ops recurrentes)
+- [ ] (Opc.) restore / anular soft-delete desde UI
+
+---
+
 ## Atleta — plan / UX
 - [ ] Quitar del plan desde catálogo (hoy solo “En tu plan”)
 - [ ] Confirmación más clara al agregar desde catálogo / recommend

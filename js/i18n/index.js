@@ -3,6 +3,7 @@ import { auth } from './auth.js';
 import { athlete } from './athlete.js';
 import { coach } from './coach.js';
 import { profile } from './profile.js';
+import { admin } from './admin.js';
 
 /** Flat dictionaries — `ui(key)` and data-ui keep working unchanged */
 export const UI_LABELS = {
@@ -12,6 +13,7 @@ export const UI_LABELS = {
     ...athlete.en,
     ...coach.en,
     ...profile.en,
+    ...admin.en,
   },
   es: {
     ...common.es,
@@ -19,6 +21,7 @@ export const UI_LABELS = {
     ...athlete.es,
     ...coach.es,
     ...profile.es,
+    ...admin.es,
   },
 };
 

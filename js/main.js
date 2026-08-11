@@ -23,6 +23,16 @@ import {
 } from './features/athlete-avances-ui.js';
 import { initProfileUi, syncProfileView } from './features/profile-ui.js';
 import {
+  initAdminOverviewUi,
+  refreshAdminOverview,
+  syncAdminOverviewLabels,
+} from './features/admin-overview-ui.js';
+import {
+  initAdminUsersUi,
+  refreshAdminUsers,
+  syncAdminUsersLabels,
+} from './features/admin-users-ui.js';
+import {
   initCoachPanelUi,
   refreshCoachPanel,
   syncCoachPanelLabels,
@@ -49,6 +59,7 @@ import {
   getView,
   getProgramExerciseIds,
   isCoach,
+  isAdmin,
 } from './features/session-ui.js';
 import { renderTrainingProgram, renderCoachTrainingProgram } from './features/training-ui.js';
 import { getExercises, getExercise, getLabels, getRandomExercise, getRecommendedExercises } from './api/exercises.js';
@@ -140,6 +151,8 @@ async function init() {
       if (view === 'training') refreshTrainingGrid();
       else if (view === 'coach-plan') refreshCoachPlanGrid();
       else if (view === 'coach-panel') void refreshCoachPanel();
+      else if (view === 'admin-overview') void refreshAdminOverview();
+      else if (view === 'admin-users') void refreshAdminUsers();
       else if (view === 'students') {
         void refreshUser().finally(() => void loadCoachAthletes());
       }
@@ -152,7 +165,7 @@ async function init() {
   initAuthUi({
     onAuthSuccess: async () => {
       await restoreSession();
-      setView(isCoach() ? 'coach-panel' : 'training');
+      setView(isAdmin() ? 'admin-overview' : isCoach() ? 'coach-panel' : 'training');
       if (modalOverlay.classList.contains('open') && modalOverlay.dataset.openId) {
         syncPlanAction(modalOverlay.dataset.openId);
       }
@@ -168,6 +181,8 @@ async function init() {
   initProgressPhotosUi();
   initAthleteAvancesUi({ getUser, refreshUser });
   initProfileUi();
+  initAdminOverviewUi();
+  initAdminUsersUi();
   initCoachPanelUi();
   initCoachInviteUi();
   initRecommendUi({
@@ -192,7 +207,12 @@ async function init() {
   collapseFiltersOnMobile();
   initResultsBarPlacement();
   await restoreSession();
-  await reloadExercises();
+  if (isAdmin()) {
+    // restoreSession mutates view without onViewChange — land on Overview cleanly.
+    setView('admin-overview');
+  } else {
+    await reloadExercises();
+  }
   wireEvents();
   initFooter();
 
@@ -232,8 +252,8 @@ function hasMorePages() {
 let listRequestId = 0;
 
 async function reloadExercises() {
-  if (getView() === 'training') {
-    refreshTrainingGrid();
+  if (getView() !== 'catalog') {
+    if (getView() === 'training') refreshTrainingGrid();
     return;
   }
   listRequestId++;
@@ -261,7 +281,8 @@ function refreshCoachPlanGrid() {
 }
 
 async function loadNextPage() {
-  if (getView() === 'training') return;
+  // Hidden catalog views report sentinel top=0 and would page forever.
+  if (getView() !== 'catalog') return;
   if (state.loading || (state.page > 0 && !hasMorePages())) return;
   if (isIdSearch() || isEasterEggQuery(state.search)) return;
 
@@ -302,9 +323,10 @@ async function loadNextPage() {
     if (requestId !== listRequestId) return;
     state.loading = false;
     spinnerEl.classList.toggle('visible', hasMorePages());
-    if (hasMorePages()) {
+    if (hasMorePages() && getView() === 'catalog') {
       requestAnimationFrame(() => {
         if (requestId !== listRequestId) return;
+        if (getView() !== 'catalog') return;
         const { top } = sentinelEl.getBoundingClientRect();
         if (top < window.innerHeight + 200) loadNextPage();
       });
@@ -338,6 +360,8 @@ function syncChromeLabels() {
   syncAvancesLabels();
   syncAthleteAvancesLabels();
   syncProfileView();
+  syncAdminOverviewLabels();
+  syncAdminUsersLabels();
   syncCoachPanelLabels();
   syncCoachInviteBanner();
 }
@@ -1644,7 +1668,12 @@ function wireEvents() {
   });
 
   new IntersectionObserver(entries => {
-    if (entries[0].isIntersecting && hasMorePages() && !state.loading) {
+    if (
+      entries[0].isIntersecting
+      && getView() === 'catalog'
+      && hasMorePages()
+      && !state.loading
+    ) {
       loadNextPage();
     }
   }, { rootMargin: '200px' }).observe(sentinelEl);
