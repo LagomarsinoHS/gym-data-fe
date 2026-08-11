@@ -929,6 +929,36 @@
         <p class="coach-templates-status" id="coach-templates-status" hidden></p>
         <div class="coach-templates-body" id="coach-templates-body"></div>
       </div>
+      <div
+        class="coach-templates-toast"
+        id="coach-templates-toast"
+        hidden
+        role="status"
+        aria-live="polite"
+      >
+        <span class="coach-templates-toast-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.75" />
+            <path
+              d="M8 12.5l2.5 2.5L16.5 9"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+        <div class="coach-templates-toast-copy">
+          <p class="coach-templates-toast-title" id="coach-templates-toast-title"></p>
+          <p class="coach-templates-toast-detail" id="coach-templates-toast-detail"></p>
+        </div>
+        <button
+          type="button"
+          class="coach-templates-toast-close"
+          id="coach-templates-toast-close"
+          aria-label="Cerrar"
+        >✕</button>
+      </div>
     </div>
 
     <div id="session-editor-view" class="session-editor-view" hidden>

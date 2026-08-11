@@ -59,8 +59,9 @@ coachTrainingProgram: {
 - [x] Comparar avances: mostrar estatura del perfil junto al cambio de peso (si está cargada)
 - [ ] Duplicar sesión o copiar a otro atleta
 - [x] Plantillas reutilizables (`coachTemplates` en User del coach) — biblioteca (list/create/edit/save + apply)
-- [x] Aplicar plantilla → alumno (desde Plantillas: POST /coach/templates/:id/apply)
+- [x] Aplicar plantilla → alumno (Plantillas / Mis alumnos: un solo `POST /coach/templates/apply` con `templateIds` + `athleteIds`)
 - [x] Aplicar plantilla desde Mis alumnos / plan del atleta (“Usar plantilla”)
+- [x] Toast de éxito al aplicar desde Plantillas (~3s, cerrable con ✕)
 - [ ] (Opc.) UI upsell cuando el cupo está lleno (growth/pro)
 
 ### PDF brand (export con marca del coach)
@@ -85,6 +86,7 @@ Menú de usuario en sidebar (iniciales o foto + nombre corto + dropdown).
 - [x] **Mi perfil → editar perfil** — panel derecho del header en modo formulario (nombre/apellido + body stats + goal + contraseña) → `PATCH /users/me`; cierra al guardar OK
 - [x] **Mi perfil → datos corporales opcionales** — estatura, sexo, fecha nac., objetivo en editar perfil + info personal del header; register sigue básico
 - [x] **Mi perfil → header split** — identidad (foto/badges/coach) + información personal + metrics peso/estatura
+- [x] **Mi perfil → grid info personal** — labels siempre visibles; valor “—” si el dato falta
 - [x] **Mi perfil → darse de baja** — modal pide email → `DELETE /users/me` → cierra sesión (soft-delete; **no** limpia vínculo coach en BD — ver BE TODO)
 - [x] **Mi perfil → foto de perfil** — click en avatar → Ver foto / Subir foto (`POST /users/me/profile-photo`); Cloudinary `gym-app/profiles/{userId}/profilePhoto`
 - [ ] **Mi perfil → acciones** — cablear: notificaciones, privacidad, **dejar coach** (unlink ≠ baja de cuenta), billing, export, etc.

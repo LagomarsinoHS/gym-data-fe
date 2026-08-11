@@ -56,6 +56,7 @@ Plataforma de entrenamiento que une un **catálogo profesional de ejercicios**, 
 - Foto de perfil, nombre y cambio de contraseña
 - Datos corporales opcionales (estatura, sexo, fecha de nacimiento, objetivo)
 - Vista de perfil en dos columnas (identidad + información personal) con edición in-place
+- Labels del grid siempre visibles; si falta un dato se muestra “—”
 - Plan de suscripción visible (Free / Premium)
 - Baja de cuenta (con confirmación)
 
@@ -72,10 +73,16 @@ Plataforma de entrenamiento que une un **catálogo profesional de ejercicios**, 
 - Buscá y ordená tu roster
 - Ves el **objetivo** del atleta al abrir su ficha
 - Armá planes por **sesiones** (ej. Lunes, Sesión 1): ejercicios + series/reps/descanso/notas
+- **Usá plantillas** para agregar una o varias sesiones al plan del alumno de una vez
 - Reordená sesiones y ejercicios arrastrando las cards
 - Guardá y actualizá el plan completo del alumno
 - Exportá planes a **Excel** o **PDF** (uno o varios alumnos; varios → ZIP)
 - Acceso rápido a los **avances** de cada alumno
+
+### Plantillas
+- Biblioteca de sesiones reutilizables (ej. Upper Body)
+- Creá, editá y guardá plantillas; al aplicarlas se copian al plan del alumno (mismo id = sin duplicar)
+- Aplicá desde **Plantillas** a varios alumnos, o desde **Mis alumnos** varias plantillas a uno
 
 ### Avances de alumnos
 - Mismas fotos, timeline y comparativas que ve el atleta
@@ -142,7 +149,6 @@ Estas piezas están contempladas en el producto pero aún no son el foco vendibl
 
 - **Pauta nutricional**: el coach sube una guía alimenticia; el atleta la ve en su app
 - **PDF brand**: export con nombre/logo del coach, fecha y pie “Preparado por…”
-- **Plantillas** reutilizables de rutinas para coaches
 - Pantalla completa de **Configuración**
 - Flujo de **pago / upgrade** dentro de la app
 - Más opciones de perfil (email, notificaciones, privacy, etc.)
@@ -160,4 +166,4 @@ Estas piezas están contempladas en el producto pero aún no son el foco vendibl
 
 ## Pitch corto (elevator)
 
-> ExerciseDB es la plataforma donde atletas y coaches trabajan sobre el mismo catálogo de +1.300 ejercicios: el atleta arma su plan o sigue el del coach, registra avances con fotos y peso, y —según el plan— usa IA para entrenamientos sugeridos o para interpretar el progreso. El coach gestiona alumnos, asigna rutinas por sesión y puede exportar programas a Excel o PDF.
+> ExerciseDB es la plataforma donde atletas y coaches trabajan sobre el mismo catálogo de +1.300 ejercicios: el atleta arma su plan o sigue el del coach, registra avances con fotos y peso, y —según el plan— usa IA para entrenamientos sugeridos o para interpretar el progreso. El coach gestiona alumnos, reutiliza plantillas de sesión, asigna rutinas y puede exportar programas a Excel o PDF.

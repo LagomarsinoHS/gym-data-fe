@@ -35,14 +35,15 @@ export function putCoachTemplates(coachTemplates) {
 }
 
 /**
- * POST /coach/templates/:id/apply
- * Copies template onto athlete plans. Body: { athleteIds: string[] }
- * Returns { applied, skipped, failed }.
+ * POST /coach/templates/apply
+ * Copies templates onto athlete plans (cartesian).
+ * Body: { templateIds: string[], athleteIds: string[] }
+ * Returns { applied, skipped, failedAthletes, failedTemplates, sessions }.
  */
-export function applyCoachTemplate(templateId, athleteIds) {
+export function applyCoachTemplates({ templateIds, athleteIds } = {}) {
   return post(
-    `/coach/templates/${encodeURIComponent(templateId)}/apply`,
-    { athleteIds },
+    '/coach/templates/apply',
+    { templateIds, athleteIds },
     { auth: true },
   );
 }

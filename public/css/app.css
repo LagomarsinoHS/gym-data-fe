@@ -2875,7 +2875,141 @@ html[data-theme="dark"] .chip.active {
 }
 
 .coach-templates-body .student-plan {
+  margin-top: 0;
+}
+
+.coach-templates-toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(24px, env(safe-area-inset-bottom, 0px) + 16px);
+  z-index: 80;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: min(420px, calc(100vw - 32px));
   margin: 0;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, #1f9d6a 28%, var(--border));
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, #1f9d6a 14%, var(--bg-surface)),
+      color-mix(in srgb, var(--accent) 8%, var(--bg-surface))
+    );
+  box-shadow:
+    0 14px 36px color-mix(in srgb, #000 18%, transparent),
+    0 10px 28px color-mix(in srgb, #1f9d6a 14%, transparent);
+  opacity: 0;
+  transform: translate(-50%, 12px) scale(0.98);
+  pointer-events: none;
+  transition:
+    opacity 0.28s ease,
+    transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.coach-templates-toast[hidden] {
+  display: none !important;
+}
+
+.coach-templates-toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+  pointer-events: auto;
+}
+
+.coach-templates-toast.is-leaving {
+  opacity: 0;
+  transform: translate(-50%, 8px) scale(0.99);
+}
+
+.coach-templates-toast-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: #0f7a52;
+  background: color-mix(in srgb, #1f9d6a 16%, var(--bg-surface));
+  animation: coach-templates-toast-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+html[data-theme='dark'] .coach-templates-toast-icon {
+  color: #5ddea8;
+  background: color-mix(in srgb, #1f9d6a 22%, transparent);
+}
+
+.coach-templates-toast-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.coach-templates-toast-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.coach-templates-toast-detail {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.coach-templates-toast-close {
+  appearance: none;
+  margin: -4px -6px 0 auto;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.coach-templates-toast-close:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
+}
+
+.coach-templates-toast-close:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: 2px;
+}
+
+@keyframes coach-templates-toast-pop {
+  from {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coach-templates-toast,
+  .coach-templates-toast-icon {
+    animation: none;
+    transition: none;
+  }
+
+  .coach-templates-toast.is-visible {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 
 .students-toolbar {

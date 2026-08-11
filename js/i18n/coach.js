@@ -60,14 +60,16 @@ export const coach = {
     templateApplyConfirm: 'Apply',
     templateApplyConfirmCount: (n) => `Apply (${n})`,
     templateApplySaving: 'Applying…',
-    templateApplyOk: (templateName, athleteName) =>
-      `“${templateName}” added to ${athleteName}.`,
-    templateApplyOkMany: (templateName, count) =>
-      `“${templateName}” added to ${count} athletes.`,
-    templateApplyOkWithSkips: (templateName, ok, skipped) =>
-      `“${templateName}” added to ${ok} athlete(s); ${skipped} already had it.`,
-    templateApplyAllSkipped: (templateName) =>
-      `“${templateName}” was already on every selected athlete’s plan.`,
+    templateApplyToastTitle: 'Template applied',
+    templateApplyToastTitleSkipped: 'Already on their plans',
+    templateApplyToastOne: (templateName, athleteName) =>
+      `“${templateName}” → ${athleteName}`,
+    templateApplyToastMany: (templateName, count) =>
+      `“${templateName}” → ${count} athletes`,
+    templateApplyToastWithSkips: (templateName, ok, skipped) =>
+      `“${templateName}” → ${ok} athletes (${skipped} already had it)`,
+    templateApplyToastAllSkipped: (templateName) =>
+      `“${templateName}” was already on every selected plan`,
     templateApplyFail: 'Could not apply the template.',
     useTemplate: 'Use template',
     useTemplateTitle: 'Use template',
@@ -265,14 +267,16 @@ export const coach = {
     templateApplyConfirm: 'Aplicar',
     templateApplyConfirmCount: (n) => `Aplicar (${n})`,
     templateApplySaving: 'Aplicando…',
-    templateApplyOk: (templateName, athleteName) =>
-      `“${templateName}” agregada a ${athleteName}.`,
-    templateApplyOkMany: (templateName, count) =>
-      `“${templateName}” agregada a ${count} alumnos.`,
-    templateApplyOkWithSkips: (templateName, ok, skipped) =>
-      `“${templateName}” agregada a ${ok} alumno(s); ${skipped} ya la tenían.`,
-    templateApplyAllSkipped: (templateName) =>
-      `“${templateName}” ya estaba en el plan de todos los seleccionados.`,
+    templateApplyToastTitle: 'Plantilla aplicada',
+    templateApplyToastTitleSkipped: 'Ya estaban en sus planes',
+    templateApplyToastOne: (templateName, athleteName) =>
+      `“${templateName}” → ${athleteName}`,
+    templateApplyToastMany: (templateName, count) =>
+      `“${templateName}” → ${count} alumnos`,
+    templateApplyToastWithSkips: (templateName, ok, skipped) =>
+      `“${templateName}” → ${ok} alumnos (${skipped} ya la tenían)`,
+    templateApplyToastAllSkipped: (templateName) =>
+      `“${templateName}” ya estaba en todos los seleccionados`,
     templateApplyFail: 'No se pudo aplicar la plantilla.',
     useTemplate: 'Usar plantilla',
     useTemplateTitle: 'Usar plantilla',
