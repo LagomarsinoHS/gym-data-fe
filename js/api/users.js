@@ -2,6 +2,8 @@ import { get, post, postBinary, postMultipart, put, patch, deleteRequest } from 
 
 const USERS = '/users';
 
+// ── Me / profile ──────────────────────────────────────────────────────
+
 /** GET /users/me — requires Bearer token */
 export function getMe() {
   return get(`${USERS}/me`, {}, { auth: true });
@@ -29,9 +31,11 @@ export function deleteAccount(email) {
  * Field: profilePhoto (jpeg/png/webp). Returns MeResponseDto.
  */
 export function uploadProfilePhoto(file) {
-  const form = new FormData();
-  form.append('profilePhoto', file);
-  return postMultipart(`${USERS}/me/profile-photo`, form, { auth: true });
+  return postMultipart(
+    `${USERS}/me/profile-photo`,
+    buildProfilePhotoForm(file),
+    { auth: true },
+  );
 }
 
 /**
@@ -41,6 +45,20 @@ export function uploadProfilePhoto(file) {
 export function getPendingCoachInvite() {
   return get(`${USERS}/me/pending-coach-invite`, {}, { auth: true });
 }
+
+/**
+ * POST /users/me/pending-coach-invite/respond
+ * Athlete accepts or rejects pending invite. Body: { action: 'accept' | 'reject' }
+ */
+export function respondCoachInvite(action) {
+  return post(
+    `${USERS}/me/pending-coach-invite/respond`,
+    { action },
+    { auth: true },
+  );
+}
+
+// ── Self training program ─────────────────────────────────────────────
 
 /**
  * POST /users/training-program
@@ -81,6 +99,8 @@ export function updateTrainingProgramExercise(exerciseId, updates) {
   );
 }
 
+// ── Coach athletes / invites / export ─────────────────────────────────
+
 /**
  * POST /users/coach/invites
  * Invite an athlete by exact email. Body: { email }
@@ -90,18 +110,6 @@ export function inviteCoachAthlete(email) {
   return post(
     `${USERS}/coach/invites`,
     { email },
-    { auth: true },
-  );
-}
-
-/**
- * POST /users/me/pending-coach-invite/respond
- * Athlete accepts or rejects pending invite. Body: { action: 'accept' | 'reject' }
- */
-export function respondCoachInvite(action) {
-  return post(
-    `${USERS}/me/pending-coach-invite/respond`,
-    { action },
     { auth: true },
   );
 }
@@ -132,6 +140,38 @@ export function getCoachInvites({ page = 1, limit = 20, status } = {}) {
     { auth: true },
   );
 }
+
+/**
+ * PUT /users/coach/athletes/:athleteId/training-program
+ * Replaces the athlete's coachTrainingProgram (full sessions array).
+ * Body: { coachTrainingProgram } — items with exerciseId only (no populated exercise).
+ * Returns enriched athlete (MeResponseDto) with catalog exercises populated.
+ */
+export function putCoachAthleteTrainingProgram(athleteId, coachTrainingProgram) {
+  return put(
+    `${USERS}/coach/athletes/${athleteId}/training-program`,
+    { coachTrainingProgram },
+    { auth: true },
+  );
+}
+
+/**
+ * POST /users/coach/training-program/export
+ * Exports coach training programs (xlsx | pdf | zip) as a binary file.
+ * Body: { athleteIds: string[], locale?: 'es'|'en', format?: 'xlsx'|'pdf' }
+ * athleteIds: [] = all athletes; [id] = one athlete.
+ * Expects binary body + Content-Disposition filename (and Content-Type).
+ * Returns { blob, filename, contentType }.
+ */
+export function exportCoachTrainingProgram(athleteIds, locale, format = 'xlsx') {
+  return postBinary(
+    `${USERS}/coach/training-program/export`,
+    { athleteIds, locale, format },
+    { auth: true },
+  );
+}
+
+// ── Progress photos ───────────────────────────────────────────────────
 
 /**
  * GET /users/:userId/progress-photos
@@ -167,41 +207,37 @@ export function analyzeProgressPhotos(userId, { yearMonths, locale } = {}) {
  * Fields: weightKg (required) + front? and/or back? image files.
  * Optional yearMonth (YYYY-MM); omitted → current month on the API.
  */
-export function uploadProgressPhotos({ weightKg, frontFile, backFile, yearMonth } = {}) {
+export function uploadProgressPhotos({
+  weightKg,
+  frontFile,
+  backFile,
+  yearMonth,
+} = {}) {
+  return postMultipart(
+    `${USERS}/me/progress-photos`,
+    buildProgressPhotosForm({ weightKg, frontFile, backFile, yearMonth }),
+    { auth: true },
+  );
+}
+
+// ── Internals ─────────────────────────────────────────────────────────
+
+function buildProfilePhotoForm(file) {
+  const form = new FormData();
+  form.append('profilePhoto', file);
+  return form;
+}
+
+function buildProgressPhotosForm({
+  weightKg,
+  frontFile,
+  backFile,
+  yearMonth,
+} = {}) {
   const form = new FormData();
   form.append('weightKg', String(weightKg));
   if (yearMonth) form.append('yearMonth', String(yearMonth));
   if (frontFile) form.append('front', frontFile);
   if (backFile) form.append('back', backFile);
-  return postMultipart(`${USERS}/me/progress-photos`, form, { auth: true });
-}
-
-/**
- * PUT /users/coach/athletes/:athleteId/training-program
- * Replaces the athlete's coachTrainingProgram (full sessions array).
- * Body: { coachTrainingProgram } — items with exerciseId only (no populated exercise).
- * Returns enriched athlete (MeResponseDto) with catalog exercises populated.
- */
-export function putCoachAthleteTrainingProgram(athleteId, coachTrainingProgram) {
-  return put(
-    `${USERS}/coach/athletes/${athleteId}/training-program`,
-    { coachTrainingProgram },
-    { auth: true },
-  );
-}
-
-/**
- * POST /users/coach/training-program/export
- * Exports coach training programs (xlsx | pdf | zip) as a binary file.
- * Body: { athleteIds: string[], locale?: 'es'|'en', format?: 'xlsx'|'pdf' }
- * athleteIds: [] = all athletes; [id] = one athlete.
- * Expects binary body + Content-Disposition filename (and Content-Type).
- * Returns { blob, filename, contentType }.
- */
-export function exportCoachTrainingProgram(athleteIds, locale, format = 'xlsx') {
-  return postBinary(
-    `${USERS}/coach/training-program/export`,
-    { athleteIds, locale, format },
-    { auth: true },
-  );
+  return form;
 }

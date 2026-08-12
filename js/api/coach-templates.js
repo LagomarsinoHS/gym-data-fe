@@ -1,12 +1,14 @@
 import { get, post, put } from './request.js';
 
+const TEMPLATES = '/coach/templates';
+
 /**
  * GET /coach/templates
  * Reusable session templates for the authenticated coach (enriched).
  * Returns { coachTemplates }
  */
 export function getCoachTemplates() {
-  return get('/coach/templates', undefined, { auth: true });
+  return get(TEMPLATES, undefined, { auth: true });
 }
 
 /**
@@ -15,10 +17,9 @@ export function getCoachTemplates() {
  * Returns { template } enriched.
  */
 export function postCoachTemplate({ name, order, items } = {}) {
-  const body = { name };
-  if (order != null) body.order = order;
-  if (items != null) body.items = items;
-  return post('/coach/templates', body, { auth: true });
+  return post(TEMPLATES, buildCreateTemplateBody({ name, order, items }), {
+    auth: true,
+  });
 }
 
 /**
@@ -27,11 +28,7 @@ export function postCoachTemplate({ name, order, items } = {}) {
  * Returns { coachTemplates } enriched.
  */
 export function putCoachTemplates(coachTemplates) {
-  return put(
-    '/coach/templates',
-    { coachTemplates },
-    { auth: true },
-  );
+  return put(TEMPLATES, { coachTemplates }, { auth: true });
 }
 
 /**
@@ -42,8 +39,17 @@ export function putCoachTemplates(coachTemplates) {
  */
 export function applyCoachTemplates({ templateIds, athleteIds } = {}) {
   return post(
-    '/coach/templates/apply',
+    `${TEMPLATES}/apply`,
     { templateIds, athleteIds },
     { auth: true },
   );
+}
+
+// ── Internals ─────────────────────────────────────────────────────────
+
+function buildCreateTemplateBody({ name, order, items } = {}) {
+  const body = { name };
+  if (order != null) body.order = order;
+  if (items != null) body.items = items;
+  return body;
 }

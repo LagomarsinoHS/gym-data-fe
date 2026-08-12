@@ -41,13 +41,22 @@ export function getLabels() {
  * Requires auth (Pro). equipment: 1–2 values (comma-separated).
  */
 export function getRecommendedExercises({ zone, equipment, locale } = {}) {
-  const equipmentParam = Array.isArray(equipment)
-    ? equipment.filter(Boolean).join(',')
-    : equipment;
-
   return get(
     `${EXERCISES}/recommend`,
-    { zone, equipment: equipmentParam, locale },
+    {
+      zone,
+      equipment: toEquipmentParam(equipment),
+      locale,
+    },
     { auth: true },
   );
+}
+
+// ── Internals ─────────────────────────────────────────────────────────
+
+function toEquipmentParam(equipment) {
+  if (Array.isArray(equipment)) {
+    return equipment.filter(Boolean).join(',');
+  }
+  return equipment;
 }

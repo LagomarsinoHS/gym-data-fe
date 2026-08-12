@@ -3,7 +3,7 @@
 Documento de referencia de **todo** lo que el FE hace actualmente (llamadas, vistas, animaciones, stubs).  
 App: vanilla ES modules (`index.html` + `js/main.js`). Sin framework.
 
-API: `localhost:3000` en local · `https://gym-data-8d3l.onrender.com` en prod.
+API: `localhost:3000` en local · develop Vercel → `gym-data-dev-aunw.onrender.com` · prod → `gym-data-8d3l.onrender.com`.
 
 ---
 
@@ -51,7 +51,8 @@ Si el boot falla → mensaje de error en el contador de resultados.
 | Rol | Nav |
 |-----|-----|
 | **Athlete** | Mi plan → Entrenamiento, Plan del coach, **Avances**, Recomendar (Pro) · Catálogo |
-| **Coach / Admin** | Panel · Plantillas · Mis alumnos · **Avances** · Catálogo |
+| **Coach** | Panel · Plantillas · Mis alumnos · **Avances** · Catálogo |
+| **Admin** | Overview · Usuarios |
 
 | Vista | Contenido |
 |-------|-----------|
@@ -67,8 +68,10 @@ Si el boot falla → mensaje de error en el contador de resultados.
 | `progress-photos` | Coach: timeline + comparar fotos de un alumno (lightbox) |
 | `session-editor` | Editor de una sesión del atleta (coach; drag para reordenar ejercicios) |
 | `profile` | Mi perfil (header split, editar in-place, foto, darse de baja; grid de info personal siempre muestra labels con “—” si falta dato; resto “Pronto”) |
+| `admin-overview` | Stats (`GET /admin/stats`) |
+| `admin-users` | Listado usuarios + grant/revoke + soft-delete |
 
-- Post-login: coach/admin → `coach-panel`; athlete → `training`.
+- Post-login: coach → `coach-panel`; admin → `admin-overview`; athlete → `training`.
 - Recomendar: nav locked + tooltip si no es Pro.
 - Identidad en sidebar: menú de cuenta (iniciales + rol); ver Auth.
 ---
@@ -291,6 +294,7 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 | PUT | `/users/training-program/:exerciseId` | Sí | Guardar pauta |
 | POST | `/users/me/progress-photos` | Sí | Atleta: upload avance (multipart weight + fotos + `yearMonth?`) |
 | GET | `/users/:userId/progress-photos` | Sí | Atleta self o coach asignado: historial |
+| POST | `/users/:userId/progress-photos/analyze` | Sí | Coach: analizar 2 meses (IA) |
 | POST | `/users/coach/invites` | Sí | Coach invita atleta por email |
 | POST | `/users/me/pending-coach-invite/respond` | Sí | Atleta accept / reject |
 | GET | `/users/coach/athletes` | Sí | Lista paginada Mis alumnos / stats Panel |
@@ -301,6 +305,10 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 | POST | `/coach/templates` | Sí | Crear plantilla (id server-owned) |
 | PUT | `/coach/templates` | Sí | Reemplazar biblioteca de plantillas |
 | POST | `/coach/templates/apply` | Sí | Aplicar 1..N plantillas a 1..N alumnos (`templateIds` + `athleteIds`) |
+| GET | `/admin/stats` | Sí | Admin overview |
+| GET | `/admin/users` | Sí | Admin users (paginado + filtros) |
+| DELETE | `/admin/users/:userId` | Sí | Soft-delete usuario (admin) |
+| POST | `/admin/subscriptions/grant` · `/revoke` | Sí | Grant / revoke plan |
 
 ---
 
@@ -393,6 +401,7 @@ Al boot, `theme-boot.js` migra una vez keys legacy `FLEX_*` → `steelPulse.*` (
 | Entrenamiento | `js/features/training-ui.js` |
 | Recommend | `js/features/recommend-ui.js` |
 | Coach Panel | `js/features/coach-panel-ui.js` |
+| Admin Overview / Users | `js/features/admin-overview-ui.js`, `admin-users-ui.js` |
 | Coach invite banner | `js/features/coach-invite-ui.js` |
 | Students | `js/features/students-ui.js` |
 | Students download | `js/features/students-download-ui.js` |
@@ -407,7 +416,7 @@ Al boot, `theme-boot.js` migra una vez keys legacy `FLEX_*` → `steelPulse.*` (
 | Drawer | `js/features/nav-drawer.js` |
 | Tema | `theme-boot.js`, `theme-ui.js` |
 | Footer / eggs | `footer.js`, `easter-egg.js` |
-| API | `js/api/request.js` (`postMultipart`, `err.code`), `auth.js`, `users.js`, `coach-templates.js`, `exercises.js`, `token.js` |
+| API | `js/api/request.js`, `auth.js`, `users.js`, `coach-templates.js`, `exercises.js`, `admin.js`, `token.js` |
 | Copy / i18n errors | `js/i18n/`, `js/utils/api-errors.js`, `js/utils/auth-errors.js` |
 | Estilos | `public/css/base.css`, `app.css` |
 
@@ -415,12 +424,13 @@ Al boot, `theme-boot.js` migra una vez keys legacy `FLEX_*` → `steelPulse.*` (
 
 ## 19. Stubs / aún no cableado
 
-- Admin no se elige en register (solo DB); en nav se comporta como coach.
+- Admin no se elige en register (solo DB); nav propia Overview + Usuarios.
 - Sin refresh token; si `/me` falla, sesión guest.
-- Recommend exige `subscription.plan === 'premium'` del back (athletes).
+- Recommend exige plan pago válido del back (athletes premium).
 - Coach tiers (`growth` / `pro`) e invite quotas: ver `coachQuota` en `/me`.
-- Delete de progress photos: API lista, sin botón en FE.
+- Delete de progress photos: **descartado en BE** (re-subir el mes reemplaza); sin UI.
 - Pauta nutricional (coach → atleta): pendiente; ver [TODO.md](./TODO.md).
+- Configuración (menú): deshabilitada (“Próximamente”).
 
 ---
 

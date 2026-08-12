@@ -180,7 +180,7 @@ Acuerdo con BE: 2 fotos/mes (`front` + `back`) + `weightKg`, historial por `year
 - [x] Comparar: estatura del perfil junto al Δ de peso (si hay `profile.heightCm`)
 - [x] **Analizar progreso** (IA): comparación de 2 meses → resumen vía API
 
-> BE: POST (`yearMonth?`) / DELETE / GET + weight listos. FE: upload + backfill + timeline/comparar + Analizar progreso listos; DELETE sin UI.
+> BE: POST (`yearMonth?`) / GET + analyze listos. DELETE descartado (re-subir el mes reemplaza). FE: upload + backfill + timeline/comparar + Analizar listos.
 ---
 
 ## Nutrición — pauta alimenticia (coach → atleta)
