@@ -1,4 +1,4 @@
-import { del, get, post } from './request.js';
+import { deleteRequest, get, post } from './request.js';
 
 const ADMIN = '/admin';
 
@@ -9,7 +9,7 @@ export function getAdminStats() {
 
 /**
  * GET /admin/users — paginated list (active users only).
- * @param {{ page?: number, limit?: number, search?: string, role?: string, plan?: string, expiringSoon?: boolean }} [params]
+ * @param {{ page?: number, limit?: number, search?: string, role?: string, plan?: string, expiringSoon?: boolean, sortBy?: string, sortDir?: string }} [params]
  */
 export function getAdminUsers(params = {}) {
   const query = { ...params };
@@ -23,7 +23,7 @@ export function getAdminUsers(params = {}) {
  * @param {string} userId
  */
 export function softDeleteAdminUser(userId) {
-  return del(`${ADMIN}/users/${encodeURIComponent(userId)}`, undefined, {
+  return deleteRequest(`${ADMIN}/users/${userId}`, undefined, {
     auth: true,
   });
 }

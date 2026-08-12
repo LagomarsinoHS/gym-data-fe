@@ -60,7 +60,7 @@ export async function patch(path, body, { auth = false } = {}) {
   });
 }
 
-export async function del(path, body, { auth = false } = {}) {
+export async function deleteRequest(path, body, { auth = false } = {}) {
   return send(new URL(path, API_BASE), {
     method: 'DELETE',
     headers: {

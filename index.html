@@ -810,6 +810,15 @@
                 <option value="pro" data-ui="adminPlanPro">Pro</option>
               </select>
             </label>
+            <label class="admin-users-filter">
+              <span class="admin-users-filter-label" data-ui="adminUsersFilterSort">Orden</span>
+              <select id="admin-users-filter-sort" class="admin-users-select">
+                <option value="lastLoginAt:desc" data-ui="adminUsersSortLastLoginDesc">Más activos primero</option>
+                <option value="lastLoginAt:asc" data-ui="adminUsersSortLastLoginAsc">Menos activos primero</option>
+                <option value="createdAt:desc" data-ui="adminUsersSortCreatedDesc">Cuentas nuevas primero</option>
+                <option value="createdAt:asc" data-ui="adminUsersSortCreatedAsc">Cuentas antiguas primero</option>
+              </select>
+            </label>
             <label class="admin-users-filter admin-users-filter--check">
               <input type="checkbox" id="admin-users-filter-expiring" />
               <span data-ui="adminUsersFilterExpiring">Por vencer en 7 días</span>
