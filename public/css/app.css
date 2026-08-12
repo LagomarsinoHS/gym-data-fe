@@ -5068,43 +5068,93 @@ html[data-theme='dark'] .student-row-goal-pill {
 .admin-users-filters {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 14px;
+  align-items: flex-end;
+  gap: 12px 14px;
   width: 100%;
 }
 
 .admin-users-filter {
   display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+  min-width: 0;
   font-size: 0.82rem;
   color: var(--text-secondary);
 }
 
 .admin-users-filter-label {
   font-weight: 650;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
   white-space: nowrap;
 }
 
 .admin-users-filter--check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 2px;
   cursor: pointer;
   user-select: none;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.admin-users-filter--check span {
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 .admin-users-select,
 .admin-users-input {
-  min-height: 36px;
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
+  box-sizing: border-box;
+  min-width: 190px;
+  min-height: 40px;
+  padding: 8px 36px 8px 12px;
+  border-radius: var(--radius-md, 12px);
   border: 1px solid var(--border);
-  background: var(--bg-surface);
+  background-color: color-mix(in srgb, var(--bg-base) 40%, var(--bg-surface));
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%23888' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
   color: var(--text-primary);
   font: inherit;
-  font-size: 0.85rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-users-select:hover,
+.admin-users-input:hover {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+
+.admin-users-select:focus,
+.admin-users-input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  background-color: color-mix(in srgb, var(--accent) 6%, var(--bg-surface));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .admin-users-input {
   width: 72px;
+  min-width: 72px;
+  padding-right: 12px;
+  background-image: none;
+  cursor: text;
 }
 
 .admin-users-meta {

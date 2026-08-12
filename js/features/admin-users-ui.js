@@ -21,6 +21,7 @@ let searchInput;
 let searchClearBtn;
 let roleFilter;
 let planFilter;
+let sortFilter;
 let expiringFilter;
 let loadingEl;
 let emptyEl;
@@ -57,6 +58,8 @@ const state = {
   searchQuery: '',
   role: '',
   plan: '',
+  sortBy: 'lastLoginAt',
+  sortDir: 'desc',
   expiringSoon: false,
 };
 
@@ -68,6 +71,7 @@ export function initAdminUsersUi() {
   searchClearBtn = document.getElementById('admin-users-search-clear');
   roleFilter = document.getElementById('admin-users-filter-role');
   planFilter = document.getElementById('admin-users-filter-plan');
+  sortFilter = document.getElementById('admin-users-filter-sort');
   expiringFilter = document.getElementById('admin-users-filter-expiring');
   loadingEl = document.getElementById('admin-users-loading');
   emptyEl = document.getElementById('admin-users-empty');
@@ -86,6 +90,7 @@ export function initAdminUsersUi() {
   searchClearBtn?.addEventListener('click', clearSearch);
   roleFilter?.addEventListener('change', onFiltersChanged);
   planFilter?.addEventListener('change', onFiltersChanged);
+  sortFilter?.addEventListener('change', onFiltersChanged);
   expiringFilter?.addEventListener('change', onFiltersChanged);
   loadMoreBtn?.addEventListener('click', () => void loadUsers({ append: true }));
 
@@ -158,6 +163,9 @@ function applyPendingFilters() {
 function syncFilterControls() {
   if (roleFilter) roleFilter.value = state.role || '';
   if (planFilter) planFilter.value = state.plan || '';
+  if (sortFilter) {
+    sortFilter.value = `${state.sortBy || 'lastLoginAt'}:${state.sortDir || 'desc'}`;
+  }
   if (expiringFilter) expiringFilter.checked = state.expiringSoon;
   searchClearBtn?.classList.toggle('visible', Boolean(searchInput?.value));
 }
@@ -168,6 +176,12 @@ function resetState() {
   state.total = 0;
   state.hasMore = false;
   state.loading = false;
+  state.searchQuery = '';
+  state.role = '';
+  state.plan = '';
+  state.sortBy = 'lastLoginAt';
+  state.sortDir = 'desc';
+  state.expiringSoon = false;
   openUserId = null;
 }
 
@@ -196,6 +210,8 @@ async function loadUsers({ reset = false, append = false } = {}) {
       role: state.role || undefined,
       plan: state.plan || undefined,
       expiringSoon: state.expiringSoon || undefined,
+      sortBy: state.sortBy || 'lastLoginAt',
+      sortDir: state.sortDir || 'desc',
     };
     const payload = await getAdminUsers(params);
     if (seq !== loadSeq) return;
@@ -251,7 +267,19 @@ function onFiltersChanged() {
   state.role = roleFilter?.value || '';
   state.plan = planFilter?.value || '';
   state.expiringSoon = Boolean(expiringFilter?.checked);
+  const sort = parseSortValue(sortFilter?.value);
+  state.sortBy = sort.sortBy;
+  state.sortDir = sort.sortDir;
   void loadUsers({ reset: true });
+}
+
+function parseSortValue(raw) {
+  const value = String(raw || 'lastLoginAt:desc');
+  const [sortBy, sortDir] = value.split(':');
+  return {
+    sortBy: sortBy === 'createdAt' ? 'createdAt' : 'lastLoginAt',
+    sortDir: sortDir === 'asc' ? 'asc' : 'desc',
+  };
 }
 
 function renderList() {
@@ -439,6 +467,7 @@ function createUserDetailPanel(user) {
       title: ui('adminUsersCardAccount'),
       lines: [
         `${ui('adminUsersCreated')}: ${formatDate(user?.createdAt)}`,
+        `${ui('adminUsersLastLogin')}: ${formatDate(user?.lastLoginAt)}`,
       ],
     }),
     createInfoCard({

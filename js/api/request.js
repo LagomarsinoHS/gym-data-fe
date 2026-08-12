@@ -60,7 +60,7 @@ export async function patch(path, body, { auth = false } = {}) {
   });
 }
 
-export async function del(path, body, { auth = false } = {}) {
+export async function deleteRequest(path, body, { auth = false } = {}) {
   return send(new URL(path, API_BASE), {
     method: 'DELETE',
     headers: {
@@ -90,7 +90,7 @@ export async function postBinary(path, body, { auth = false } = {}) {
     const data = await res.json().catch(() => ({}));
     const err = new Error(
       (typeof data?.message === 'string' && data.message) ||
-        `API ${res.status}: ${url.pathname}`,
+      `API ${res.status}: ${url.pathname}`,
     );
     throw attachApiError(err, res.status, data || {});
   }
@@ -153,7 +153,7 @@ async function send(url, options) {
   if (!res.ok) {
     const err = new Error(
       (typeof data?.message === 'string' && data.message) ||
-        `API ${res.status}: ${url.pathname}`,
+      `API ${res.status}: ${url.pathname}`,
     );
     throw attachApiError(err, res.status, data || {});
   }
@@ -162,15 +162,16 @@ async function send(url, options) {
 
 
 function resolveApiBase() {
+  const host = window.location.hostname;
+  console.log('host =>', host);
   const DEV_API_BASE = 'https://gym-data-dev-aunw.onrender.com';
   const PROD_API_BASE = 'https://gym-data-8d3l.onrender.com';
-  const host = window.location.hostname;
-  
+
   if (host === 'localhost' || host === '127.0.0.1') {
     return 'http://localhost:3000';
   }
   // Preview / rama develop en Vercel
-  if (host.includes('develop') || host.includes('-git-develop-')) {
+  if (host === 'steelpulse-git-develop-lagomarsinohs-projects.vercel.app') {
     return DEV_API_BASE;
   }
   return PROD_API_BASE;

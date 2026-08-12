@@ -1,4 +1,4 @@
-import { get, post, postBinary, postMultipart, put, patch, del } from './request.js';
+import { get, post, postBinary, postMultipart, put, patch, deleteRequest } from './request.js';
 
 const USERS = '/users';
 
@@ -21,7 +21,7 @@ export function updateProfile(body) {
  * Email must belong to the JWT user.
  */
 export function deleteAccount(email) {
-  return del(`${USERS}/me`, { email }, { auth: true });
+  return deleteRequest(`${USERS}/me`, { email }, { auth: true });
 }
 
 /**
