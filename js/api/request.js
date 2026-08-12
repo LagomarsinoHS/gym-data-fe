@@ -1,8 +1,6 @@
 import { getToken } from './token.js';
 
-const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
-  ? 'http://localhost:3000'
-  : 'https://gym-data-8d3l.onrender.com';
+const API_BASE = resolveApiBase();
 
 export async function get(path, params = {}, { auth = false } = {}) {
   const url = new URL(path, API_BASE);
@@ -160,4 +158,20 @@ async function send(url, options) {
     throw attachApiError(err, res.status, data || {});
   }
   return data;
+}
+
+
+function resolveApiBase() {
+  const DEV_API_BASE = 'https://gym-data-dev-aunw.onrender.com';
+  const PROD_API_BASE = 'https://gym-data-8d3l.onrender.com';
+  const host = window.location.hostname;
+  
+  if (host === 'localhost' || host === '127.0.0.1') {
+    return 'http://localhost:3000';
+  }
+  // Preview / rama develop en Vercel
+  if (host.includes('develop') || host.includes('-git-develop-')) {
+    return DEV_API_BASE;
+  }
+  return PROD_API_BASE;
 }
