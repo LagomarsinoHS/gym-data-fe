@@ -162,10 +162,11 @@ async function send(url, options) {
 
 
 function resolveApiBase() {
+  const host = window.location.hostname;
+  console.log('host =>', host);
   const DEV_API_BASE = 'https://gym-data-dev-aunw.onrender.com';
   const PROD_API_BASE = 'https://gym-data-8d3l.onrender.com';
-  const host = window.location.hostname;
-  
+
   if (host === 'localhost' || host === '127.0.0.1') {
     return 'http://localhost:3000';
   }
