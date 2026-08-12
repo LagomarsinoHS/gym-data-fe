@@ -90,7 +90,7 @@ export async function postBinary(path, body, { auth = false } = {}) {
     const data = await res.json().catch(() => ({}));
     const err = new Error(
       (typeof data?.message === 'string' && data.message) ||
-        `API ${res.status}: ${url.pathname}`,
+      `API ${res.status}: ${url.pathname}`,
     );
     throw attachApiError(err, res.status, data || {});
   }
@@ -153,7 +153,7 @@ async function send(url, options) {
   if (!res.ok) {
     const err = new Error(
       (typeof data?.message === 'string' && data.message) ||
-        `API ${res.status}: ${url.pathname}`,
+      `API ${res.status}: ${url.pathname}`,
     );
     throw attachApiError(err, res.status, data || {});
   }
@@ -171,7 +171,7 @@ function resolveApiBase() {
     return 'http://localhost:3000';
   }
   // Preview / rama develop en Vercel
-  if (host.includes('develop') || host.includes('-git-develop-')) {
+  if (host === 'steelpulse-git-develop-lagomarsinohs-projects.vercel.app') {
     return DEV_API_BASE;
   }
   return PROD_API_BASE;
