@@ -15,10 +15,11 @@
     · #theme-toggle-btn                            → js/features/theme-ui.js
     · theme early (head, sin defer)                → js/theme-boot.js
     · #nav-drawer-toggle / #app-sidebar (móvil)    → js/features/nav-drawer.js
-    · #sidebar-auth / vistas catalog|training|recommend|coach-plan|coach-panel|coach-templates|students|nutrition|avances|athlete-avances|session-editor|progress-photos|profile → js/features/session-ui.js
+    · #sidebar-auth / vistas catalog|training|recommend|coach-plan|athlete-nutrition|coach-panel|coach-templates|students|nutrition|avances|athlete-avances|session-editor|progress-photos|profile → js/features/session-ui.js
     · #recommend-view / #recommend-composer         → js/features/recommend-ui.js
     · #students-view / overlays → js/features/students-ui.js · download → students-download-ui.js
     · #nutrition-view → js/features/coach-nutrition-ui.js
+    · #athlete-nutrition-view / delete overlay → js/features/athlete-nutrition-ui.js
     · #avances-view → js/features/avances-ui.js
     · #athlete-avances-view → js/features/athlete-avances-ui.js
     · #progress-photos-view → js/features/progress-photos-ui.js
@@ -130,6 +131,10 @@
                 <span class="sidebar-nav-marker" aria-hidden="true"></span>
                 <span data-ui="coachPlan">Plan del coach</span>
                 <span class="sidebar-nav-dot" id="nav-coach-plan-dot" hidden aria-hidden="true"></span>
+              </button>
+              <button type="button" class="sidebar-nav-btn" id="nav-athlete-nutrition" data-view="athlete-nutrition">
+                <span class="sidebar-nav-marker" aria-hidden="true"></span>
+                <span data-ui="navNutrition">Nutrición</span>
               </button>
               <button type="button" class="sidebar-nav-btn" id="nav-athlete-avances" data-view="athlete-avances">
                 <span class="sidebar-nav-marker" aria-hidden="true"></span>
@@ -686,6 +691,31 @@
           </p>
         </header>
         <div class="coach-plan-sessions" id="coach-plan-grid"></div>
+      </div>
+    </div>
+
+    <div id="athlete-nutrition-view" class="athlete-nutrition-view" hidden>
+      <div class="athlete-nutrition">
+        <header class="athlete-nutrition-header">
+          <h2 class="athlete-nutrition-title" data-ui="athleteNutritionTitle">Nutrición</h2>
+        </header>
+        <div class="athlete-nutrition-loading" id="athlete-nutrition-loading" hidden>
+          <div class="load-spinner visible" aria-hidden="true"></div>
+          <span data-ui="athleteNutritionLoading">Cargando pautas…</span>
+        </div>
+        <div class="athlete-nutrition-error" id="athlete-nutrition-error" hidden>
+          <p data-ui="athleteNutritionLoadFail">No se pudieron cargar las pautas.</p>
+          <button type="button" class="recommend-again-btn" id="athlete-nutrition-retry">
+            <span data-ui="athleteNutritionRetry">Reintentar</span>
+          </button>
+        </div>
+        <div class="athlete-nutrition-empty" id="athlete-nutrition-empty" hidden>
+          <h2 class="athlete-nutrition-empty-title" data-ui="athleteNutritionEmpty">Aún no tienes una pauta</h2>
+          <p class="athlete-nutrition-empty-lead" data-ui="athleteNutritionEmptyLead">
+            Cuando tu coach te prepare una, la verás aquí.
+          </p>
+        </div>
+        <div class="athlete-nutrition-body" id="athlete-nutrition-body" hidden></div>
       </div>
     </div>
 
@@ -1748,6 +1778,25 @@
     <div class="confirm-modal-actions">
       <button type="button" class="confirm-modal-cancel" id="remove-session-cancel" data-ui="sessionRemoveCancel">Cancelar</button>
       <button type="button" class="confirm-modal-danger" id="remove-session-confirm" data-ui="sessionRemoveConfirmBtn">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL confirmar eliminar pauta archivada — js/features/athlete-nutrition-ui.js ═══ -->
+<div class="recommend-overlay" id="athlete-nutrition-delete-overlay" role="dialog" aria-modal="true" aria-labelledby="athlete-nutrition-delete-title">
+  <div class="recommend-modal confirm-modal">
+    <div class="recommend-modal-header">
+      <h2 class="recommend-modal-title" id="athlete-nutrition-delete-title" data-ui="athleteNutritionDeleteTitle">¿Eliminar pauta?</h2>
+      <button type="button" class="modal-close" id="athlete-nutrition-delete-close" aria-label="Close">✕</button>
+    </div>
+    <p class="confirm-modal-name" id="athlete-nutrition-delete-name"></p>
+    <p class="confirm-modal-lead" data-ui="athleteNutritionDeleteLead">
+      Esta pauta archivada dejará de verse.
+    </p>
+    <p class="recommend-status" id="athlete-nutrition-delete-status" hidden></p>
+    <div class="confirm-modal-actions">
+      <button type="button" class="confirm-modal-cancel" id="athlete-nutrition-delete-cancel" data-ui="athleteNutritionDeleteCancel">Cancelar</button>
+      <button type="button" class="confirm-modal-danger" id="athlete-nutrition-delete-confirm" data-ui="athleteNutritionDeleteConfirm">Eliminar</button>
     </div>
   </div>
 </div>

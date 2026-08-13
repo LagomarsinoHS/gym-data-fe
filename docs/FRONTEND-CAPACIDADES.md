@@ -14,7 +14,7 @@ API: `localhost:3000` en local · develop Vercel → `gym-data-dev-aunw.onrender
 3. **`init()` en `main.js`:**
    - Sincroniza labels `[data-ui]` según idioma guardado
    - `GET /exercises/labels` → chips de filtros
-   - Inicia sesión, auth, tema, drawer mobile, students, plantillas, avances, progress photos, athlete avances, coach panel, coach invite, recommend
+   - Inicia sesión, auth, tema, drawer mobile, students, plantillas, avances, progress photos, athlete avances, athlete nutrición, coach panel, coach invite, recommend
    - Revela filtros (animación cascade)
    - En mobile: colapsa filtros + mueve results bar arriba
    - `restoreSession()` → si hay token, `GET /users/me` (+ `onUserSynced` → pending invite)
@@ -50,7 +50,7 @@ Si el boot falla → mensaje de error en el contador de resultados.
 
 | Rol | Nav |
 |-----|-----|
-| **Athlete** | Mi plan → Entrenamiento, Plan del coach, **Avances**, Recomendar (Pro) · Catálogo |
+| **Athlete** | Mi plan → Entrenamiento, Plan del coach, **Nutrición**, **Avances**, Recomendar (Pro) · Catálogo |
 | **Coach** | Panel · Plantillas · Mis alumnos · **Avances** · Catálogo |
 | **Admin** | Overview · Usuarios |
 
@@ -60,6 +60,7 @@ Si el boot falla → mensaje de error en el contador de resultados.
 | `training` | Plan personal (`trainingProgram`) |
 | `recommend` | Recomendar (solo si `subscription.plan === 'premium'`) |
 | `coach-plan` | Plan del coach (`coachTrainingProgram`; empty sin coach / sin plan; columna centrada ~720px) |
+| `athlete-nutrition` | Atleta: pautas propias (`GET /nutrition-plans`; empty si no hay pauta; soft-delete archivadas) |
 | `athlete-avances` | Atleta: upload (mes actual o backfill) + historial timeline + comparar |
 | `coach-panel` | Resumen informativo (`coach-panel-ui`): total alumnos + sin pauta + historial invites |
 | `coach-templates` | Biblioteca de plantillas (`coach-templates-ui` + `js/api/coach-templates.js`): crear (`POST /coach/templates`), editar/guardar (`PUT`), aplicar 1..N ↔ 1..N (`POST /coach/templates/apply`). Toast de éxito (~3s, cerrable) al aplicar desde Plantillas; **Usar plantilla** desde Mis alumnos |
@@ -224,6 +225,19 @@ Vista `coach-templates` (`coach-templates-ui.js`, API `js/api/coach-templates.js
 
 ---
 
+## 9c. Nutrición (atleta)
+
+Vista `athlete-nutrition` (`athlete-nutrition-ui.js`, API `js/api/nutrition-plans.js`).
+
+- Nav **Nutrición** bajo Mi plan (no reutiliza `#nutrition-view` del coach).
+- `GET /nutrition-plans`: **Pauta actual** (card resumen + Ver detalle) y **Pautas anteriores** (acordeón mes · kcal · coach).
+- Detalle de comidas: timeline vertical (☀️ → puntos → 🌙); cada comida muestra hora, nombre, alimentos en línea y nota fija a la derecha.
+- Orden de `meals`: el array tal cual viene del API (sin sort en atleta). Convención: la UI coach ordenará por `time` al guardar.
+- Archivadas: hover esquina derecha → ✕ → confirm → `DELETE /nutrition-plans/:id` (soft `deletedAt`).
+- Empty si no hay pauta (sigue visible tras dejar coach; soft-delete solo quita del listado del atleta).
+
+---
+
 ## 10. Avances / fotos de progreso
 
 Historial y comparar viven en el módulo compartido `progress-history-ui.js` (coach + atleta).
@@ -306,6 +320,12 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 | POST | `/coach/templates` | Sí | Crear plantilla (id server-owned) |
 | PUT | `/coach/templates` | Sí | Reemplazar biblioteca de plantillas |
 | POST | `/coach/templates/apply` | Sí | Aplicar 1..N plantillas a 1..N alumnos (`templateIds` + `athleteIds`) |
+| POST | `/nutrition-plans` | Sí | Coach: crear pauta para atleta asignado |
+| GET | `/nutrition-plans` | Sí | Atleta: las suyas; coach: las que creó para `athleteId` |
+| GET | `/nutrition-plans/:planId` | Sí | Atleta self o coach creador asignado |
+| PUT | `/nutrition-plans/:planId` | Sí | Coach: editar pauta activa propia |
+| PATCH | `/nutrition-plans/:planId/archive` | Sí | Coach: archivar pauta propia |
+| DELETE | `/nutrition-plans/:planId` | Sí | Atleta: soft-delete pauta archivada propia |
 | GET | `/admin/stats` | Sí | Admin overview |
 | GET | `/admin/users` | Sí | Admin users (paginado + filtros) |
 | DELETE | `/admin/users/:userId` | Sí | Soft-delete usuario (admin) |
@@ -413,11 +433,12 @@ Al boot, `theme-boot.js` migra una vez keys legacy `FLEX_*` → `steelPulse.*` (
 | Progress photos coach | `js/features/progress-photos-ui.js` |
 | Historial/comparar (shared) | `js/features/progress-history-ui.js` |
 | Avances atleta | `js/features/athlete-avances-ui.js` |
+| Nutrición atleta | `js/features/athlete-nutrition-ui.js` |
 | Lightbox + download | `js/features/progress-photo-lightbox.js` |
 | Drawer | `js/features/nav-drawer.js` |
 | Tema | `theme-boot.js`, `theme-ui.js` |
 | Footer / eggs | `footer.js`, `easter-egg.js` |
-| API | `js/api/request.js`, `auth.js`, `users.js`, `coach-templates.js`, `exercises.js`, `admin.js`, `token.js` |
+| API | `js/api/request.js`, `auth.js`, `users.js`, `nutrition-plans.js`, `coach-templates.js`, `exercises.js`, `admin.js`, `token.js` |
 | Copy / i18n errors | `js/i18n/`, `js/utils/api-errors.js`, `js/utils/auth-errors.js` |
 | Estilos | `public/css/base.css`, `app.css` |
 

@@ -9,7 +9,7 @@ Solo pendientes. Lo ya hecho: [FRONTEND-CAPACIDADES.md](./FRONTEND-CAPACIDADES.m
 1. **Nutrición** — pauta alimenticia coach → atleta
 2. **Onboarding coach** — wizard primer login
 3. **PDF brand** — export con marca del coach
-4. **Cuenta** — Configuración + dejar coach / acciones de perfil
+4. **Cuenta** — Configuración (dejar coach ya hecho)
 5. **Coach polish** — duplicar sesión; upsell de cupo (opc.)
 
 ---
@@ -17,19 +17,22 @@ Solo pendientes. Lo ya hecho: [FRONTEND-CAPACIDADES.md](./FRONTEND-CAPACIDADES.m
 ## Nutrición — pauta alimenticia (coach → atleta)
 
 Mismo patrón que plan del coach: coach escribe, atleta lee.
+Pautas = texto estructurado (`nutritionPlans`); historial vía `active` / `archived` (sin archivo PDF por ahora).
 
 ### Producto
-- [ ] Definir qué se sube (texto estructurado, PDF/imagen, o ambos) y si es 1 pauta por atleta o historial por fechas
-- [ ] Vista coach: subir / editar / reemplazar pauta del alumno (desde Mis alumnos o nav dedicada)
-- [ ] Vista atleta: ver pauta asignada (nav bajo Mi plan, vacío si no hay coach o no hay pauta)
+- [x] Formato: pauta estructurada (title, macros, meals, notes) + historial active/archived
+- [ ] Vista coach: crear / editar / archivar pauta del alumno (desde Mis alumnos o nav Nutrición)
+- [x] Vista atleta: ver pauta (nav bajo Mi plan; empty si no hay pauta; soft-delete archivadas)
 
 ### Backend
-- [ ] Campo / recurso de pauta nutricional por atleta (authz: coach asignado escribe; atleta self o coach lee)
-- [ ] Endpoints create/update + get; storage si hay archivo (Cloudinary u otro)
+- [x] CRUD `nutrition-plans` (coach asignado escribe; atleta self + coach creador asignado leen; atleta soft-delete archivadas)
+- [ ] Storage si hay archivo (Cloudinary u otro) — solo si más adelante sumamos PDF/imagen
 
 ### Frontend
-- [ ] UI coach (upload / editor + guardar)
-- [ ] UI atleta (solo lectura + empty states: sin coach / sin pauta)
+- [ ] UI coach (crear / editar / archivar + guardar)
+  - Al guardar: **ordenar `meals` por `time` (HH:mm)**; sin hora → al final, en el orden del editor
+  - El atleta pinta el array tal cual (sin re-sort); los emojis del timeline van por índice
+- [x] UI atleta (lectura + timeline de comidas + empty + soft-delete archivadas; `athlete-nutrition`)
 
 ---
 

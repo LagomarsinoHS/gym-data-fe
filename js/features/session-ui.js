@@ -1,7 +1,7 @@
 /**
  * Session shell: guest vs logged-in sidebar; role-based nav (athlete | coach | admin).
  * Markup: #sidebar-guest, #sidebar-auth, #nav-athlete, #nav-coach, #nav-admin,
- * views: catalog | training | recommend | coach-plan | coach-panel | coach-templates | students | nutrition | avances | athlete-avances | session-editor | progress-photos | profile | admin-overview | admin-users
+ * views: catalog | training | recommend | coach-plan | athlete-nutrition | coach-panel | coach-templates | students | nutrition | avances | athlete-avances | session-editor | progress-photos | profile | admin-overview | admin-users
  */
 import { getMe } from '../api/users.js';
 import { clearToken, isLoggedIn } from '../api/token.js';
@@ -17,6 +17,7 @@ import {
 import { syncProgressPhotosView } from './progress-photos-ui.js';
 import { syncAvancesView } from './avances-ui.js';
 import { syncAthleteAvancesView } from './athlete-avances-ui.js';
+import { resetAthleteNutritionUi, syncAthleteNutritionView } from './athlete-nutrition-ui.js';
 import { syncProfileView } from './profile-ui.js';
 
 const VIEWS = new Set([
@@ -24,6 +25,7 @@ const VIEWS = new Set([
   'training',
   'recommend',
   'coach-plan',
+  'athlete-nutrition',
   'coach-panel',
   'coach-templates',
   'students',
@@ -36,7 +38,7 @@ const VIEWS = new Set([
   'admin-overview',
   'admin-users',
 ]);
-const ATHLETE_VIEWS = new Set(['training', 'recommend', 'coach-plan', 'athlete-avances']);
+const ATHLETE_VIEWS = new Set(['training', 'recommend', 'coach-plan', 'athlete-nutrition', 'athlete-avances']);
 const COACH_VIEWS = new Set([
   'coach-panel',
   'coach-templates',
@@ -136,6 +138,10 @@ export function initSessionUi({ onViewChange: cb } = {}) {
   document.getElementById('nav-coach-plan')?.addEventListener('click', () => {
     if (!isAthlete()) return;
     setView('coach-plan');
+  });
+  document.getElementById('nav-athlete-nutrition')?.addEventListener('click', () => {
+    if (!isAthlete()) return;
+    setView('athlete-nutrition');
   });
   document.getElementById('nav-athlete-avances')?.addEventListener('click', () => {
     if (!isAthlete()) return;
@@ -318,6 +324,7 @@ export function logout() {
   clearRecommendPlan();
   clearCoachAthletesCache();
   resetCoachNutritionUi();
+  resetAthleteNutritionUi();
   renderSessionChrome();
   void notifyUserSynced();
   onViewChange(view);
@@ -325,7 +332,7 @@ export function logout() {
 
 export function syncSessionLabels() {
   document.querySelectorAll(
-    '#sidebar-guest [data-ui], #sidebar-auth [data-ui], #recommend-view [data-ui], #coach-plan-view [data-ui], #coach-panel-view [data-ui], #coach-templates-view [data-ui], #students-view [data-ui], #nutrition-view [data-ui], #avances-view [data-ui], #athlete-avances-view [data-ui], #session-editor-view [data-ui], #progress-photos-view [data-ui], #profile-view [data-ui], #admin-overview-view [data-ui], #admin-users-view [data-ui], #session-assign-banner [data-ui]',
+    '#sidebar-guest [data-ui], #sidebar-auth [data-ui], #recommend-view [data-ui], #coach-plan-view [data-ui], #athlete-nutrition-view [data-ui], #coach-panel-view [data-ui], #coach-templates-view [data-ui], #students-view [data-ui], #nutrition-view [data-ui], #avances-view [data-ui], #athlete-avances-view [data-ui], #session-editor-view [data-ui], #progress-photos-view [data-ui], #profile-view [data-ui], #admin-overview-view [data-ui], #admin-users-view [data-ui], #session-assign-banner [data-ui]',
   ).forEach(el => {
     el.textContent = ui(el.dataset.ui);
   });
@@ -459,6 +466,7 @@ function syncNavActive() {
   const training = document.getElementById('nav-training');
   const recommend = document.getElementById('nav-recommend');
   const coachPlan = document.getElementById('nav-coach-plan');
+  const athleteNutrition = document.getElementById('nav-athlete-nutrition');
   const athleteAvances = document.getElementById('nav-athlete-avances');
   const coachPanel = document.getElementById('nav-coach-panel');
   const adminOverview = document.getElementById('nav-admin-overview');
@@ -473,6 +481,7 @@ function syncNavActive() {
     [training, view === 'training'],
     [recommend, view === 'recommend'],
     [coachPlan, view === 'coach-plan'],
+    [athleteNutrition, view === 'athlete-nutrition'],
     [athleteAvances, view === 'athlete-avances'],
     [coachPanel, view === 'coach-panel'],
     [adminOverview, view === 'admin-overview'],
@@ -536,6 +545,7 @@ function renderSessionChrome() {
   const trainingView = document.getElementById('training-view');
   const recommendView = document.getElementById('recommend-view');
   const coachPlanView = document.getElementById('coach-plan-view');
+  const athleteNutritionView = document.getElementById('athlete-nutrition-view');
   const coachPanelView = document.getElementById('coach-panel-view');
   const coachTemplatesView = document.getElementById('coach-templates-view');
   const studentsView = document.getElementById('students-view');
@@ -563,6 +573,7 @@ function renderSessionChrome() {
   const showTraining = loggedIn && view === 'training';
   const showRecommend = loggedIn && view === 'recommend';
   const showCoachPlan = loggedIn && view === 'coach-plan';
+  const showAthleteNutrition = loggedIn && view === 'athlete-nutrition';
   const showCoachPanel = loggedIn && view === 'coach-panel';
   const showCoachTemplates = loggedIn && view === 'coach-templates';
   const showStudents = loggedIn && view === 'students';
@@ -577,6 +588,7 @@ function renderSessionChrome() {
   const hideCatalogChrome = showTraining
     || showRecommend
     || showCoachPlan
+    || showAthleteNutrition
     || showCoachPanel
     || showCoachTemplates
     || showStudents
@@ -590,6 +602,7 @@ function renderSessionChrome() {
     || showAdminUsers;
   const hideSearch = showRecommend
     || showCoachPlan
+    || showAthleteNutrition
     || showCoachPanel
     || showCoachTemplates
     || showStudents
@@ -606,6 +619,7 @@ function renderSessionChrome() {
   if (trainingView) trainingView.hidden = !showTraining;
   if (recommendView) recommendView.hidden = !showRecommend;
   if (coachPlanView) coachPlanView.hidden = !showCoachPlan;
+  if (athleteNutritionView) athleteNutritionView.hidden = !showAthleteNutrition;
   if (coachPanelView) coachPanelView.hidden = !showCoachPanel;
   if (coachTemplatesView) coachTemplatesView.hidden = !showCoachTemplates;
   if (studentsView) studentsView.hidden = !showStudents;
@@ -636,6 +650,7 @@ function renderSessionChrome() {
   void syncAvancesView();
   syncProgressPhotosView();
   syncAthleteAvancesView();
+  syncAthleteNutritionView();
   syncProfileView();
 
   for (const fn of chromeListeners) fn();
