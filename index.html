@@ -15,9 +15,10 @@
     · #theme-toggle-btn                            → js/features/theme-ui.js
     · theme early (head, sin defer)                → js/theme-boot.js
     · #nav-drawer-toggle / #app-sidebar (móvil)    → js/features/nav-drawer.js
-    · #sidebar-auth / vistas catalog|training|recommend|coach-plan|coach-panel|coach-templates|students|avances|athlete-avances|session-editor|progress-photos|profile → js/features/session-ui.js
+    · #sidebar-auth / vistas catalog|training|recommend|coach-plan|coach-panel|coach-templates|students|nutrition|avances|athlete-avances|session-editor|progress-photos|profile → js/features/session-ui.js
     · #recommend-view / #recommend-composer         → js/features/recommend-ui.js
     · #students-view / overlays → js/features/students-ui.js · download → students-download-ui.js
+    · #nutrition-view → js/features/coach-nutrition-ui.js
     · #avances-view → js/features/avances-ui.js
     · #athlete-avances-view → js/features/athlete-avances-ui.js
     · #progress-photos-view → js/features/progress-photos-ui.js
@@ -158,6 +159,10 @@
               <button type="button" class="sidebar-nav-btn" id="nav-students" data-view="students">
                 <span class="sidebar-nav-marker" aria-hidden="true"></span>
                 <span data-ui="myStudents">Mis alumnos</span>
+              </button>
+              <button type="button" class="sidebar-nav-btn" id="nav-nutrition" data-view="nutrition">
+                <span class="sidebar-nav-marker" aria-hidden="true"></span>
+                <span data-ui="navNutrition">Nutrición</span>
               </button>
               <button type="button" class="sidebar-nav-btn" id="nav-avances" data-view="avances">
                 <span class="sidebar-nav-marker" aria-hidden="true"></span>
@@ -1002,6 +1007,325 @@
         </div>
         <div id="session-editor-hint" class="session-editor-hint-host" hidden></div>
         <div class="session-editor-list" id="session-editor-list"></div>
+      </div>
+    </div>
+
+    <div id="nutrition-view" class="nutrition-view" hidden>
+      <div class="nutrition">
+        <header class="nutrition-header" id="nutrition-header">
+          <h2 class="nutrition-title" data-ui="navNutrition">Nutrición</h2>
+          <p class="nutrition-lead" data-ui="nutritionLead">Elige un alumno para trabajar su nutrición.</p>
+        </header>
+
+        <div id="nutrition-picker" class="nutrition-picker">
+          <div class="search-wrapper students-search nutrition-search">
+            <svg class="search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <circle cx="6.5" cy="6.5" r="4.5"/>
+              <path d="M10.5 10.5L14 14" stroke-linecap="round"/>
+            </svg>
+            <input type="text" class="search-box" id="nutrition-search" placeholder="Buscar alumnos…" autocomplete="off" />
+            <button type="button" class="search-clear" id="nutrition-search-clear" aria-label="Limpiar búsqueda">×</button>
+          </div>
+          <div class="nutrition-loading" id="nutrition-loading" hidden>
+            <div class="load-spinner visible" aria-hidden="true"></div>
+            <span data-ui="nutritionLoading">Cargando alumnos…</span>
+          </div>
+          <div class="nutrition-empty" id="nutrition-empty" hidden>
+            <p class="nutrition-empty-title">Aún no tienes alumnos</p>
+            <p class="nutrition-empty-lead">Invita alumnos desde Mis alumnos para empezar una pauta nutricional aquí.</p>
+            <button type="button" class="recommend-cta" id="nutrition-empty-invite" hidden>
+              <span data-ui="addStudent">Invitar alumno</span>
+            </button>
+          </div>
+          <div class="nutrition-list" id="nutrition-list" hidden></div>
+          <button type="button" class="students-load-more" id="nutrition-load-more" hidden>
+            <span data-ui="studentsLoadMore">Cargar más</span>
+          </button>
+        </div>
+
+        <div id="nutrition-workspace" class="nutrition-workspace" hidden>
+          <div class="nutrition-workspace-context">
+            <button type="button" class="session-editor-back" id="nutrition-back">
+              <span class="session-editor-back-ico" aria-hidden="true">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10 3L5 8l5 5"/>
+                </svg>
+              </span>
+              <span data-ui="nutritionBack">Volver a alumnos</span>
+            </button>
+            <article class="nutrition-athlete-card" id="nutrition-athlete-card">
+              <div class="nutrition-athlete-identity">
+                <span class="nutrition-athlete-avatar" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="8" r="4"/></svg>
+                </span>
+                <div class="nutrition-athlete-copy">
+                  <p class="nutrition-athlete-kicker" data-ui="nutritionAthleteKicker">Atleta</p>
+                  <h3 class="nutrition-athlete-name" id="nutrition-athlete-name"></h3>
+                  <p class="nutrition-athlete-meta" id="nutrition-athlete-meta"></p>
+                </div>
+              </div>
+              <div class="nutrition-athlete-aside">
+                <div class="nutrition-athlete-chip">
+                  <svg class="nutrition-athlete-chip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                  <div>
+                    <strong id="nutrition-athlete-goal">—</strong>
+                    <span data-ui="profileGoal">Objetivo</span>
+                  </div>
+                </div>
+                <div class="nutrition-athlete-chip">
+                  <svg class="nutrition-athlete-chip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="8" r="4"/></svg>
+                  <div>
+                    <strong id="nutrition-athlete-sex">—</strong>
+                    <span data-ui="profileSex">Sexo</span>
+                  </div>
+                </div>
+              </div>
+            </article>
+            <div class="nutrition-highlights" id="nutrition-highlights">
+              <div class="nutrition-highlight">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="13" cy="4" r="2.1"/><path d="m9 21 3-6 2 2 3-6"/><path d="M6 12l4 2 1-3"/><path d="m5 20 3-1"/></svg>
+                <span class="nutrition-highlight-label" data-ui="nutritionSummaryActivity">Actividad</span>
+                <strong class="nutrition-highlight-value" id="nutrition-highlight-activity">—</strong>
+              </div>
+              <div class="nutrition-highlight">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8v8M18 8v8M4 10v4M20 10v4M8 9v6M16 9v6M8 12h8"/></svg>
+                <span class="nutrition-highlight-label" data-ui="nutritionHighlightTrainingsWeek">Entrenamientos por semana</span>
+                <strong class="nutrition-highlight-value" id="nutrition-highlight-trainings">—</strong>
+              </div>
+              <div class="nutrition-highlight">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span class="nutrition-highlight-label" data-ui="nutritionProfileDuration">Duración promedio</span>
+                <strong class="nutrition-highlight-value" id="nutrition-highlight-duration">—</strong>
+              </div>
+              <div class="nutrition-highlight">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 17v-2.4C4 12.5 5.8 11 8 11s4 1.5 4 3.6V18"/><path d="M12 17v-2.4c0-2.1 1.8-3.6 4-3.6s4 1.5 4 3.6V18"/><circle cx="8" cy="7.5" r="2"/><circle cx="16" cy="7.5" r="2"/></svg>
+                <span class="nutrition-highlight-label" data-ui="nutritionProfileSteps">Pasos diarios</span>
+                <strong class="nutrition-highlight-value" id="nutrition-highlight-steps">—</strong>
+              </div>
+              <div class="nutrition-highlight">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span class="nutrition-highlight-label" data-ui="nutritionSummaryTraining">Entrenamiento</span>
+                <strong class="nutrition-highlight-value" id="nutrition-highlight-training">—</strong>
+              </div>
+              <div class="nutrition-highlight">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span class="nutrition-highlight-label" data-ui="nutritionHighlightFasted">¿En ayunas?</span>
+                <strong class="nutrition-highlight-value" id="nutrition-highlight-fasted">—</strong>
+              </div>
+            </div>
+          </div>
+
+          <section class="nutrition-profile" id="nutrition-profile">
+            <div class="nutrition-profile-loading" id="nutrition-profile-loading" hidden>
+              <div class="load-spinner visible" aria-hidden="true"></div>
+              <span data-ui="nutritionProfileLoading">Cargando perfil nutricional…</span>
+            </div>
+            <div class="nutrition-profile-error" id="nutrition-profile-load-error" hidden>
+              <p data-ui="nutritionProfileLoadFail">No se pudo cargar el perfil nutricional.</p>
+              <button type="button" class="recommend-again-btn" id="nutrition-profile-retry">
+                <span data-ui="nutritionProfileRetry">Reintentar</span>
+              </button>
+            </div>
+
+            <form id="nutrition-profile-form" class="nutrition-profile-form" hidden>
+              <nav class="nutrition-profile-tabs" role="tablist" aria-label="Nutrition profile sections">
+                <button type="button" class="nutrition-profile-tab" role="tab" data-nutrition-tab="summary" aria-selected="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                  <span data-ui="nutritionTabSummary">Resumen</span>
+                </button>
+                <button type="button" class="nutrition-profile-tab" role="tab" data-nutrition-tab="activity" aria-selected="false">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="13" cy="4" r="2.1"/><path d="m9 21 3-6 2 2 3-6"/><path d="M6 12l4 2 1-3"/><path d="m5 20 3-1"/></svg>
+                  <span data-ui="nutritionTabActivity">Actividad</span>
+                </button>
+                <button type="button" class="nutrition-profile-tab" role="tab" data-nutrition-tab="habits" aria-selected="false">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span data-ui="nutritionTabHabits">Hábitos</span>
+                </button>
+                <button type="button" class="nutrition-profile-tab" role="tab" data-nutrition-tab="prefs" aria-selected="false">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                  <span data-ui="nutritionTabPrefs">Preferencias</span>
+                </button>
+                <button type="button" class="nutrition-profile-tab" role="tab" data-nutrition-tab="restrictions" aria-selected="false">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6"/></svg>
+                  <span data-ui="nutritionTabRestrictions">Restricciones</span>
+                </button>
+              </nav>
+
+              <div class="nutrition-profile-body">
+              <div id="nutrition-summary" class="nutrition-summary">
+                <button type="button" class="nutrition-summary-card" data-open-tab="activity">
+                  <h4 class="nutrition-summary-title">
+                    <svg class="nutrition-summary-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    <span data-ui="nutritionProfileActivity">Actividad diaria</span>
+                  </h4>
+                  <dl class="nutrition-summary-facts" id="nutrition-summary-activity"></dl>
+                </button>
+                <button type="button" class="nutrition-summary-card" data-open-tab="habits">
+                  <h4 class="nutrition-summary-title">
+                    <svg class="nutrition-summary-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span data-ui="nutritionProfileHabits">Hábitos alimentarios</span>
+                    <span class="nutrition-summary-pill" id="nutrition-summary-fasted" hidden></span>
+                  </h4>
+                  <dl class="nutrition-summary-facts" id="nutrition-summary-habits"></dl>
+                </button>
+                <button type="button" class="nutrition-summary-card nutrition-summary-card--fill" data-open-tab="prefs">
+                  <h4 class="nutrition-summary-title">
+                    <svg class="nutrition-summary-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    <span data-ui="nutritionTabPrefs">Preferencias</span>
+                  </h4>
+                  <div class="nutrition-summary-scroll">
+                    <p class="nutrition-summary-empty-lead" id="nutrition-summary-prefs-empty" hidden></p>
+                    <div class="nutrition-summary-prefs-cols" id="nutrition-summary-prefs-cols">
+                      <div class="nutrition-summary-sub">
+                        <p class="nutrition-summary-sub-label" data-ui="nutritionProfileLikes">Le gusta</p>
+                        <div class="nutrition-summary-tags" id="nutrition-summary-likes"></div>
+                      </div>
+                      <div class="nutrition-summary-sub">
+                        <p class="nutrition-summary-sub-label" data-ui="nutritionSummaryAvoids">Evita</p>
+                        <div class="nutrition-summary-tags" id="nutrition-summary-avoids"></div>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+                <button type="button" class="nutrition-summary-card nutrition-summary-card--fill" data-open-tab="restrictions">
+                  <h4 class="nutrition-summary-title">
+                    <svg class="nutrition-summary-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                    <span data-ui="nutritionTabRestrictions">Restricciones</span>
+                    <span class="nutrition-summary-pill" id="nutrition-summary-diet" hidden></span>
+                  </h4>
+                  <div class="nutrition-summary-restrictions">
+                    <div class="nutrition-summary-scroll">
+                      <div class="nutrition-summary-tags" id="nutrition-summary-restrictions"></div>
+                    </div>
+                    <p class="nutrition-summary-notes" id="nutrition-summary-notes" hidden></p>
+                  </div>
+                </button>
+              </div>
+
+              <fieldset class="nutrition-profile-block" data-nutrition-panel="activity">
+                <legend data-ui="nutritionProfileActivity">Actividad diaria</legend>
+                <div class="nutrition-profile-grid">
+                  <label class="nutrition-profile-field">
+                    <span class="nutrition-profile-label" data-ui="nutritionProfileDailyActivity">Actividad diaria</span>
+                    <select id="nutrition-daily-activity" name="dailyActivity">
+                      <option value="" data-ui="nutritionProfileUnspecified">Sin especificar</option>
+                      <option value="sedentary" data-ui="nutritionActivitySedentary">Sedentaria</option>
+                      <option value="standing" data-ui="nutritionActivityStanding">Mayormente de pie</option>
+                      <option value="active" data-ui="nutritionActivityActive">Activa</option>
+                      <option value="demanding" data-ui="nutritionActivityDemanding">Trabajo físicamente demandante</option>
+                    </select>
+                  </label>
+                  <label class="nutrition-profile-field">
+                    <span class="nutrition-profile-label" data-ui="nutritionProfileTrainingsWeek">Entrenamientos / semana</span>
+                    <input type="number" id="nutrition-trainings-week" name="trainingsPerWeek" min="0" max="14" inputmode="numeric" />
+                  </label>
+                  <label class="nutrition-profile-field">
+                    <span class="nutrition-profile-label" data-ui="nutritionProfileDuration">Duración promedio</span>
+                    <span class="nutrition-profile-input-unit">
+                      <input type="number" id="nutrition-duration" name="avgDurationMin" min="0" max="300" inputmode="numeric" />
+                      <span data-ui="nutritionProfileDurationUnit">min</span>
+                    </span>
+                  </label>
+                  <label class="nutrition-profile-field">
+                    <span class="nutrition-profile-label" data-ui="nutritionProfileSteps">Pasos diarios</span>
+                    <input type="number" id="nutrition-steps" name="dailySteps" min="0" max="50000" step="100" inputmode="numeric" />
+                  </label>
+                  <label class="nutrition-profile-field">
+                    <span class="nutrition-profile-label" data-ui="nutritionProfileCardio">Cardio semanal</span>
+                    <span class="nutrition-profile-input-unit">
+                      <input type="number" id="nutrition-cardio" name="weeklyCardioMin" min="0" max="1000" inputmode="numeric" />
+                      <span data-ui="nutritionProfileCardioUnit">min</span>
+                    </span>
+                  </label>
+                  <label class="nutrition-profile-field nutrition-profile-field--wide">
+                    <span class="nutrition-profile-label" data-ui="nutritionProfileExtraActivity">Actividad adicional</span>
+                    <input type="text" id="nutrition-extra-activity" name="extraActivity" autocomplete="off" />
+                  </label>
+                </div>
+              </fieldset>
+
+              <fieldset class="nutrition-profile-block" data-nutrition-panel="habits">
+                <legend data-ui="nutritionProfileHabits">Hábitos alimentarios</legend>
+                <div class="nutrition-profile-grid">
+                  <div class="nutrition-meals-list" id="nutrition-meals-list"></div>
+                  <label class="nutrition-profile-field">
+                    <span class="nutrition-profile-label" data-ui="nutritionProfileTrainingTime">Hora de entrenamiento</span>
+                    <input type="time" id="nutrition-training-time" name="trainingTime" />
+                  </label>
+                  <label class="nutrition-profile-field">
+                    <span class="nutrition-profile-label" data-ui="nutritionProfileTrainFasted">¿Entrena en ayunas?</span>
+                    <select id="nutrition-train-fasted" name="trainFasted">
+                      <option value="" data-ui="nutritionProfileUnspecified">Sin especificar</option>
+                      <option value="after_meal" data-ui="nutritionProfileTrainAfterMeal">Después de comer</option>
+                      <option value="fasted" data-ui="nutritionProfileTrainFastedYes">En ayunas</option>
+                    </select>
+                  </label>
+                </div>
+              </fieldset>
+
+              <fieldset class="nutrition-profile-block" data-nutrition-panel="prefs">
+                <legend data-ui="nutritionProfilePrefs">Preferencias alimentarias</legend>
+                <div class="nutrition-prefs-grid">
+                  <div class="nutrition-pref-card">
+                    <h4 class="nutrition-pref-title" data-ui="nutritionProfileLikes">Le gusta</h4>
+                    <div class="nutrition-pref-body">
+                      <div class="nutrition-tag-list" id="nutrition-likes-list">
+                        <input type="text" id="nutrition-likes-input" class="nutrition-tag-inline" autocomplete="off" />
+                      </div>
+                    </div>
+                  </div>
+                  <div class="nutrition-pref-card">
+                    <h4 class="nutrition-pref-title" data-ui="nutritionSummaryAvoids">Evita</h4>
+                    <div class="nutrition-pref-body">
+                      <div class="nutrition-tag-list" id="nutrition-avoids-list">
+                        <input type="text" id="nutrition-avoids-input" class="nutrition-tag-inline" autocomplete="off" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </fieldset>
+
+              <fieldset class="nutrition-profile-block" data-nutrition-panel="restrictions">
+                <legend data-ui="nutritionProfileRestrictions">Restricciones y observaciones</legend>
+                <div class="nutrition-restrictions-split">
+                  <div class="nutrition-restrictions-left">
+                    <label class="nutrition-profile-field">
+                      <span class="nutrition-profile-label" data-ui="nutritionProfileDietType">Tipo de alimentación</span>
+                      <select id="nutrition-diet-type" name="dietType">
+                        <option value="" data-ui="nutritionProfileUnspecified">Sin especificar</option>
+                        <option value="none" data-ui="nutritionDietNone">Sin restricciones</option>
+                        <option value="vegetarian" data-ui="nutritionDietVegetarian">Vegetariana</option>
+                        <option value="vegan" data-ui="nutritionDietVegan">Vegana</option>
+                        <option value="other" data-ui="nutritionDietOther">Otra</option>
+                      </select>
+                    </label>
+                    <div class="nutrition-pref-card">
+                      <h4 class="nutrition-pref-title" data-ui="nutritionProfileRestrictionTags">Restricciones</h4>
+                      <div class="nutrition-pref-body">
+                        <div class="nutrition-tag-list" id="nutrition-restrictions-list">
+                          <input type="text" id="nutrition-restrictions-input" class="nutrition-tag-inline" autocomplete="off" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="nutrition-pref-card nutrition-notes-card">
+                    <h4 class="nutrition-pref-title" data-ui="nutritionProfileNotes">Observaciones</h4>
+                    <textarea id="nutrition-notes" name="notes" class="nutrition-notes-input"></textarea>
+                  </div>
+                </div>
+              </fieldset>
+              </div>
+
+              <div class="nutrition-profile-footer">
+                <p class="nutrition-profile-status" id="nutrition-profile-status" hidden></p>
+                <button type="button" class="recommend-cta" id="nutrition-profile-save">
+                  <svg class="nutrition-profile-save-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                  <span id="nutrition-profile-save-label" data-ui="nutritionProfileSave">Guardar perfil</span>
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
       </div>
     </div>
 

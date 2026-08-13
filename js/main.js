@@ -16,6 +16,11 @@ import {
   loadCoachAthletes,
 } from './features/students-ui.js';
 import { initProgressPhotosUi } from './features/progress-photos-ui.js';
+import {
+  initCoachNutritionUi,
+  syncNutritionLabels,
+  syncNutritionView,
+} from './features/coach-nutrition-ui.js';
 import { initAvancesUi, syncAvancesLabels } from './features/avances-ui.js';
 import {
   initAthleteAvancesUi,
@@ -164,6 +169,9 @@ async function init() {
       else if (view === 'coach-templates') {
         void loadCoachTemplates();
       }
+      else if (view === 'nutrition') {
+        void syncNutritionView();
+      }
       else if (view === 'profile') {
         void refreshUser().catch(() => {});
       }
@@ -185,6 +193,7 @@ async function init() {
     navigateTo: setView,
     openExercise: id => openModal(id),
   });
+  initCoachNutritionUi({ navigateTo: setView });
   initAvancesUi();
   initProgressPhotosUi();
   initAthleteAvancesUi({ getUser, refreshUser });
@@ -366,6 +375,7 @@ function syncChromeLabels() {
   syncSessionLabels();
   syncRecommendLabels();
   syncStudentsLabels();
+  syncNutritionLabels();
   syncAvancesLabels();
   syncAthleteAvancesLabels();
   syncProfileView();

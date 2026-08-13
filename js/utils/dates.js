@@ -60,3 +60,19 @@ export function formatDate(value) {
 
   return enLong.format(date);
 }
+
+/**
+ * Full years from a YYYY-MM-DD birth date, or null if invalid / out of range.
+ * @returns {number | null}
+ */
+export function ageFromBirthDate(birthDate) {
+  const date = parseCalendarDate(String(birthDate || '').slice(0, 10));
+  if (!date) return null;
+  const today = new Date();
+  let age = today.getFullYear() - date.getFullYear();
+  const monthDiff = today.getMonth() - date.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < date.getDate())) {
+    age -= 1;
+  }
+  return age >= 0 && age < 130 ? age : null;
+}

@@ -4,7 +4,7 @@
  * Markup: #profile-view, #deactivate-account-overlay
  */
 import { deleteAccount, uploadProfilePhoto, updateProfile } from '../api/users.js';
-import { formatDate } from '../utils/dates.js';
+import { ageFromBirthDate, formatDate } from '../utils/dates.js';
 import { ApiErrorCode, mapApiError } from '../utils/api-errors.js';
 import { userProfile } from '../utils/helpers.js';
 import { getLang, ui } from '../utils/labels.js';
@@ -1647,21 +1647,6 @@ function formatGoal(goal) {
     default:
       return '';
   }
-}
-
-/** @returns {number | null} */
-function ageFromBirthDate(birthDate) {
-  const raw = String(birthDate || '').slice(0, 10);
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
-  if (!match) return null;
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  const today = new Date();
-  let age = today.getFullYear() - year;
-  const m = today.getMonth() + 1 - month;
-  if (m < 0 || (m === 0 && today.getDate() < day)) age -= 1;
-  return age >= 0 && age < 130 ? age : null;
 }
 
 function metricIconSvg(kind) {

@@ -156,6 +156,31 @@ export function putCoachAthleteTrainingProgram(athleteId, coachTrainingProgram) 
 }
 
 /**
+ * GET /users/coach/athletes/:athleteId/nutrition
+ * Coach-managed nutrition profile. Empty defaults if never saved.
+ * Not included in GET /users/me.
+ */
+export function getCoachAthleteNutrition(athleteId) {
+  return get(
+    `${USERS}/coach/athletes/${athleteId}/nutrition`,
+    {},
+    { auth: true },
+  );
+}
+
+/**
+ * PUT /users/coach/athletes/:athleteId/nutrition
+ * Replaces the athlete nutrition profile. Returns AthleteNutritionDto.
+ */
+export function putCoachAthleteNutrition(athleteId, nutrition) {
+  return put(
+    `${USERS}/coach/athletes/${athleteId}/nutrition`,
+    nutrition,
+    { auth: true },
+  );
+}
+
+/**
  * POST /users/coach/training-program/export
  * Exports coach training programs (xlsx | pdf | zip) as a binary file.
  * Body: { athleteIds: string[], locale?: 'es'|'en', format?: 'xlsx'|'pdf' }
