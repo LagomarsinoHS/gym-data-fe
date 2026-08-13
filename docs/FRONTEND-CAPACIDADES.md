@@ -39,7 +39,7 @@ Si el boot falla → mensaje de error en el contador de resultados.
 - Overlay auth: backdrop / Escape cierran; errores mapeados (401, 409, etc.).
 - Password min 6; autocomplete distinto login vs register.
 - **Menú de cuenta** (`session-ui.js` / `#sidebar-user`): avatar con iniciales, nombre corto (`Humberto L`), badge de rol, chevron → dropdown.
-  - **Mi perfil**: activo → vista `#profile-view`. Header split (identidad azul + información personal) con botón **Editar** en el panel derecho: el formulario reemplaza el contenido derecho in-place (nombre, body stats, goal, contraseña) → `PATCH /users/me`. El grid de información personal **siempre** muestra los labels (rol, plan, fechas, sexo, nacimiento, edad, objetivo, + cupo si coach); valores faltantes → “—”. Avatar → Ver/Subir foto. **Darse de baja** modal email → `DELETE /users/me`. Al entrar, `refreshUser()`.
+  - **Mi perfil**: activo → vista `#profile-view`. Header split (identidad azul + información personal) con botón **Editar** en el panel derecho: el formulario reemplaza el contenido derecho in-place (nombre, body stats, goal, contraseña) → `PATCH /users/me`. El grid de información personal **siempre** muestra los labels (rol, plan, fechas, sexo, nacimiento, edad, objetivo, + cupo si coach); valores faltantes → “—”. Avatar → Ver/Subir foto. Card **Mi coach** (atleta): si hay vínculo, **Dejar coach** (modal simple, sin email) → `DELETE /users/me/coach`. **Darse de baja** modal email → `DELETE /users/me`. Al entrar, `refreshUser()`.
   - **Configuración**: visible pero `disabled` (tooltip “Próximamente”).
   - **Cerrar sesión**: activo (rojo).
   - Cierra con click afuera o Escape.
@@ -67,7 +67,7 @@ Si el boot falla → mensaje de error en el contador de resultados.
 | `avances` | Coach: lista de alumnos → abrir fotos de progreso |
 | `progress-photos` | Coach: timeline + comparar fotos de un alumno (lightbox) |
 | `session-editor` | Editor de una sesión del atleta (coach; drag para reordenar ejercicios) |
-| `profile` | Mi perfil (header split, editar in-place, foto, darse de baja; grid de info personal siempre muestra labels con “—” si falta dato; resto “Pronto”) |
+| `profile` | Mi perfil (header split, editar in-place, foto, dejar coach, darse de baja; grid de info personal siempre muestra labels con “—” si falta dato; resto “Pronto”) |
 | `admin-overview` | Stats (`GET /admin/stats`) |
 | `admin-users` | Listado usuarios + grant/revoke + soft-delete |
 
@@ -288,6 +288,7 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 | PATCH | `/users/me` | Sí | Editar perfil (`profile` / `goal` / password) |
 | POST | `/users/me/profile-photo` | Sí | Subir foto de perfil |
 | DELETE | `/users/me` | Sí | Soft-delete cuenta |
+| DELETE | `/users/me/coach` | Sí | Atleta: dejar coach (`coachId = null`) |
 | GET | `/users/me/pending-coach-invite` | Sí | Atleta: `{ invite }` (null o pendiente) |
 | POST | `/users/training-program` | Sí | Agregar al plan |
 | PUT | `/users/training-program/remove` | Sí | Confirmar quitar |

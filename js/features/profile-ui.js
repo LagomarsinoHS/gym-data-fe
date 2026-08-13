@@ -1,9 +1,14 @@
 /**
  * Profile view: split identity card, then available actions, then coming-soon.
- * Active: profile photo (avatar menu) + darse de baja.
- * Markup: #profile-view, #deactivate-account-overlay
+ * Active: profile photo (avatar menu) + dejar coach + darse de baja.
+ * Markup: #profile-view, #leave-coach-overlay, #deactivate-account-overlay
  */
-import { deleteAccount, uploadProfilePhoto, updateProfile } from '../api/users.js';
+import {
+  deleteAccount,
+  leaveCoach,
+  uploadProfilePhoto,
+  updateProfile,
+} from '../api/users.js';
 import { ageFromBirthDate, formatDate } from '../utils/dates.js';
 import { ApiErrorCode, mapApiError } from '../utils/api-errors.js';
 import { userProfile } from '../utils/helpers.js';
@@ -88,7 +93,11 @@ let form;
 let emailInput;
 let statusEl;
 let confirmBtn;
+let leaveOverlay;
+let leaveStatusEl;
+let leaveConfirmBtn;
 let busy = false;
+let leaveBusy = false;
 let avatarUploading = false;
 let editBusy = false;
 /** @type {HTMLElement | null} */
@@ -135,6 +144,9 @@ export function initProfileUi() {
   emailInput = document.getElementById('deactivate-account-email');
   statusEl = document.getElementById('deactivate-account-status');
   confirmBtn = document.getElementById('deactivate-account-confirm');
+  leaveOverlay = document.getElementById('leave-coach-overlay');
+  leaveStatusEl = document.getElementById('leave-coach-status');
+  leaveConfirmBtn = document.getElementById('leave-coach-confirm');
 
   editPanel = document.getElementById('profile-edit-panel');
   editPark = document.getElementById('profile-edit-park');
@@ -205,6 +217,18 @@ export function initProfileUi() {
   overlay?.addEventListener('click', (e) => {
     if (e.target === overlay) closeDeactivateModal();
   });
+  document
+    .getElementById('leave-coach-close')
+    ?.addEventListener('click', closeLeaveCoachModal);
+  document
+    .getElementById('leave-coach-cancel')
+    ?.addEventListener('click', closeLeaveCoachModal);
+  leaveConfirmBtn?.addEventListener('click', () => {
+    void onLeaveCoachConfirm();
+  });
+  leaveOverlay?.addEventListener('click', (e) => {
+    if (e.target === leaveOverlay) closeLeaveCoachModal();
+  });
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (birthPanelOpen) {
@@ -218,6 +242,10 @@ export function initProfileUi() {
     }
     if (editOpen) {
       closeEditPanel();
+      return;
+    }
+    if (leaveOverlay?.classList.contains('open')) {
+      closeLeaveCoachModal();
       return;
     }
     if (!overlay?.classList.contains('open')) return;
@@ -255,7 +283,9 @@ export function initProfileUi() {
 
 export function syncProfileLabels() {
   document
-    .querySelectorAll('#profile-view [data-ui], #deactivate-account-overlay [data-ui]')
+    .querySelectorAll(
+      '#profile-view [data-ui], #leave-coach-overlay [data-ui], #deactivate-account-overlay [data-ui]',
+    )
     .forEach((el) => {
       if (el.id === 'profile-edit-birth-trigger-label') return;
       el.textContent = ui(el.dataset.ui);
@@ -579,6 +609,16 @@ function createCoachBlock(user) {
   text.append(name);
   body.append(avatar, text);
   block.append(kicker, body);
+
+  if (linked) {
+    const leaveBtn = document.createElement('button');
+    leaveBtn.type = 'button';
+    leaveBtn.className = 'profile-coach-leave';
+    leaveBtn.textContent = ui('profileLeaveCoach');
+    leaveBtn.addEventListener('click', openLeaveCoachModal);
+    block.append(leaveBtn);
+  }
+
   return block;
 }
 
@@ -764,6 +804,72 @@ function createActionButton(action) {
   soon.textContent = ui('profileSoon');
   btn.append(soon);
   return btn;
+}
+
+function openLeaveCoachModal() {
+  if (!leaveOverlay || leaveBusy) return;
+  const user = getUser();
+  if (!hasCoach(user)) return;
+
+  setLeaveCoachStatus('');
+  syncProfileLabels();
+  leaveOverlay.classList.add('open');
+  leaveConfirmBtn?.focus();
+}
+
+function closeLeaveCoachModal() {
+  if (leaveBusy) return;
+  leaveOverlay?.classList.remove('open');
+  setLeaveCoachStatus('');
+}
+
+function setLeaveCoachStatus(message, kind = '') {
+  if (!leaveStatusEl) return;
+  if (!message) {
+    leaveStatusEl.hidden = true;
+    leaveStatusEl.textContent = '';
+    leaveStatusEl.classList.remove('is-error', 'is-ok');
+    return;
+  }
+  leaveStatusEl.hidden = false;
+  leaveStatusEl.textContent = message;
+  leaveStatusEl.classList.toggle('is-error', kind === 'error');
+  leaveStatusEl.classList.toggle('is-ok', kind === 'ok');
+}
+
+function syncLeaveCoachBusy() {
+  if (!leaveConfirmBtn) return;
+  leaveConfirmBtn.disabled = leaveBusy;
+  leaveConfirmBtn.textContent = ui('profileLeaveCoachConfirm');
+}
+
+async function onLeaveCoachConfirm() {
+  if (leaveBusy) return;
+
+  leaveBusy = true;
+  syncLeaveCoachBusy();
+  setLeaveCoachStatus('');
+
+  try {
+    const me = await leaveCoach();
+    leaveBusy = false;
+    closeLeaveCoachModal();
+    setUser(me);
+    syncProfileView();
+  } catch (err) {
+    console.error(err);
+    setLeaveCoachStatus(
+      mapApiError(err, {
+        byCode: {
+          [ApiErrorCode.NoCoachAssigned]: 'profileLeaveCoachNone',
+        },
+        fallback: 'profileLeaveCoachError',
+      }),
+      'error',
+    );
+    leaveBusy = false;
+    syncLeaveCoachBusy();
+  }
 }
 
 function openDeactivateModal() {

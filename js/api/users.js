@@ -27,6 +27,14 @@ export function deleteAccount(email) {
 }
 
 /**
+ * DELETE /users/me/coach
+ * Athlete unlinks the assigned coach. Returns MeResponseDto (`coach: null`).
+ */
+export function leaveCoach() {
+  return deleteRequest(`${USERS}/me/coach`, undefined, { auth: true });
+}
+
+/**
  * POST /users/me/profile-photo (multipart)
  * Field: profilePhoto (jpeg/png/webp). Returns MeResponseDto.
  */

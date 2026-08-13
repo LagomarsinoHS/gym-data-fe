@@ -10,6 +10,7 @@ import { ui } from '../utils/labels.js';
 import { ApiErrorCode, mapApiError } from '../utils/api-errors.js';
 import { userProfile } from '../utils/helpers.js';
 import { openProgressPhotos } from './progress-photos-ui.js';
+import { openAthleteNutrition } from './coach-nutrition-ui.js';
 import {
   canInviteAthlete,
   getUser,
@@ -771,6 +772,7 @@ function createStudentRow(athlete) {
   emailLine.append(
     createDetail(ui('email'), email || '—'),
     createAthleteProgressButton(id),
+    createAthleteNutritionButton(athlete),
     createAthleteDownloadMenu(id),
   );
 
@@ -799,6 +801,20 @@ function createAthleteProgressButton(athleteId) {
       returnTo: 'students',
       athlete: findAthlete(athleteId),
     });
+  });
+  return btn;
+}
+
+function createAthleteNutritionButton(athlete) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'student-row-progress-btn';
+  btn.textContent = ui('studentsNutrition');
+  btn.disabled = !athlete?.id;
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    openAthleteNutrition(athlete);
+    store.navigateTo?.('nutrition');
   });
   return btn;
 }

@@ -1160,13 +1160,15 @@
                   </h4>
                   <dl class="nutrition-summary-facts" id="nutrition-summary-activity"></dl>
                 </button>
-                <button type="button" class="nutrition-summary-card" data-open-tab="habits">
+                <button type="button" class="nutrition-summary-card nutrition-summary-card--capped" data-open-tab="habits">
                   <h4 class="nutrition-summary-title">
                     <svg class="nutrition-summary-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                     <span data-ui="nutritionProfileHabits">Hábitos alimentarios</span>
                     <span class="nutrition-summary-pill" id="nutrition-summary-fasted" hidden></span>
                   </h4>
-                  <dl class="nutrition-summary-facts" id="nutrition-summary-habits"></dl>
+                  <div class="nutrition-summary-scroll">
+                    <dl class="nutrition-summary-facts" id="nutrition-summary-habits"></dl>
+                  </div>
                 </button>
                 <button type="button" class="nutrition-summary-card nutrition-summary-card--fill" data-open-tab="prefs">
                   <h4 class="nutrition-summary-title">
@@ -1746,6 +1748,24 @@
     <div class="confirm-modal-actions">
       <button type="button" class="confirm-modal-cancel" id="remove-session-cancel" data-ui="sessionRemoveCancel">Cancelar</button>
       <button type="button" class="confirm-modal-danger" id="remove-session-confirm" data-ui="sessionRemoveConfirmBtn">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL confirmar dejar coach — js/features/profile-ui.js ═══ -->
+<div class="recommend-overlay" id="leave-coach-overlay" role="dialog" aria-modal="true" aria-labelledby="leave-coach-title">
+  <div class="recommend-modal confirm-modal">
+    <div class="recommend-modal-header">
+      <h2 class="recommend-modal-title" id="leave-coach-title" data-ui="profileLeaveCoachTitle">¿Dejar coach?</h2>
+      <button type="button" class="modal-close" id="leave-coach-close" aria-label="Close">✕</button>
+    </div>
+    <p class="confirm-modal-lead" id="leave-coach-lead" data-ui="profileLeaveCoachLead">
+      Dejarás de estar vinculado a este coach.
+    </p>
+    <p class="recommend-status" id="leave-coach-status" hidden></p>
+    <div class="confirm-modal-actions">
+      <button type="button" class="confirm-modal-cancel" id="leave-coach-cancel" data-ui="profileLeaveCoachCancel">Cancelar</button>
+      <button type="button" class="confirm-modal-danger" id="leave-coach-confirm" data-ui="profileLeaveCoachConfirm">Dejar coach</button>
     </div>
   </div>
 </div>

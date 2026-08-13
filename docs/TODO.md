@@ -60,7 +60,8 @@ Hoy el PDF sale con estilo ExerciseDB / genérico. Que se sienta “del coach”
 
 **Configuración** sigue deshabilitada (“Próximamente”).
 
-- [ ] **Mi perfil → acciones** — notificaciones, privacidad, **dejar coach** (unlink ≠ baja de cuenta), billing, export, etc.
+- [x] **Dejar coach** — card Mi coach + modal + `DELETE /users/me/coach` (no es baja de cuenta; nutrición se mantiene)
+- [ ] **Mi perfil → acciones** — notificaciones, privacidad, billing, export, etc.
 - [ ] **Configuración** — preferencias (tema/idioma sync a user, notificaciones, …); habilitar ítem del menú
 
 ---

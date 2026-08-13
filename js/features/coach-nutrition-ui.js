@@ -182,6 +182,11 @@ export async function syncNutritionView() {
   }
 }
 
+export function openAthleteNutrition(athlete) {
+  if (!athlete?.id) return;
+  void selectAthlete(athlete);
+}
+
 export function resetCoachNutritionUi() {
   window.clearTimeout(searchTimer);
   searchTimer = 0;
@@ -737,11 +742,11 @@ function renderNutritionSummary(profile) {
   const habitsEl = document.getElementById('nutrition-summary-habits');
   if (habitsEl) {
     const meals = Array.isArray(profile.meals) ? profile.meals : [];
-    const rows = meals.map((meal, index) =>
-      summaryFact(mealDisplayName(meal, index), formatTimeDisplay(meal.time)),
+    habitsEl.replaceChildren(
+      ...meals.map((meal, index) =>
+        summaryFact(mealDisplayName(meal, index), formatTimeDisplay(meal.time)),
+      ),
     );
-    rows.push(summaryFact(ui('nutritionSummaryTraining'), formatTimeDisplay(profile.trainingTime)));
-    habitsEl.replaceChildren(...rows);
   }
 
   const fastedEl = document.getElementById('nutrition-summary-fasted');

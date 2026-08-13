@@ -8529,7 +8529,11 @@ html[data-theme='dark'] .progress-photos-timeline-weight-pill {
 
 .nutrition-view:has(#nutrition-workspace:not([hidden])) {
   width: min(920px, 100%);
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .nutrition-view:has(#nutrition-workspace:not([hidden])) .nutrition {
@@ -8537,21 +8541,23 @@ html[data-theme='dark'] .progress-photos-timeline-weight-pill {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding-bottom: 12px;
+  gap: 0;
+  padding-bottom: 8px;
 }
 
 .nutrition-view:has(#nutrition-workspace:not([hidden])) .nutrition-workspace {
   flex: 1;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
-  gap: 12px;
+  gap: 8px;
 }
 
 .nutrition-view:has(#nutrition-workspace:not([hidden])) .nutrition-workspace-context {
   position: static;
   flex-shrink: 0;
+  padding-bottom: 6px;
 }
 
 .nutrition {
@@ -8902,10 +8908,8 @@ html[data-theme='dark'] .nutrition-highlight-value.is-fasted {
 }
 
 .nutrition-profile {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  flex: 1;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
   min-height: 0;
   overflow: hidden;
 }
@@ -8939,26 +8943,17 @@ html[data-theme='dark'] .nutrition-highlight-value.is-fasted {
 }
 
 .nutrition-profile-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  flex: 1;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 8px;
   min-height: 0;
   overflow: hidden;
 }
 
 .nutrition-profile-body {
-  flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  display: grid;
-  gap: 12px;
-  align-content: start;
-}
-
-.nutrition-profile-body:has(> #nutrition-summary:not([hidden])) {
   overflow: hidden;
-  align-content: stretch;
+  display: grid;
   grid-template-rows: minmax(0, 1fr);
 }
 
@@ -9020,9 +9015,11 @@ html[data-theme='dark'] .nutrition-highlight-value.is-fasted {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
-  gap: 12px;
+  column-gap: 12px;
+  row-gap: 8px;
   min-height: 0;
   height: 100%;
+  width: 100%;
   align-items: stretch;
 }
 
@@ -9047,9 +9044,17 @@ html[data-theme='dark'] .nutrition-highlight-value.is-fasted {
   border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
 }
 
-.nutrition-summary-card--fill {
+.nutrition-summary-card--fill,
+.nutrition-summary-card--capped {
   grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
+  min-height: 0;
+  height: 100%;
+  align-self: stretch;
+}
+
+.nutrition-summary-card--capped {
+  min-height: 0;
 }
 
 .nutrition-summary-scroll {
@@ -9268,6 +9273,8 @@ html[data-theme='dark'] #nutrition-profile-save.is-saved:hover {
   display: grid;
   gap: 14px;
   min-width: 0;
+  overflow-y: auto;
+  align-content: start;
 }
 
 .nutrition-profile-block legend {
@@ -9652,7 +9659,7 @@ html[data-theme='dark'] #nutrition-profile-save.is-saved:hover {
   justify-items: end;
   gap: 8px;
   flex-shrink: 0;
-  padding-top: 4px;
+  padding-top: 0;
   background: var(--bg-base);
 }
 
@@ -9703,6 +9710,10 @@ html[data-theme='dark'] #nutrition-profile-save.is-saved:hover {
     height: auto;
   }
 
+  .nutrition-summary-card--capped .nutrition-summary-scroll {
+    max-height: 10.5rem;
+  }
+
   .nutrition-restrictions-split > .nutrition-notes-card {
     min-height: 160px;
   }
@@ -9714,9 +9725,27 @@ html[data-theme='dark'] #nutrition-profile-save.is-saved:hover {
     border-top: 1px solid var(--border);
   }
 
-  .nutrition-profile-body:has(> #nutrition-summary:not([hidden])) {
-    overflow-y: auto;
+  .nutrition-profile,
+  .nutrition-profile-form,
+  .nutrition-profile-body {
+    display: flex;
+    flex-direction: column;
     grid-template-rows: none;
+    height: auto;
+    overflow: visible;
+  }
+
+  .nutrition-profile-body {
+    overflow-y: auto;
+  }
+
+  .nutrition-summary {
+    height: auto;
+  }
+
+  .nutrition-summary-card--fill,
+  .nutrition-summary-card--capped {
+    height: auto;
   }
 
   .nutrition-profile-field--wide,
@@ -10647,6 +10676,28 @@ html[data-theme='dark'] .athlete-avances-toast-icon {
 .profile-split-coach.is-empty .profile-coach-name {
   color: color-mix(in srgb, #fff 78%, transparent);
   font-weight: 550;
+}
+
+.profile-split-coach .profile-coach-leave {
+  margin-top: 2px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, #fff 45%, transparent);
+  background: color-mix(in srgb, #fff 10%, transparent);
+  color: #fff;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.profile-split-coach .profile-coach-leave:hover {
+  background: color-mix(in srgb, #fff 18%, transparent);
+}
+
+.profile-split-coach .profile-coach-leave:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }
 
 .profile-split-main {
