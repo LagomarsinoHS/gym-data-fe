@@ -19,21 +19,65 @@ Solo pendientes. Lo ya hecho: [FRONTEND-CAPACIDADES.md](./FRONTEND-CAPACIDADES.m
 Mismo patrón que plan del coach: coach escribe, atleta lee.
 Pautas = texto estructurado (`nutritionPlans`); historial vía `active` / `archived` (sin archivo PDF por ahora).
 
+### Dos capas (no mezclar)
+
+| | **Perfil nutricional** (`User.nutrition`) | **Pauta alimenticia** (`nutritionPlans`) |
+|---|---|---|
+| Qué es | Contexto del atleta: hábitos, preferencias, restricciones, **cuántas comidas quiere** y horarios preferidos | Prescripción: macros + qué comer en cada comida/hora |
+| Quién escribe | Coach (vista Nutrición actual) | Coach (UI pendiente) |
+| Quién lee | Solo coach (no va en `/me`) | Atleta (self) + coach creador asignado |
+| Persistencia | 1 doc embebido por atleta (upsert) | Historial `active` / `archived` (+ soft-delete atleta) |
+
+Separarlos está bien: el perfil **informa** la pauta; la pauta **manda** lo que ve el atleta.
+
+### Dónde vive la UI coach (V1)
+
+- Mismo módulo **Nutrición** (mismo picker de alumno).
+- Dos bloques/secciones en esa vista (no un solo formulario):
+  1. **Perfil** — lo que ya existe (hábitos / preferencias / comidas deseadas).
+  2. **Pauta** — crear / editar activa / archivar / listar anteriores (como el atleta, pero editable).
+- Entry opcional desde Mis alumnos → “Nutrición” (ya navega ahí).
+
+### Relación perfil ↔ pauta (V1)
+
+- El número/horarios de comidas del **perfil** son **sugerencia al crear** la pauta (prefills: N slots con `name` + `time` del perfil).
+- **No** se exige que `plan.meals.length === profile.meals.length`. El coach puede sumar/quitar comidas en la pauta.
+- Lo que ve el atleta es **solo la pauta** (timeline), no el perfil.
+- Al guardar pauta: ordenar `meals` por `time` (HH:mm); sin hora → al final.
+
+### Roadmap
+
+**V1 (siguiente)**
+- [x] UI coach de pauta en Nutrición (sección aparte del perfil: tabs Perfil | Pauta)
+- [x] Listado / detalle / archivar (misma lectura que atleta)
+- [ ] Create/edit: editor + prefill comidas desde `User.nutrition.meals` si existen; macros/targets manuales
+- [ ] Al guardar: ordenar `meals` por `time`
+- [x] Vista atleta (ya hecha)
+
+**V2 (después)**
+- [ ] Calcular targets sugeridos (kcal / P / C / G) desde perfil + antropometría + objetivo (`goal`, actividad, peso, altura, edad/sexo)
+- [ ] Coach puede aceptar o editar esos números antes de guardar
+- [ ] (Opc.) repartir macros por comida; (opc.) PDF/imagen adjunto
+
+### Producto / Backend / Frontend (checklist)
+
 ### Producto
-- [x] Formato: pauta estructurada (title, macros, meals, notes) + historial active/archived
-- [ ] Vista coach: crear / editar / archivar pauta del alumno (desde Mis alumnos o nav Nutrición)
-- [x] Vista atleta: ver pauta (nav bajo Mi plan; empty si no hay pauta; soft-delete archivadas)
+- [x] Formato pauta estructurada + historial active/archived
+- [x] Decisión: perfil ≠ pauta; misma nav Nutrición, secciones separadas
+- [x] Vista coach pauta — list/read/archive (+ stub crear)
+- [ ] Vista coach pauta — create/edit (V1)
+- [x] Vista atleta
 
 ### Backend
-- [x] CRUD `nutrition-plans` (coach asignado escribe; atleta self + coach creador asignado leen; atleta soft-delete archivadas)
-- [ ] Storage si hay archivo (Cloudinary u otro) — solo si más adelante sumamos PDF/imagen
+- [x] CRUD `nutrition-plans` (+ soft-delete archivadas atleta)
+- [ ] (V2) endpoint o helper de targets sugeridos — no hace falta hasta V2
+- [ ] Storage archivo — solo si sumamos PDF/imagen
 
 ### Frontend
-- [ ] UI coach (crear / editar / archivar + guardar)
-  - Al guardar: **ordenar `meals` por `time` (HH:mm)**; sin hora → al final, en el orden del editor
-  - El atleta pinta el array tal cual (sin re-sort); los emojis del timeline van por índice
-- [x] UI atleta (lectura + timeline de comidas + empty + soft-delete archivadas; `athlete-nutrition`)
-
+- [x] UI coach pauta — tabs Perfil | Pauta; list/read/archive (`coach-nutrition-plan-ui.js`)
+- [ ] UI coach pauta — create/edit (prefill desde perfil; sort por `time` al guardar)
+- [x] UI atleta (`athlete-nutrition`)
+- Shared render: `nutrition-plan-render.js`
 ---
 
 ## Onboarding coach (“invitar alumno en 2 minutos”)

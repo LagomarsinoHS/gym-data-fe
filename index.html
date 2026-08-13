@@ -18,7 +18,7 @@
     · #sidebar-auth / vistas catalog|training|recommend|coach-plan|athlete-nutrition|coach-panel|coach-templates|students|nutrition|avances|athlete-avances|session-editor|progress-photos|profile → js/features/session-ui.js
     · #recommend-view / #recommend-composer         → js/features/recommend-ui.js
     · #students-view / overlays → js/features/students-ui.js · download → students-download-ui.js
-    · #nutrition-view → js/features/coach-nutrition-ui.js
+    · #nutrition-view → js/features/coach-nutrition-ui.js (+ pauta: coach-nutrition-plan-ui.js)
     · #athlete-nutrition-view / delete overlay → js/features/athlete-nutrition-ui.js
     · #avances-view → js/features/avances-ui.js
     · #athlete-avances-view → js/features/athlete-avances-ui.js
@@ -1075,14 +1075,24 @@
 
         <div id="nutrition-workspace" class="nutrition-workspace" hidden>
           <div class="nutrition-workspace-context">
-            <button type="button" class="session-editor-back" id="nutrition-back">
-              <span class="session-editor-back-ico" aria-hidden="true">
-                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M10 3L5 8l5 5"/>
-                </svg>
-              </span>
-              <span data-ui="nutritionBack">Volver a alumnos</span>
-            </button>
+            <div class="nutrition-workspace-top">
+              <button type="button" class="session-editor-back" id="nutrition-back">
+                <span class="session-editor-back-ico" aria-hidden="true">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10 3L5 8l5 5"/>
+                  </svg>
+                </span>
+                <span data-ui="nutritionBack">Volver a alumnos</span>
+              </button>
+              <nav class="nutrition-mode-toggle" id="nutrition-mode-tabs" role="tablist" aria-label="Secciones de nutrición">
+                <button type="button" class="nutrition-mode-tab is-active" role="tab" data-nutrition-mode="profile" aria-selected="true" id="nutrition-mode-profile">
+                  <span data-ui="nutritionModeProfile">Perfil</span>
+                </button>
+                <button type="button" class="nutrition-mode-tab" role="tab" data-nutrition-mode="plan" aria-selected="false" id="nutrition-mode-plan">
+                  <span data-ui="nutritionModePlan">Pauta</span>
+                </button>
+              </nav>
+            </div>
             <article class="nutrition-athlete-card" id="nutrition-athlete-card">
               <div class="nutrition-athlete-identity">
                 <span class="nutrition-athlete-avatar" aria-hidden="true">
@@ -1145,6 +1155,8 @@
             </div>
           </div>
 
+          <div class="nutrition-workspace-main">
+            <div class="nutrition-workspace-panels">
           <section class="nutrition-profile" id="nutrition-profile">
             <div class="nutrition-profile-loading" id="nutrition-profile-loading" hidden>
               <div class="load-spinner visible" aria-hidden="true"></div>
@@ -1357,6 +1369,52 @@
               </div>
             </form>
           </section>
+
+          <section class="nutrition-plan" id="nutrition-plan" hidden>
+            <div class="nutrition-plan-toolbar" id="nutrition-plan-toolbar">
+              <div class="nutrition-plan-toolbar-copy">
+                <h3 class="nutrition-plan-title" data-ui="nutritionPlanTitle">Pauta alimenticia</h3>
+                <p class="nutrition-plan-lead" data-ui="nutritionPlanLead">Prescripción de comidas y macros para este alumno.</p>
+              </div>
+              <button type="button" class="recommend-cta" id="nutrition-plan-create" hidden>
+                <span data-ui="nutritionPlanCreate">Crear pauta</span>
+              </button>
+            </div>
+
+            <div class="nutrition-plan-loading" id="nutrition-plan-loading" hidden>
+              <div class="load-spinner visible" aria-hidden="true"></div>
+              <span data-ui="nutritionPlanLoading">Cargando pautas…</span>
+            </div>
+            <div class="nutrition-plan-error" id="nutrition-plan-error" hidden>
+              <p data-ui="nutritionPlanLoadFail">No se pudieron cargar las pautas.</p>
+              <button type="button" class="recommend-again-btn" id="nutrition-plan-retry">
+                <span data-ui="nutritionPlanRetry">Reintentar</span>
+              </button>
+            </div>
+            <div class="nutrition-plan-empty" id="nutrition-plan-empty" hidden>
+              <h3 class="nutrition-plan-empty-title" data-ui="nutritionPlanEmpty">Aún no hay pauta</h3>
+              <p class="nutrition-plan-empty-lead" data-ui="nutritionPlanEmptyLead">Crea la primera pauta alimenticia para este alumno.</p>
+              <button type="button" class="recommend-cta" id="nutrition-plan-empty-create">
+                <span data-ui="nutritionPlanCreate">Crear pauta</span>
+              </button>
+            </div>
+            <div class="nutrition-plan-body athlete-nutrition-body" id="nutrition-plan-body" hidden></div>
+
+            <div class="nutrition-plan-editor" id="nutrition-plan-editor" hidden>
+              <button type="button" class="session-editor-back" id="nutrition-plan-editor-back">
+                <span class="session-editor-back-ico" aria-hidden="true">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10 3L5 8l5 5"/>
+                  </svg>
+                </span>
+                <span data-ui="nutritionPlanEditorBack">Volver a pautas</span>
+              </button>
+              <h3 class="nutrition-plan-editor-title" data-ui="nutritionPlanEditorTitle">Nueva pauta</h3>
+              <p class="nutrition-plan-editor-lead" data-ui="nutritionPlanEditorLead">El editor (título, macros, comidas y horarios) queda para la próxima sesión. Prefill desde el perfil al crear.</p>
+            </div>
+          </section>
+            </div>
+          </div>
         </div>
       </div>
     </div>

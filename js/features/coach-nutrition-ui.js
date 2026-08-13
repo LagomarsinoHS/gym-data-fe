@@ -1,12 +1,19 @@
 /**
  * Coach — Nutrición: pick an athlete, show read-only context card.
  * Markup: #nutrition-view
+ * Workspace modes: profile (User.nutrition) | plan (nutritionPlans)
  */
 import { getCoachAthleteNutrition, getCoachAthletes, putCoachAthleteNutrition } from '../api/users.js';
 import { ageFromBirthDate } from '../utils/dates.js';
 import { normalizeSearch, userProfile } from '../utils/helpers.js';
 import { getLang, ui } from '../utils/labels.js';
 import { athleteDisplayName } from './coach-athletes-store.js';
+import {
+  initCoachNutritionPlanUi,
+  resetCoachNutritionPlanUi,
+  syncCoachNutritionPlanLabels,
+  syncCoachNutritionPlanUi,
+} from './coach-nutrition-plan-ui.js';
 import { formatHeightCm, formatWeight } from './progress-history-ui.js';
 
 const PAGE_SIZE = 10;
@@ -82,6 +89,8 @@ let nutritionJustSaved = false;
 let nutritionSavedTimer = 0;
 let profileFormSyncedId = null;
 let nutritionTab = 'summary';
+/** @type {'profile' | 'plan'} */
+let workspaceMode = 'profile';
 let searchTimer = 0;
 /** @type {(view: string) => void} */
 let navigateTo = () => {};
@@ -131,7 +140,11 @@ export function initCoachNutritionUi({ navigateTo: nav } = {}) {
   document.getElementById('nutrition-profile-retry')?.addEventListener('click', () => {
     if (selectedAthlete) void selectAthlete(selectedAthlete);
   });
+  document.querySelectorAll('#nutrition-mode-tabs [data-nutrition-mode]').forEach((btn) => {
+    btn.addEventListener('click', () => setWorkspaceMode(btn.dataset.nutritionMode));
+  });
   initNutritionProfileForm();
+  initCoachNutritionPlanUi();
 
   syncNutritionLabels();
 }
@@ -144,6 +157,8 @@ export function syncNutritionLabels() {
   if (profileSection) profileSection.setAttribute('aria-label', ui('nutritionProfileTitle'));
   const tabsNav = document.querySelector('#nutrition-profile-form .nutrition-profile-tabs');
   if (tabsNav) tabsNav.setAttribute('aria-label', ui('nutritionTabList'));
+  const modeNav = document.getElementById('nutrition-mode-tabs');
+  if (modeNav) modeNav.setAttribute('aria-label', ui('nutritionModeList'));
   if (searchInput) searchInput.placeholder = ui('nutritionSearch');
   if (searchClearBtn) searchClearBtn.setAttribute('aria-label', ui('nutritionSearchClear'));
   const extraActivity = document.getElementById('nutrition-extra-activity');
@@ -163,6 +178,7 @@ export function syncNutritionLabels() {
   }
   syncSaveLabel();
   syncSearchClear();
+  syncCoachNutritionPlanLabels();
   if (pickerEl && (hasFetched || selectedAthlete || loading)) render();
 }
 
@@ -208,8 +224,10 @@ export function resetCoachNutritionUi() {
   clearNutritionSavedFlash();
   profileFormSyncedId = null;
   nutritionTab = 'summary';
+  workspaceMode = 'profile';
   if (searchInput) searchInput.value = '';
   syncSearchClear();
+  resetCoachNutritionPlanUi();
 }
 
 function onSearchInput() {
@@ -247,9 +265,11 @@ function changeAthlete() {
   profileAthleteId = null;
   profileFormSyncedId = null;
   nutritionTab = 'summary';
+  workspaceMode = 'profile';
   searchQuery = '';
   if (searchInput) searchInput.value = '';
   syncSearchClear();
+  resetCoachNutritionPlanUi();
   void reload();
 }
 
@@ -310,6 +330,7 @@ async function selectAthlete(athlete) {
   nutritionLoading = true;
   profileFormSyncedId = null;
   nutritionTab = 'summary';
+  workspaceMode = 'profile';
   hideProfileStatus();
   const seq = ++nutritionLoadSeq;
   render();
@@ -328,6 +349,13 @@ async function selectAthlete(athlete) {
   }
 }
 
+function setWorkspaceMode(mode) {
+  const next = mode === 'plan' ? 'plan' : 'profile';
+  if (workspaceMode === next) return;
+  workspaceMode = next;
+  render();
+}
+
 function render() {
   if (!pickerEl || !workspaceEl) return;
 
@@ -338,13 +366,20 @@ function render() {
 
   if (hasSelection) {
     fillAthleteCard(selectedAthlete);
+    syncWorkspaceModeUi();
     syncNutritionProfileUi();
+    syncCoachNutritionPlanUi({
+      athleteId: String(selectedAthlete.id || '') || null,
+      active: workspaceMode === 'plan',
+    });
     return;
   }
 
   profileAthleteId = null;
   nutritionDraft = null;
   hideProfileStatus();
+  resetCoachNutritionPlanUi();
+  syncWorkspaceModeUi();
 
   const bootLoading = loading && athletes.length === 0;
   if (loadingEl) loadingEl.hidden = !bootLoading;
@@ -515,11 +550,28 @@ function initNutritionProfileForm() {
   document.addEventListener('keydown', onNutritionEscape);
 }
 
+function syncWorkspaceModeUi() {
+  document.querySelectorAll('#nutrition-mode-tabs [data-nutrition-mode]').forEach((btn) => {
+    const selected = btn.dataset.nutritionMode === workspaceMode;
+    btn.setAttribute('aria-selected', selected ? 'true' : 'false');
+    btn.classList.toggle('is-active', selected);
+  });
+  const profileEl = document.getElementById('nutrition-profile');
+  if (profileEl) profileEl.hidden = workspaceMode !== 'profile';
+}
+
 function syncNutritionProfileUi() {
   const profileLoadingEl = document.getElementById('nutrition-profile-loading');
   const errorEl = document.getElementById('nutrition-profile-load-error');
   const form = document.getElementById('nutrition-profile-form');
   const saveBtn = document.getElementById('nutrition-profile-save');
+
+  if (workspaceMode !== 'profile') {
+    if (profileLoadingEl) profileLoadingEl.hidden = true;
+    if (errorEl) errorEl.hidden = true;
+    if (form) form.hidden = true;
+    return;
+  }
 
   const showForm = Boolean(profileAthleteId && nutritionDraft && !nutritionLoading && !nutritionLoadError);
   if (profileLoadingEl) profileLoadingEl.hidden = !nutritionLoading;

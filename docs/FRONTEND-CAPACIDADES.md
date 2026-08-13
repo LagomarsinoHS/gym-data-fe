@@ -60,6 +60,7 @@ Si el boot falla → mensaje de error en el contador de resultados.
 | `training` | Plan personal (`trainingProgram`) |
 | `recommend` | Recomendar (solo si `subscription.plan === 'premium'`) |
 | `coach-plan` | Plan del coach (`coachTrainingProgram`; empty sin coach / sin plan; columna centrada ~720px) |
+| `nutrition` | Coach: perfil nutricional del alumno + sección **Pauta** (list/read/archive; create/edit pendiente) |
 | `athlete-nutrition` | Atleta: pautas propias (`GET /nutrition-plans`; empty si no hay pauta; soft-delete archivadas) |
 | `athlete-avances` | Atleta: upload (mes actual o backfill) + historial timeline + comparar |
 | `coach-panel` | Resumen informativo (`coach-panel-ui`): total alumnos + sin pauta + historial invites |
@@ -235,9 +236,21 @@ Vista `athlete-nutrition` (`athlete-nutrition-ui.js`, API `js/api/nutrition-plan
 - Orden de `meals`: el array tal cual viene del API (sin sort en atleta). Convención: la UI coach ordenará por `time` al guardar.
 - Archivadas: hover esquina derecha → ✕ → confirm → `DELETE /nutrition-plans/:id` (soft `deletedAt`).
 - Empty si no hay pauta (sigue visible tras dejar coach; soft-delete solo quita del listado del atleta).
+- Render compartido con coach: `nutrition-plan-render.js`.
 
 ---
 
+## 9d. Nutrición (coach)
+
+Vista `nutrition` (`coach-nutrition-ui.js` + `coach-nutrition-plan-ui.js`).
+
+- Picker de alumno → workspace con card de contexto.
+- Tabs **Perfil** | **Pauta** (toggle tipo idioma, a la derecha de “Volver a alumnos”; `User.nutrition` vs `nutritionPlans`).
+- **Perfil**: formulario existente (actividad / hábitos / prefs / restricciones).
+- **Pauta**: `GET /nutrition-plans?athleteId=` → pauta actual + anteriores (misma lectura que atleta); **Archivar** → `PATCH .../archive`.
+- **Crear pauta**: stub del editor (próxima sesión: form + prefill desde perfil + sort por `time` al guardar).
+
+---
 ## 10. Avances / fotos de progreso
 
 Historial y comparar viven en el módulo compartido `progress-history-ui.js` (coach + atleta).
@@ -434,6 +447,8 @@ Al boot, `theme-boot.js` migra una vez keys legacy `FLEX_*` → `steelPulse.*` (
 | Historial/comparar (shared) | `js/features/progress-history-ui.js` |
 | Avances atleta | `js/features/athlete-avances-ui.js` |
 | Nutrición atleta | `js/features/athlete-nutrition-ui.js` |
+| Nutrición coach | `js/features/coach-nutrition-ui.js`, `coach-nutrition-plan-ui.js` |
+| Pauta render (shared) | `js/features/nutrition-plan-render.js` |
 | Lightbox + download | `js/features/progress-photo-lightbox.js` |
 | Drawer | `js/features/nav-drawer.js` |
 | Tema | `theme-boot.js`, `theme-ui.js` |
