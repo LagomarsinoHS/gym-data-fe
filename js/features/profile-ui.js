@@ -13,6 +13,8 @@ import { ageFromBirthDate, formatDate } from '../utils/dates.js';
 import { ApiErrorCode, mapApiError } from '../utils/api-errors.js';
 import { userProfile } from '../utils/helpers.js';
 import { getLang, ui } from '../utils/labels.js';
+import { formatGoal, formatSex, formatWeight } from '../utils/profile-labels.js';
+import { setInlineStatus } from '../utils/dom-status.js';
 import { openProgressPhotoLightbox } from './progress-photo-lightbox.js';
 import {
   canInviteAthlete,
@@ -1605,17 +1607,7 @@ function syncConfirmEnabled() {
 }
 
 function setStatus(message, kind = '') {
-  if (!statusEl) return;
-  if (!message) {
-    statusEl.hidden = true;
-    statusEl.textContent = '';
-    statusEl.classList.remove('is-error', 'is-ok');
-    return;
-  }
-  statusEl.hidden = false;
-  statusEl.textContent = message;
-  statusEl.classList.toggle('is-error', kind === 'error');
-  statusEl.classList.toggle('is-ok', kind === 'ok');
+  setInlineStatus(statusEl, message, kind);
 }
 
 async function onDeactivateSubmit(e) {
@@ -1716,43 +1708,6 @@ function planLabel(plan) {
 function isPaidPlan(plan) {
   const value = String(plan || 'free');
   return value === 'premium' || value === 'growth' || value === 'pro';
-}
-
-function formatWeight(weight) {
-  if (weight == null || weight === '') return '—';
-  if (typeof weight === 'number' && Number.isFinite(weight)) return `${weight} kg`;
-  const text = String(weight).trim();
-  return text || '—';
-}
-
-function formatSex(sex) {
-  switch (String(sex || '')) {
-    case 'male':
-      return ui('profileSexMale');
-    case 'female':
-      return ui('profileSexFemale');
-    case 'other':
-      return ui('profileSexOther');
-    case 'prefer_not_to_say':
-      return ui('profileSexPreferNot');
-    default:
-      return '';
-  }
-}
-
-function formatGoal(goal) {
-  switch (String(goal || '')) {
-    case 'strength':
-      return ui('profileGoalStrength');
-    case 'hypertrophy':
-      return ui('profileGoalHypertrophy');
-    case 'fat_loss':
-      return ui('profileGoalFatLoss');
-    case 'general':
-      return ui('profileGoalGeneral');
-    default:
-      return '';
-  }
 }
 
 function metricIconSvg(kind) {

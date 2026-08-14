@@ -7,6 +7,8 @@
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="stylesheet" href="public/css/base.css" />
   <link rel="stylesheet" href="public/css/app.css" />
+  <link rel="stylesheet" href="public/css/nutrition.css" />
+  <link rel="stylesheet" href="public/css/progress.css" />
   <script src="js/theme-boot.js"></script>
   <!--
     Mapa rápido (markup → JS):
@@ -303,12 +305,7 @@
         </button>
       </div>
       <div class="grid-wrapper">
-        <div class="exercise-grid" id="exercise-grid">
-          <div class="catalog-boot-loading" id="catalog-boot-loading">
-            <div class="load-spinner visible" aria-hidden="true"></div>
-            <span data-ui="loading">Cargando ejercicios…</span>
-          </div>
-        </div>
+        <div class="exercise-grid" id="exercise-grid"></div>
         <div class="load-sentinel" id="load-sentinel">
           <div class="load-spinner" id="load-spinner"></div>
         </div>
@@ -1024,7 +1021,7 @@
                 class="session-editor-title"
                 id="session-editor-name"
                 name="sessionName"
-                maxlength="40"
+                maxlength="80"
                 autocomplete="off"
                 aria-label="Nombre"
               />
@@ -1272,7 +1269,7 @@
                   </label>
                   <label class="nutrition-profile-field">
                     <span class="nutrition-profile-label" data-ui="nutritionProfileSteps">Pasos diarios</span>
-                    <input type="number" id="nutrition-steps" name="dailySteps" min="0" max="50000" step="100" inputmode="numeric" />
+                    <input type="number" id="nutrition-steps" name="dailySteps" min="0" max="100000" step="100" inputmode="numeric" />
                   </label>
                   <label class="nutrition-profile-field">
                     <span class="nutrition-profile-label" data-ui="nutritionProfileCardio">Cardio semanal</span>
@@ -1716,7 +1713,7 @@
     <form class="recommend-form" id="add-session-form">
       <label class="recommend-field">
         <span class="recommend-label" data-ui="addSessionName">Nombre</span>
-        <input type="text" id="add-session-name" name="name" required maxlength="40" autocomplete="off" />
+        <input type="text" id="add-session-name" name="name" required maxlength="80" autocomplete="off" />
       </label>
       <p class="recommend-hint" data-ui="addSessionHint">
         Nombre visible para el atleta (ej. Lunes, Sesión 1).
@@ -1969,7 +1966,7 @@
       </label>
       <label class="auth-field">
         <span class="auth-label" data-ui="password">Contraseña</span>
-        <input type="password" id="auth-password" name="password" required minlength="6" autocomplete="current-password" />
+        <input type="password" id="auth-password" name="password" required minlength="4" autocomplete="current-password" />
       </label>
       <fieldset class="auth-field auth-role-field auth-register-only" hidden>
         <legend class="auth-label" data-ui="authRole">Tipo de cuenta</legend>

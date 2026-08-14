@@ -1,8 +1,10 @@
 # ExerciseDB — Frontend
 
+> **V estable — 2026-08-13.** Marcá commits/tags con esta fecha para identificar el snapshot estable del FE (cleanup + nutrición/avances/admin polish). Detalle: [`docs/FRONTEND-CAPACIDADES.md`](docs/FRONTEND-CAPACIDADES.md).
+
 Frontend estático para explorar una librería de **~1.324 ejercicios** de fitness (catálogo desde la API/BD): filtros, búsqueda, infinite scroll, detalle con GIF e instrucciones bilingües (ES/EN).
 
-Con sesión: **Mi plan** → vista **Mi entrenamiento** con el `trainingProgram` del usuario.
+Con sesión: **Mi plan** (entrenamiento, plan del coach, nutrición, avances), flujos de coach y admin.
 
 Consume la API desplegada en Render (o tu backend local).
 
@@ -18,14 +20,14 @@ Consume la API desplegada en Render (o tu backend local).
 - Modal de detalle: meta, músculos, instrucciones ES/EN, compartir enlace
 - Botón **WOD** → ejercicio random (`GET /exercises/random`)
 - Auth (login / registro) + roles atleta / coach / admin
-- Menú de cuenta en sidebar: iniciales/foto, nombre corto, rol; dropdown (Mi perfil activo; Configuración “Próximamente”; Cerrar sesión)
-- **Mi entrenamiento**, **Plan del coach**, **Avances** (upload / backfill + timeline + comparar + analizar IA)
-- Coach: **Panel**, **Plantillas**, **Mis alumnos** (ordenar, badge Nuevo, export Excel/PDF), **Avances**
-- Admin: **Overview** + **Usuarios** (stats, grant/revoke, soft-delete)
+- Menú de cuenta en sidebar: iniciales/foto, nombre corto, rol; dropdown (Mi perfil; Cerrar sesión)
+- Atleta: **Mi entrenamiento**, **Plan del coach**, **Nutrición** (pautas), **Avances** (upload / backfill + timeline + comparar)
+- Coach: **Panel**, **Plantillas**, **Mis alumnos**, **Nutrición** (perfil + pauta list/read/archive), **Avances**
+- Admin: **Overview** + **Usuarios** (acordeón detalle, grant/revoke, soft-delete)
 - Banner de invite pendiente (atleta) vía `GET /users/me/pending-coach-invite`
 - Planes: athlete `free`/`premium`; coach `free`/`growth`/`pro` + `coachQuota` en `/me`
 - UI bilingüe (Español / English)
-- Media local (`public/images`, `public/videos`); fotos de progreso/perfil vía Cloudinary
+- Media de ejercicios vía paths relativos (`images/…`, `videos/…` desde la API); fotos de progreso/perfil vía Cloudinary
 
 ---
 
@@ -45,18 +47,17 @@ gym-data-fe/
 ├── js/
 │   ├── main.js             # Catálogo, modal, plan
 │   ├── constants.js        # constantes no-i18n (ej. EQUIP_INITIAL)
-│   ├── i18n/               # copy EN/ES por dominio (common, auth, athlete, coach)
-│   ├── api/                # request, auth, users, exercises, token, coach-templates, admin
-│   ├── features/           # auth, session, training, students, panel, invite, templates, avances, profile, admin…
-│   └── utils/              # assets, cards, helpers, labels, dates, api-errors
+│   ├── i18n/               # copy EN/ES por dominio (common, auth, athlete, coach, profile, admin)
+│   ├── api/                # request, auth, users, exercises, nutrition-plans, token, coach-templates, admin
+│   ├── features/           # auth, session, training, students, nutrition, panel, invite, templates, avances, profile, admin…
+│   └── utils/              # assets, cards, helpers, labels, dates, api-errors, profile-labels, year-month, overlay, dom-status
 ├── public/
-│   ├── css/                # base.css, app.css
-│   ├── images/
-│   └── videos/
+│   └── css/                # base.css, app.css, nutrition.css, progress.css
 ├── PRODUCT.md              # visión de producto
 └── docs/
     ├── FRONTEND-CAPACIDADES.md   # qué hace el FE hoy
-    └── TODO.md                   # pendientes
+    ├── TODO.md                   # pendientes
+    └── nutricion_coach_v1.md     # draft histórico (superseded)
 ```
 
 ---
@@ -103,7 +104,9 @@ Catálogo completo y shapes: BE [`docs/API-ENDPOINTS.md`](../gym-data-be/docs/AP
 | `POST`/`PUT` | `/users/training-program` · `…/remove` · `…/:exerciseId` | Plan personal |
 | `POST` | `/users/me/progress-photos` | Upload avance (multipart) |
 | `GET`/`POST` | `/users/:userId/progress-photos` · `…/analyze` | Historial / analizar IA |
+| `GET`/`PUT` | `/users/coach/athletes/:id/nutrition` | Perfil nutricional (coach) |
 | `GET`/`POST` | `/users/coach/athletes` · `/invites` · export · training-program | Coach roster / invites / export |
+| `POST`/`GET`/`PUT`/`PATCH`/`DELETE` | `/nutrition-plans` · `…/:id` · `…/archive` | Pautas alimenticias |
 | `GET`/`POST`/`PUT` | `/coach/templates` · `…/apply` | Plantillas |
 | `GET`/`DELETE`/`POST` | `/admin/stats` · `/users` · subscriptions grant/revoke | Admin |
 

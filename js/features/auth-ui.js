@@ -5,6 +5,7 @@
 import { createUser, loginUser } from '../api/auth.js';
 import { setToken } from '../api/token.js';
 import { authErrorMessage } from '../utils/auth-errors.js';
+import { setInlineStatus } from '../utils/dom-status.js';
 import { ui } from '../utils/labels.js';
 
 let overlay;
@@ -88,11 +89,7 @@ async function onSubmit(e) {
 }
 
 function setStatus(text, kind = '') {
-  if (!statusEl) return;
-  statusEl.textContent = text;
-  statusEl.classList.toggle('is-error', kind === 'error');
-  statusEl.classList.toggle('is-ok', kind === 'ok');
-  statusEl.hidden = !text;
+  setInlineStatus(statusEl, text, kind);
 }
 
 function focusFirstField() {

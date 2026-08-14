@@ -5,6 +5,7 @@
  */
 import { getAdminStats } from '../api/admin.js';
 import { ui } from '../utils/labels.js';
+import { setInlineStatus } from '../utils/dom-status.js';
 import { openAdminUsers } from './admin-users-ui.js';
 import { isAdmin, setView } from './session-ui.js';
 
@@ -154,14 +155,5 @@ function setBodyVisible(on) {
 }
 
 function setStatus(message, kind = '') {
-  if (!statusEl) return;
-  if (!message) {
-    statusEl.hidden = true;
-    statusEl.textContent = '';
-    statusEl.classList.remove('is-error');
-    return;
-  }
-  statusEl.hidden = false;
-  statusEl.textContent = message;
-  statusEl.classList.toggle('is-error', kind === 'error');
+  setInlineStatus(statusEl, message, kind);
 }

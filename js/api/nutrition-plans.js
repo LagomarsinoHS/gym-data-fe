@@ -1,3 +1,8 @@
+/**
+ * Nutrition plans API.
+ * Note: create / update / getNutritionPlan are wired for the coach editor (next);
+ * list / archive / delete are used by athlete + coach plan UIs today.
+ */
 import { get, post, put, patch, deleteRequest } from './request.js';
 
 const PLANS = '/nutrition-plans';

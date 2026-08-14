@@ -9,6 +9,7 @@
  */
 import { getPendingCoachInvite, respondCoachInvite } from '../api/users.js';
 import { ui } from '../utils/labels.js';
+import { setInlineStatus } from '../utils/dom-status.js';
 import { ApiErrorCode, mapApiError } from '../utils/api-errors.js';
 import {
   getUser,
@@ -184,16 +185,7 @@ function clearFlashTimer() {
 }
 
 function setStatus(message, kind = '') {
-  if (!statusEl) return;
-  if (!message) {
-    statusEl.hidden = true;
-    statusEl.textContent = '';
-    statusEl.classList.remove('is-error');
-    return;
-  }
-  statusEl.hidden = false;
-  statusEl.textContent = message;
-  statusEl.classList.toggle('is-error', kind === 'error');
+  setInlineStatus(statusEl, message, kind);
 }
 
 function setBusy(next) {

@@ -10,8 +10,15 @@ import {
   createFeatureHint,
   dismissFeatureHintById,
 } from '../utils/feature-hints.js';
+import { sortByOrder } from '../utils/helpers.js';
 import { exerciseName, ui } from '../utils/labels.js';
 import { prescriptionLines, prescriptionNote } from '../utils/prescription.js';
+import {
+  newLocalSessionId,
+  serializeCoachTrainingProgram,
+  sessionAccordionMeta,
+  totalSessionSets,
+} from './coach-session-serialize.js';
 import {
   store,
   findAthlete,
@@ -24,6 +31,8 @@ import {
   clearAthleteDirty,
   isTemplatesScope,
 } from './coach-athletes-store.js';
+
+export { serializeCoachTrainingProgram } from './coach-session-serialize.js';
 
 const ICON_CLOSE_SVG = `
   <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
@@ -459,7 +468,7 @@ function createSessionRow(session, athleteId) {
   } else {
     const summary = document.createElement('div');
     summary.className = 'student-session-summary';
-    const sorted = [...items].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    const sorted = sortByOrder(items);
     for (const item of sorted) {
       summary.appendChild(createSessionMiniCard(item));
     }
@@ -687,11 +696,11 @@ export function syncSessionEditorView() {
   }
 
   syncSessionEditorReorderHint(
-    [...(session.items || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).length,
+    sortByOrder(session.items || []).length,
   );
 
   listEl.replaceChildren();
-  const items = [...(session.items || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const items = sortByOrder(session.items || []);
   if (!items.length) return;
 
   const frag = document.createDocumentFragment();
@@ -811,7 +820,7 @@ export function renameSession(athleteId, sessionId, name) {
   const session = findSession(athleteId, sessionId);
   if (!session) return false;
 
-  const next = String(name || '').trim().slice(0, 40);
+  const next = String(name || '').trim().slice(0, 80);
   if (!next || next === String(session.name || '').trim()) {
     const input = document.getElementById('session-editor-name');
     if (input && document.activeElement !== input) input.value = String(session.name || '').trim();
@@ -969,7 +978,7 @@ export function moveSessionToIndex(athleteId, sessionId, toIndex) {
   if (!athlete) return false;
 
   const sessions = ensureAthleteSessions(athlete);
-  const sorted = [...sessions].sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0));
+  const sorted = sortByOrder(sessions);
   const from = sorted.findIndex(s => String(s?.id) === String(sessionId));
   if (from < 0) return false;
 
@@ -994,7 +1003,7 @@ export function moveSessionExerciseToIndex(athleteId, sessionId, exerciseId, toI
   if (!session) return false;
 
   const items = Array.isArray(session.items) ? session.items : [];
-  const sorted = [...items].sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0));
+  const sorted = sortByOrder(items);
   const key = String(exerciseId || '');
   const from = sorted.findIndex(
     item => String(item.exercise?.id || item.exerciseId) === key,
@@ -1183,28 +1192,6 @@ export function removeSessionFromAthlete(athleteId, sessionId) {
 }
 
 // ── Plan dirty + save (PUT) ───────────────────────────────────────────
-/** PUT body shape: sessions + items with exerciseId only (no populated exercise). */
-export function serializeCoachTrainingProgram(athlete) {
-  return getAthleteSessions(athlete).map((session, index) => ({
-    id: String(session.id),
-    name: String(session.name || '').trim(),
-    order: session.order ?? index,
-    items: (session.items || []).map((item, itemIndex) => {
-      const payload = {
-        exerciseId: String(item.exercise?.id || item.exerciseId || ''),
-        order: item.order ?? itemIndex,
-      };
-      if (item.sets != null) payload.sets = item.sets;
-      if (item.reps) payload.reps = String(item.reps);
-      if (item.rest != null) payload.rest = item.rest;
-      if (item.notes != null && String(item.notes).trim() !== '') {
-        payload.notes = String(item.notes).trim();
-      }
-      return payload;
-    }),
-  }));
-}
-
 function createPlanSaveBar(athleteId) {
   const id = String(athleteId);
   const bar = document.createElement('div');
@@ -1305,7 +1292,7 @@ function reorderExerciseRowsInDom(sessionId) {
   const list = document.getElementById('session-editor-list');
   if (!session || !list) return false;
 
-  const items = [...(session.items || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const items = sortByOrder(session.items || []);
   for (const item of items) {
     const id = String(item.exercise?.id || item.exerciseId || '');
     if (!id) continue;
@@ -1403,28 +1390,6 @@ function createExerciseMedia(ex, name, { mediaClass, thumbClass }) {
   }, { once: true });
   media.append(thumb);
   return media;
-}
-
-function newLocalSessionId() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-/** Sum of items[].sets (missing / invalid → 0). Derived — not stored in API. */
-function totalSessionSets(items) {
-  return (items || []).reduce((sum, item) => {
-    const n = Number(item?.sets);
-    return sum + (Number.isFinite(n) && n > 0 ? Math.floor(n) : 0);
-  }, 0);
-}
-
-function sessionAccordionMeta(items) {
-  const list = Array.isArray(items) ? items : [];
-  const parts = [ui('sessionExercisesCount', list.length)];
-  if (list.length) parts.push(ui('sessionSetsCount', totalSessionSets(list)));
-  return parts.join(' · ');
 }
 
 function appendPrescriptionDetail(parent, item, {

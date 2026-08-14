@@ -2,7 +2,7 @@
  * Shared in-memory state for coach Mis alumnos + session plan editing.
  * Single owner of athletes / dirty / editor pointers so UI modules stay thin.
  */
-import { userProfile } from '../utils/helpers.js';
+import { sortByOrder, userProfile } from '../utils/helpers.js';
 
 /** Virtual athlete id for coachTemplates edit via the session editor. */
 export const TEMPLATES_SCOPE_ID = '__coach_templates__';
@@ -101,7 +101,13 @@ export function athleteDisplayName(athlete) {
 export function getAthleteSessions(athlete) {
   const prog = athlete?.coachTrainingProgram;
   if (!Array.isArray(prog)) return [];
-  return [...prog].sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0));
+  return sortByOrder(prog);
+}
+
+export function athleteHasPlan(athlete) {
+  const prog = athlete?.coachTrainingProgram;
+  if (!Array.isArray(prog) || prog.length === 0) return false;
+  return prog.some(session => Array.isArray(session?.items) && session.items.length > 0);
 }
 
 export function ensureAthleteSessions(athlete) {

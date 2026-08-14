@@ -9,6 +9,8 @@ import {
   applyCoachTemplates,
 } from '../api/coach-templates.js';
 import { ui } from '../utils/labels.js';
+import { setInlineStatus } from '../utils/dom-status.js';
+import { bindOverlay } from '../utils/overlay.js';
 import {
   store,
   TEMPLATES_SCOPE_ID,
@@ -133,18 +135,6 @@ export function initCoachTemplatesUi() {
     },
   });
 
-  document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape') return;
-    if (applyOverlay?.classList.contains('open')) {
-      e.stopImmediatePropagation();
-      closeApplyTemplateModal();
-      return;
-    }
-    if (useOverlay?.classList.contains('open')) {
-      e.stopImmediatePropagation();
-      closeUseTemplatesModal();
-    }
-  });
 }
 
 export function syncCoachTemplatesLabels() {
@@ -235,17 +225,7 @@ function setLoading(on) {
 }
 
 function setStatus(message, kind = '') {
-  if (!statusEl) return;
-  if (!message) {
-    statusEl.hidden = true;
-    statusEl.textContent = '';
-    statusEl.classList.remove('is-error', 'is-ok');
-    return;
-  }
-  statusEl.hidden = false;
-  statusEl.textContent = message;
-  statusEl.classList.toggle('is-error', kind === 'error');
-  statusEl.classList.toggle('is-ok', kind === 'ok');
+  setInlineStatus(statusEl, message, kind);
 }
 
 function hideApplyToast(immediate = false) {
@@ -859,28 +839,18 @@ function bindOverlayChrome({
   searchInput,
   onSearch,
 }) {
-  for (const id of closeIds) {
-    document.getElementById(id)?.addEventListener('click', onClose);
-  }
-  overlay?.addEventListener('click', (e) => {
-    if (e.target === overlay) onClose();
+  bindOverlay({
+    overlay,
+    closeSelectors: closeIds.map((id) => `#${id}`),
+    onClose,
+    stopEscapePropagation: true,
   });
   confirmBtn?.addEventListener('click', onConfirm);
   searchInput?.addEventListener('input', onSearch);
 }
 
 function setPickerStatus(el, message, kind = '') {
-  if (!el) return;
-  if (!message) {
-    el.hidden = true;
-    el.textContent = '';
-    el.classList.remove('is-error', 'is-ok');
-    return;
-  }
-  el.hidden = false;
-  el.textContent = message;
-  el.classList.toggle('is-error', kind === 'error');
-  el.classList.toggle('is-ok', kind === 'ok');
+  setInlineStatus(el, message, kind);
 }
 
 function setPickerLoading(parts, on, isEmpty) {

@@ -15,10 +15,34 @@ import {
   syncSessionEditorView,
 } from './coach-sessions-ui.js';
 import { syncProgressPhotosView } from './progress-photos-ui.js';
-import { syncAvancesView } from './avances-ui.js';
+import { resetAvancesUi, syncAvancesView } from './avances-ui.js';
 import { syncAthleteAvancesView } from './athlete-avances-ui.js';
 import { resetAthleteNutritionUi, syncAthleteNutritionView } from './athlete-nutrition-ui.js';
 import { syncProfileView } from './profile-ui.js';
+import {
+  bindSessionUser,
+  isCoach,
+  isAdmin,
+  isAthlete,
+  hasCoach,
+  canAccessRecommendPlan,
+  isPremium,
+  isPaidPlan,
+  canAccessProgressAiAnalysis,
+  canInviteAthlete,
+} from './session-capabilities.js';
+
+export {
+  isCoach,
+  isAdmin,
+  isAthlete,
+  hasCoach,
+  canAccessRecommendPlan,
+  isPremium,
+  isPaidPlan,
+  canAccessProgressAiAnalysis,
+  canInviteAthlete,
+};
 
 const VIEWS = new Set([
   'catalog',
@@ -71,60 +95,6 @@ async function notifyUserSynced() {
   await Promise.all(
     [...userSyncedListeners].map((fn) => Promise.resolve().then(() => fn())),
   );
-}
-
-export function isCoach(u = user) {
-  if (!u) return false;
-  return u.role === 'coach';
-}
-
-export function isAdmin(u = user) {
-  if (!u) return false;
-  return u.role === 'admin';
-}
-
-export function isAthlete(u = user) {
-  if (!u) return false;
-  return u.role === 'athlete';
-}
-
-export function hasCoach(u = user) {
-  return Boolean(u?.coachId);
-}
-
-/**
- * Acceso a “Recomendar Entrenamiento”.
- * Gate: athlete + subscription.plan === 'premium' (GET /users/me).
- */
-export function canAccessRecommendPlan(u = user) {
-  if (!u || !isAthlete(u)) return false;
-  return isPremium(u);
-}
-
-/** True when GET /users/me has subscription.plan === 'premium'. */
-export function isPremium(u = user) {
-  return u?.subscription?.plan === 'premium';
-}
-
-/** True when subscription.plan is a paid tier (not free). */
-export function isPaidPlan(u = user) {
-  const plan = String(u?.subscription?.plan || 'free');
-  return plan === 'premium' || plan === 'growth' || plan === 'pro';
-}
-
-/**
- * Coach access to “Analizar con IA” on athlete progress photos.
- * Gate: coach + subscription.plan !== 'free'.
- */
-export function canAccessProgressAiAnalysis(u = user) {
-  if (!u || !isCoach(u)) return false;
-  return isPaidPlan(u);
-}
-
-/** Coach can open/send athlete invites (coachQuota.canInvite from GET /users/me). */
-export function canInviteAthlete(u = user) {
-  if (!u || !isCoach(u)) return false;
-  return Boolean(u.coachQuota?.canInvite);
 }
 
 export function initSessionUi({ onViewChange: cb } = {}) {
@@ -242,6 +212,7 @@ export async function restoreSession() {
     user = null;
     clearCoachAthletesCache();
     resetCoachNutritionUi();
+    resetAvancesUi();
     renderSessionChrome();
     await notifyUserSynced();
     return null;
@@ -251,6 +222,7 @@ export async function restoreSession() {
     user = await getMe();
     clearCoachAthletesCache();
     resetCoachNutritionUi();
+    resetAvancesUi();
     renderSessionChrome();
     await notifyUserSynced();
     return user;
@@ -260,6 +232,7 @@ export async function restoreSession() {
     user = null;
     clearCoachAthletesCache();
     resetCoachNutritionUi();
+    resetAvancesUi();
     renderSessionChrome();
     await notifyUserSynced();
     return null;
@@ -269,6 +242,8 @@ export async function restoreSession() {
 export function getUser() {
   return user;
 }
+
+bindSessionUser(getUser);
 
 /** Replace in-memory user (e.g. after program update). */
 export function setUser(next) {
@@ -324,6 +299,7 @@ export function logout() {
   clearRecommendPlan();
   clearCoachAthletesCache();
   resetCoachNutritionUi();
+  resetAvancesUi();
   resetAthleteNutritionUi();
   renderSessionChrome();
   void notifyUserSynced();

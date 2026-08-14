@@ -4,14 +4,11 @@
  * Markup: #nutrition-plan
  */
 import { archiveNutritionPlan, listNutritionPlans } from '../api/nutrition-plans.js';
-import { ui } from '../utils/labels.js';
+import { syncViewLabels, ui } from '../utils/labels.js';
+import { renderNutritionPlansList } from './nutrition-plan-list-ui.js';
 import {
-  createMacrosRow,
-  createPlanBody,
   el,
   formatKcal,
-  formatMonthYear,
-  formatShortDate,
   personName,
   sortNutritionPlans,
 } from './nutrition-plan-render.js';
@@ -97,9 +94,7 @@ export function syncCoachNutritionPlanUi({ athleteId: nextId, active }) {
 }
 
 export function syncCoachNutritionPlanLabels() {
-  document.querySelectorAll('#nutrition-plan [data-ui]').forEach((node) => {
-    node.textContent = ui(node.dataset.ui);
-  });
+  syncViewLabels('#nutrition-plan');
   const modeNav = document.getElementById('nutrition-mode-tabs');
   if (modeNav) modeNav.setAttribute('aria-label', ui('nutritionModeList'));
   const bodyEl = document.getElementById('nutrition-plan-body');
@@ -120,7 +115,7 @@ async function loadCoachNutritionPlans() {
   try {
     const res = await listNutritionPlans({ athleteId });
     if (seq !== loadSeq) return;
-    const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+    const list = Array.isArray(res?.data) ? res.data : [];
     plans = sortNutritionPlans(list);
     loaded = true;
     loading = false;
@@ -173,129 +168,51 @@ function renderCoachNutritionPlan() {
 }
 
 function renderPlans(root) {
-  root.replaceChildren();
-
-  const active = plans.filter((plan) => plan.status !== 'archived');
-  const archived = plans.filter((plan) => plan.status === 'archived');
-
-  if (active.length) {
-    const section = el('section', 'athlete-nutrition-section');
-    section.append(el('h3', 'athlete-nutrition-group-title', ui('nutritionPlanActive')));
-    const list = el('div', 'athlete-nutrition-current-list');
-    for (const plan of active) {
-      list.append(createCurrentCard(plan, { open: openCurrentId === plan.id }));
-    }
-    section.append(list);
-    root.append(section);
-  }
-
-  if (archived.length) {
-    const section = el('section', 'athlete-nutrition-section');
-    section.append(el('h3', 'athlete-nutrition-group-title', ui('nutritionPlanArchived')));
-    const list = el('div', 'athlete-nutrition-archive-list');
-    for (const plan of archived) {
-      list.append(createArchivedItem(plan, { open: openArchivedId === plan.id }));
-    }
-    section.append(list);
-    root.append(section);
-  }
-}
-
-function createCurrentCard(plan, { open }) {
-  const card = el('article', `athlete-nutrition-current-card${open ? ' is-open' : ''}`);
-
-  const summary = el('div', 'athlete-nutrition-current-summary');
-  const top = el('div', 'athlete-nutrition-current-top');
-  top.append(
-    el('span', 'athlete-nutrition-month', formatMonthYear(plan?.validFrom)),
-    el('span', 'athlete-nutrition-status', ui('athleteNutritionStatusActive')),
-  );
-
-  const toggle = document.createElement('button');
-  toggle.type = 'button';
-  toggle.className = 'athlete-nutrition-view-btn';
-  toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-  toggle.append(
-    el('span', 'athlete-nutrition-view-label', ui(open ? 'athleteNutritionHidePlan' : 'athleteNutritionViewPlan')),
-    el('span', 'athlete-nutrition-view-arrow', open ? '↑' : '→'),
-  );
-  toggle.addEventListener('click', () => {
-    openCurrentId = open ? null : plan.id;
-    openArchivedId = null;
-    renderCoachNutritionPlan();
+  renderNutritionPlansList(root, {
+    plans,
+    openCurrentId,
+    openArchivedId,
+    activeTitle: ui('nutritionPlanActive'),
+    archivedTitle: ui('nutritionPlanArchived'),
+    currentSubtitle: planSubtitle,
+    archivedMeta: archivedPlanMeta,
+    onToggleCurrent: (planId) => {
+      openCurrentId = openCurrentId === planId ? null : planId;
+      openArchivedId = null;
+      renderCoachNutritionPlan();
+    },
+    onToggleArchived: (planId) => {
+      openArchivedId = openArchivedId === planId ? null : planId;
+      openCurrentId = null;
+      renderCoachNutritionPlan();
+    },
+    appendCurrentActions: (plan, summaryEl) => {
+      const actions = el('div', 'nutrition-plan-card-actions');
+      const archiveBtn = document.createElement('button');
+      archiveBtn.type = 'button';
+      archiveBtn.className = 'recommend-again-btn nutrition-plan-archive-btn';
+      archiveBtn.textContent = ui('nutritionPlanArchive');
+      archiveBtn.disabled = archiveBusy;
+      archiveBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        void confirmArchive(plan);
+      });
+      actions.append(archiveBtn);
+      summaryEl.append(actions);
+    },
   });
-  top.append(toggle);
-  summary.append(top);
-
-  const footer = el('div', 'athlete-nutrition-current-footer');
-  footer.append(
-    el(
-      'p',
-      'athlete-nutrition-valid',
-      ui('athleteNutritionValidFrom', formatShortDate(plan?.validFrom)),
-    ),
-  );
-  summary.append(
-    el('p', 'athlete-nutrition-subtitle-line', planSubtitle(plan)),
-    createMacrosRow(plan?.targets),
-    footer,
-  );
-
-  const actions = el('div', 'nutrition-plan-card-actions');
-  const archiveBtn = document.createElement('button');
-  archiveBtn.type = 'button';
-  archiveBtn.className = 'recommend-again-btn nutrition-plan-archive-btn';
-  archiveBtn.textContent = ui('nutritionPlanArchive');
-  archiveBtn.disabled = archiveBusy;
-  archiveBtn.addEventListener('click', (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    void confirmArchive(plan);
-  });
-  actions.append(archiveBtn);
-  summary.append(actions);
-
-  const body = el('div', 'athlete-nutrition-detail');
-  if (open) body.append(createPlanBody(plan, { includeTargets: false, includeTitle: false }));
-
-  card.append(summary, body);
-  return card;
-}
-
-function createArchivedItem(plan, { open }) {
-  const item = el('section', `athlete-nutrition-archive-item${open ? ' is-open' : ''}`);
-
-  const header = document.createElement('button');
-  header.type = 'button';
-  header.className = 'athlete-nutrition-archive-header';
-  header.setAttribute('aria-expanded', open ? 'true' : 'false');
-  const kcal = formatKcal(plan?.targets?.calories);
-  const athlete = personName(plan?.athlete);
-  const heading = el('span', 'athlete-nutrition-archive-heading');
-  heading.append(
-    el('span', 'athlete-nutrition-month', formatMonthYear(plan?.validFrom)),
-    el('span', 'athlete-nutrition-archive-meta', `${kcal} kcal • ${athlete}`),
-  );
-  const chevron = el('span', 'athlete-nutrition-chevron');
-  chevron.setAttribute('aria-hidden', 'true');
-  chevron.textContent = open ? '▾' : '▸';
-  header.append(heading, chevron);
-  header.addEventListener('click', () => {
-    openArchivedId = open ? null : plan.id;
-    openCurrentId = null;
-    renderCoachNutritionPlan();
-  });
-
-  const body = el('div', 'athlete-nutrition-detail');
-  if (open) body.append(createPlanBody(plan, { includeTargets: true, includeTitle: true }));
-
-  item.append(header, body);
-  return item;
 }
 
 function planSubtitle(plan) {
   const title = String(plan?.title || '').trim();
   return title || '—';
+}
+
+function archivedPlanMeta(plan) {
+  const kcal = formatKcal(plan?.targets?.calories);
+  const athlete = personName(plan?.athlete);
+  return `${kcal} kcal • ${athlete}`;
 }
 
 async function confirmArchive(plan) {

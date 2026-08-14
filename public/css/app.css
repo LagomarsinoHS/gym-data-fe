@@ -3,25 +3,6 @@
   --sidebar-w: 260px;
 }
 
-.dev-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 30px;
-  padding: 0 10px;
-  border-radius: var(--radius-md);
-  border: 1px solid #b91c1c;
-  background: #dc2626;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  line-height: 1;
-  pointer-events: none;
-  flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.35);
-}
-
 /* ── Base overrides ─────────────────────────────── */
 html, body { height: 100%; }
 
@@ -2383,6 +2364,7 @@ html[data-theme="dark"] .chip.active {
   gap: 10px;
 }
 
+/* ── Sidebar nav ─────────────────────────────────── */
 .sidebar-nav {
   display: flex;
   flex-direction: column;
@@ -2771,7 +2753,6 @@ html[data-theme="dark"] .chip.active {
 #catalog-view,
 .training-view,
 .recommend-view,
-.placeholder-view,
 .students-view,
 .nutrition-view,
 .avances-view,
@@ -2779,6 +2760,11 @@ html[data-theme="dark"] .chip.active {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+}
+
+/* Reserve scrollbar space so opening tall accordions doesn't shift the layout. */
+#admin-users-view {
+  scrollbar-gutter: stable;
 }
 
 .athlete-avances-view,
@@ -2798,6 +2784,7 @@ html[data-theme="dark"] .chip.active {
   align-items: stretch;
 }
 
+/* ── Training / Recommend views ──────────────────── */
 .training-view {
   padding: 20px 24px 28px;
 }
@@ -2810,13 +2797,7 @@ html[data-theme="dark"] .chip.active {
   gap: 24px;
 }
 
-.placeholder-view {
-  padding: 28px 24px 40px;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-}
-
+/* ── Students / Coach templates ──────────────────── */
 .students-view {
   padding: 20px 24px 28px;
   display: flex;
@@ -3296,6 +3277,7 @@ html[data-theme='dark'] .coach-templates-toast-icon {
   display: none !important;
 }
 
+/* ── Student rows / plan accordion ───────────────── */
 .student-row {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -4482,6 +4464,7 @@ html[data-theme='dark'] .student-row-goal-pill {
   overflow: hidden;
 }
 
+/* ── Session editor ──────────────────────────────── */
 .session-editor {
   display: flex;
   flex-direction: column;
@@ -4831,6 +4814,7 @@ html[data-theme='dark'] .student-row-goal-pill {
   }
 }
 
+/* ── Coach panel ─────────────────────────────────── */
 .coach-panel {
   width: min(640px, 100%);
   margin: 0 auto;
@@ -4838,6 +4822,7 @@ html[data-theme='dark'] .student-row-goal-pill {
   gap: 22px;
 }
 
+/* ── Admin overview / users ──────────────────────── */
 .admin-overview {
   width: min(720px, 100%);
   margin: 0 auto;
@@ -5047,7 +5032,7 @@ html[data-theme='dark'] .student-row-goal-pill {
 }
 
 .admin-users-shell {
-  width: min(720px, 100%);
+  width: min(1100px, 100%);
   margin: 0 auto;
 }
 
@@ -5218,29 +5203,55 @@ html[data-theme='dark'] .student-row-goal-pill {
 }
 
 .admin-user-row.is-open .student-row-body {
-  max-height: 2200px;
+  max-height: none;
+}
+
+/*
+ * Admin accordion: skip the shared student-row max-height/transform animation.
+ * Oversized max-height (2200px) makes open/close feel like the whole list jumps.
+ */
+.admin-user-row > .student-row-body {
+  transition: none;
+  transform: none;
+}
+
+.admin-user-row.is-open > .student-row-body {
+  transform: none;
+}
+
+.admin-user-row.is-open .student-row-body > * {
+  animation: none;
 }
 
 .admin-user-panel {
   display: grid;
   gap: 12px;
-  padding: 4px 4px 8px;
+  padding: 4px 4px 10px;
 }
 
 .admin-user-summary-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
+}
+
+.admin-user-bottom-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(240px, 1fr);
+  gap: 12px;
+  align-items: stretch;
 }
 
 .admin-user-info-card {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 12px 14px;
+  min-height: 100%;
+  padding: 14px 14px;
   border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
   border-radius: var(--radius-md, 12px);
   background: color-mix(in srgb, var(--bg-elevated, var(--bg-surface)) 72%, transparent);
+  box-sizing: border-box;
 }
 
 .admin-user-info-icon {
@@ -5260,40 +5271,108 @@ html[data-theme='dark'] .student-row-goal-pill {
 .admin-user-info-content {
   min-width: 0;
   display: grid;
-  gap: 4px;
+  gap: 6px;
+  flex: 1;
 }
 
 .admin-user-info-title {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 750;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   color: var(--text-primary);
+}
+
+.admin-user-info-facts {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-user-info-fact {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-user-info-fact-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.admin-user-info-fact-value {
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text-primary);
+  word-break: break-word;
 }
 
 .admin-user-info-lines {
   display: grid;
-  gap: 2px;
+  gap: 3px;
 }
 
 .admin-user-info-lines p {
   margin: 0;
   font-size: 0.82rem;
   font-weight: 600;
-  line-height: 1.35;
+  line-height: 1.4;
   color: var(--text-secondary);
   word-break: break-word;
+}
+
+.admin-user-info-card--role-plan .admin-user-info-content {
+  gap: 8px;
+}
+
+.admin-user-role-plan-role {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+.admin-user-role-plan-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+}
+
+.admin-user-role-plan-badge.is-paid {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-surface));
+  color: var(--accent);
+}
+
+.admin-user-role-plan-badge.is-free {
+  border-color: color-mix(in srgb, var(--border) 90%, transparent);
+  color: var(--text-tertiary);
 }
 
 .admin-sub-progress {
   display: grid;
   gap: 6px;
-  margin-top: 10px;
+  margin-top: 8px;
   width: 100%;
 }
 
 .admin-sub-progress-track {
-  height: 12px;
+  height: 10px;
   border-radius: 999px;
   overflow: hidden;
   background: color-mix(in srgb, var(--border) 70%, var(--bg-surface));
@@ -5316,24 +5395,29 @@ html[data-theme='dark'] .student-row-goal-pill {
   color: var(--text-tertiary);
 }
 
-.admin-user-profile-card {
+.admin-user-profile-card,
+.admin-user-actions {
   padding: 14px 16px;
   border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
   border-radius: var(--radius-md, 12px);
   background: color-mix(in srgb, var(--bg-elevated, var(--bg-surface)) 72%, transparent);
+  box-sizing: border-box;
 }
 
-.admin-user-profile-title {
+.admin-user-profile-title,
+.admin-user-actions-title {
   margin: 0 0 12px;
   font-size: 0.95rem;
   font-weight: 750;
+  letter-spacing: -0.01em;
+  text-transform: none;
   color: var(--text-primary);
 }
 
 .admin-user-profile-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 16px;
+  gap: 14px 18px;
 }
 
 .admin-user-profile-fact {
@@ -5379,6 +5463,16 @@ html[data-theme='dark'] .student-row-goal-pill {
   word-break: break-word;
 }
 
+@media (max-width: 980px) {
+  .admin-user-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-user-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 640px) {
   .admin-user-summary-grid,
   .admin-user-profile-grid {
@@ -5421,26 +5515,30 @@ html[data-theme='dark'] .student-row-goal-pill {
 .admin-user-header .admin-user-delete-btn {
   flex-shrink: 0;
   margin-right: 12px;
-  min-height: 32px;
-  padding: 5px 10px;
-  font-size: 0.78rem;
+  min-height: 34px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.admin-user-delete-ico {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.admin-user-delete-ico svg {
+  width: 100%;
+  height: 100%;
 }
 
 .admin-user-actions {
   display: grid;
-  gap: 10px;
-  margin-top: 4px;
-  padding-top: 10px;
-  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-}
-
-.admin-user-actions-title {
-  margin: 0;
-  font-size: 0.78rem;
-  font-weight: 750;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
+  gap: 12px;
+  align-content: start;
 }
 
 .admin-user-actions-note {
@@ -5452,23 +5550,47 @@ html[data-theme='dark'] .student-row-goal-pill {
 }
 
 .admin-user-grant {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-user-grant .admin-users-select,
+.admin-user-grant .admin-users-input {
+  width: 100%;
+}
+
+.admin-user-grant-actions {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
   gap: 8px;
 }
 
+.admin-user-grant-btn,
 .admin-user-revoke-btn {
-  min-height: 36px;
-  padding: 6px 12px;
+  flex: 1 1 110px;
+  min-height: 38px;
+  padding: 7px 12px;
   border-radius: var(--radius-sm);
-  border: 1px solid color-mix(in srgb, #c0392b 40%, var(--border));
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-user-grant-btn {
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
+.admin-user-grant-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.admin-user-revoke-btn {
+  border: 1px solid color-mix(in srgb, #c0392b 45%, var(--border));
   background: transparent;
   color: #c0392b;
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: 650;
-  cursor: pointer;
 }
 
 .admin-user-revoke-btn:hover:not(:disabled) {
@@ -5494,7 +5616,7 @@ html[data-theme='dark'] .student-row-goal-pill {
 
 .admin-user-revoke-btn:disabled,
 .admin-user-delete-btn:disabled,
-.admin-user-grant .recommend-again-btn:disabled {
+.admin-user-grant-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
@@ -8526,2729 +8648,10 @@ html[data-theme='dark'] .progress-photos-timeline-weight-pill {
   line-height: 1;
 }
 
-/* ── Coach Nutrition ─────────────────────────────── */
+/* ── Coach Nutrition + Athlete Nutrición → public/css/nutrition.css ── */
 
-.nutrition-view {
-  width: min(720px, 100%);
-  margin: 0 auto;
-  padding: 0;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
+/* ── Athlete Avances → public/css/progress.css ── */
 
-.nutrition-view:has(#nutrition-workspace:not([hidden])) {
-  width: min(920px, 100%);
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.nutrition-view:has(#nutrition-workspace:not([hidden])) .nutrition {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  padding-bottom: 8px;
-}
-
-.nutrition-view:has(#nutrition-workspace:not([hidden])) .nutrition-workspace {
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  overflow: hidden;
-  gap: 8px;
-}
-
-.nutrition-view:has(#nutrition-workspace:not([hidden])) .nutrition-workspace-context {
-  position: static;
-  flex-shrink: 0;
-  padding-bottom: 6px;
-}
-
-.nutrition-view:has(#nutrition-workspace:not([hidden])) .nutrition-workspace-main {
-  min-height: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.nutrition-view:has(#nutrition-workspace:not([hidden])) .nutrition-workspace-panels {
-  min-height: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-.nutrition {
-  display: grid;
-  gap: 18px;
-  padding: 0 20px 32px;
-  box-sizing: border-box;
-}
-
-.nutrition-header {
-  display: grid;
-  gap: 6px;
-  justify-items: center;
-  text-align: center;
-  padding-top: 20px;
-}
-
-.nutrition-header[hidden] {
-  display: none !important;
-}
-
-.nutrition-title {
-  margin: 0;
-  font-size: clamp(1.75rem, 4vw, 2.15rem);
-  font-weight: 750;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-  line-height: 1.15;
-}
-
-.nutrition-lead {
-  margin: 0;
-  max-width: 36rem;
-  font-size: 14px;
-  color: var(--text-secondary);
-  line-height: 1.45;
-}
-
-.nutrition-picker {
-  display: grid;
-  gap: 14px;
-}
-
-.nutrition-search {
-  max-width: none;
-  width: 100%;
-}
-
-.nutrition-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 28px 8px;
-  color: var(--text-secondary);
-  font-size: 14px;
-}
-
-.nutrition-loading[hidden],
-.nutrition-empty[hidden],
-.nutrition-list[hidden],
-.nutrition-picker[hidden],
-.nutrition-workspace[hidden] {
-  display: none !important;
-}
-
-.nutrition-empty {
-  display: grid;
-  gap: 10px;
-  justify-items: center;
-  padding: 24px 4px;
-  text-align: center;
-}
-
-.nutrition-empty-title {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.nutrition-empty-lead {
-  margin: 0;
-  font-size: 14px;
-  color: var(--text-secondary);
-  line-height: 1.45;
-}
-
-.nutrition-list {
-  display: grid;
-  gap: 10px;
-}
-
-.nutrition-athlete-btn {
-  appearance: none;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: auto auto;
-  column-gap: 12px;
-  row-gap: 2px;
-  align-items: center;
-  width: 100%;
-  padding: 14px 16px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--bg-surface);
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.nutrition-athlete-btn:hover {
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
-  background: color-mix(in srgb, var(--accent) 6%, var(--bg-surface));
-}
-
-.nutrition-athlete-btn-name {
-  grid-column: 1;
-  grid-row: 1;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.nutrition-athlete-btn-email {
-  grid-column: 1;
-  grid-row: 2;
-  font-size: 13px;
-  color: var(--text-secondary);
-  overflow-wrap: anywhere;
-}
-
-.nutrition-athlete-btn-chevron {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  font-size: 1.35rem;
-  font-weight: 500;
-  color: var(--text-tertiary);
-  line-height: 1;
-}
-
-.nutrition-workspace {
-  display: grid;
-  gap: 14px;
-}
-
-.nutrition-workspace-context {
-  position: sticky;
-  top: 0;
-  z-index: 4;
-  display: grid;
-  gap: 12px;
-  margin: 0 -20px;
-  padding: 20px 20px 12px;
-  background: var(--bg-base);
-}
-
-.nutrition-athlete-card {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
-  padding: 6px 14px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px 18px;
-  align-items: center;
-}
-
-.nutrition-athlete-identity {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 10px;
-  align-items: center;
-  min-width: 0;
-}
-
-.nutrition-athlete-avatar {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--accent) 14%, var(--bg-surface));
-  color: var(--accent);
-  flex-shrink: 0;
-}
-
-.nutrition-athlete-avatar svg {
-  width: 20px;
-  height: 20px;
-}
-
-.nutrition-athlete-copy {
-  display: grid;
-  gap: 1px;
-  min-width: 0;
-}
-
-.nutrition-athlete-kicker {
-  margin: 0;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-}
-
-.nutrition-athlete-name {
-  margin: 0;
-  font-size: 1.28rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: var(--text-primary);
-  line-height: 1.1;
-}
-
-.nutrition-athlete-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.35;
-}
-
-.nutrition-athlete-meta strong {
-  font-weight: 750;
-  color: var(--text-primary);
-}
-
-.nutrition-athlete-meta-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--accent);
-  flex-shrink: 0;
-}
-
-.nutrition-athlete-aside {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-  padding-left: 16px;
-  border-left: 1px solid var(--border);
-}
-
-.nutrition-athlete-chip {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 8px;
-  align-items: center;
-  min-width: 176px;
-  padding: 4px 12px 4px 8px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--bg-base) 55%, var(--bg-surface));
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--text-primary) 6%, transparent);
-}
-
-.nutrition-athlete-chip-ico {
-  width: 16px;
-  height: 16px;
-  color: var(--accent);
-  flex-shrink: 0;
-}
-
-.nutrition-athlete-chip strong {
-  display: block;
-  font-size: 13px;
-  font-weight: 750;
-  color: var(--text-primary);
-  line-height: 1.2;
-}
-
-.nutrition-athlete-chip span {
-  display: block;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  line-height: 1.2;
-}
-
-.nutrition-highlights {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 8px;
-  padding: 8px;
-  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--accent) 6%, var(--bg-base));
-}
-
-.nutrition-highlight {
-  display: grid;
-  justify-items: center;
-  align-content: start;
-  gap: 4px;
-  min-width: 0;
-  padding: 10px 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--bg-surface);
-  text-align: center;
-}
-
-.nutrition-highlight svg {
-  width: 16px;
-  height: 16px;
-  color: var(--accent);
-}
-
-.nutrition-highlight-label {
-  font-size: 10px;
-  font-weight: 650;
-  line-height: 1.2;
-  color: var(--accent);
-}
-
-.nutrition-highlight-value {
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 1.2;
-  color: var(--text-primary);
-  overflow-wrap: anywhere;
-}
-
-.nutrition-highlight-value.is-fasted {
-  color: #15803d;
-}
-
-html[data-theme='dark'] .nutrition-highlight-value.is-fasted {
-  color: #86efac;
-}
-
-@media (max-width: 760px) {
-  .nutrition-highlights {
-    display: flex;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .nutrition-highlight {
-    flex: 0 0 118px;
-  }
-}
-
-.nutrition-profile {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr);
-  min-height: 0;
-  overflow: hidden;
-  flex: 1;
-}
-
-.nutrition-profile[hidden],
-.nutrition-plan[hidden] {
-  display: none !important;
-}
-
-.nutrition-workspace-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.nutrition-mode-toggle {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  flex-shrink: 0;
-  margin-left: auto;
-}
-
-.nutrition-mode-tab {
-  appearance: none;
-  margin: 0;
-  padding: 5px 12px;
-  border: none;
-  border-radius: calc(var(--radius-md) - 2px);
-  background: transparent;
-  color: var(--text-secondary);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.2;
-  cursor: pointer;
-  box-shadow: none;
-  transition: color 0.15s, background 0.15s;
-}
-
-.nutrition-mode-tab:hover {
-  color: var(--text-primary);
-  background: transparent;
-}
-
-.nutrition-mode-tab.is-active,
-.nutrition-mode-tab[aria-selected="true"] {
-  background: var(--accent-muted);
-  color: var(--accent);
-  font-weight: 600;
-  box-shadow: none;
-  border-bottom-color: transparent;
-}
-
-.nutrition-plan {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 10px;
-  min-height: 0;
-  overflow: hidden;
-  flex: 1;
-}
-
-.nutrition-plan-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px 16px;
-}
-
-.nutrition-plan-toolbar[hidden] {
-  display: none !important;
-}
-
-.nutrition-plan-toolbar-copy {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.nutrition-plan-title {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 750;
-  color: var(--text-primary);
-  letter-spacing: -0.02em;
-}
-
-.nutrition-plan-lead {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-secondary);
-  line-height: 1.4;
-}
-
-.nutrition-plan-loading,
-.nutrition-plan-error,
-.nutrition-plan-empty,
-.nutrition-plan-editor {
-  display: grid;
-  gap: 10px;
-  justify-items: center;
-  align-content: center;
-  text-align: center;
-  padding: 28px 8px;
-  color: var(--text-secondary);
-  font-size: 14px;
-  min-height: 0;
-  overflow: auto;
-}
-
-.nutrition-plan-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-
-.nutrition-plan-error p,
-.nutrition-plan-empty-lead,
-.nutrition-plan-editor-lead {
-  margin: 0;
-  max-width: 28rem;
-  line-height: 1.45;
-}
-
-.nutrition-plan-empty-title,
-.nutrition-plan-editor-title {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.nutrition-plan-loading[hidden],
-.nutrition-plan-error[hidden],
-.nutrition-plan-empty[hidden],
-.nutrition-plan-body[hidden],
-.nutrition-plan-editor[hidden] {
-  display: none !important;
-}
-
-.nutrition-plan-body {
-  min-height: 0;
-  overflow: auto;
-  padding-bottom: 12px;
-}
-
-.nutrition-plan-editor {
-  justify-items: start;
-  text-align: left;
-  align-content: start;
-}
-
-.nutrition-plan-card-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 8px;
-}
-
-.nutrition-plan-archive-btn {
-  font-size: 13px;
-  padding: 6px 12px;
-}
-
-.nutrition-profile-loading,
-.nutrition-profile-error {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 28px 8px;
-  color: var(--text-secondary);
-  font-size: 14px;
-}
-
-.nutrition-profile-error {
-  flex-direction: column;
-  text-align: center;
-}
-
-.nutrition-profile-error p {
-  margin: 0;
-}
-
-.nutrition-profile-loading[hidden],
-.nutrition-profile-error[hidden],
-.nutrition-profile-form[hidden],
-.nutrition-summary[hidden],
-.nutrition-profile-block[hidden] {
-  display: none !important;
-}
-
-.nutrition-profile-form {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: 8px;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.nutrition-profile-body {
-  min-height: 0;
-  overflow: hidden;
-  display: grid;
-  grid-template-rows: minmax(0, 1fr);
-}
-
-.nutrition-profile-tabs {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
-  overflow: hidden;
-}
-
-.nutrition-profile-tab {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  margin: 0;
-  padding: 12px 10px 10px;
-  border: none;
-  border-bottom: 3px solid transparent;
-  background: none;
-  color: var(--text-secondary);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.nutrition-profile-tab svg {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-}
-
-.nutrition-profile-tab:hover {
-  color: var(--text-primary);
-  background: color-mix(in srgb, var(--accent) 5%, transparent);
-}
-
-.nutrition-profile-tab[aria-selected="true"] {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 6%, transparent);
-}
-
-@media (max-width: 700px) {
-  .nutrition-profile-tab {
-    flex-direction: column;
-    gap: 4px;
-    padding: 10px 4px 8px;
-    font-size: 11px;
-  }
-}
-
-.nutrition-summary {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr);
-  column-gap: 12px;
-  row-gap: 8px;
-  min-height: 0;
-  height: 100%;
-  width: 100%;
-  align-items: stretch;
-}
-
-.nutrition-summary-card {
-  appearance: none;
-  display: grid;
-  gap: 10px;
-  width: 100%;
-  margin: 0;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  min-height: 0;
-}
-
-.nutrition-summary-card:hover {
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
-}
-
-.nutrition-summary-card--fill,
-.nutrition-summary-card--capped {
-  grid-template-rows: auto minmax(0, 1fr);
-  overflow: hidden;
-  min-height: 0;
-  height: 100%;
-  align-self: stretch;
-}
-
-.nutrition-summary-card--capped {
-  min-height: 0;
-}
-
-.nutrition-summary-scroll {
-  min-height: 0;
-  overflow-y: auto;
-  display: grid;
-  gap: 8px;
-  align-content: start;
-  -webkit-overflow-scrolling: touch;
-}
-
-.nutrition-summary-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  font-size: 13px;
-  font-weight: 750;
-  color: var(--accent);
-  min-width: 0;
-}
-
-.nutrition-summary-title > span:not(.nutrition-summary-pill) {
-  min-width: 0;
-  flex: 1;
-}
-
-.nutrition-summary-ico {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  color: var(--accent);
-}
-
-.nutrition-summary-facts {
-  display: grid;
-  gap: 6px;
-  margin: 0;
-}
-
-.nutrition-summary-facts > div {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 12px;
-}
-
-.nutrition-summary-facts dt {
-  margin: 0;
-  color: var(--text-secondary);
-  font-weight: 600;
-}
-
-.nutrition-summary-facts dd {
-  margin: 0;
-  color: var(--text-primary);
-  font-weight: 700;
-  text-align: right;
-}
-
-.nutrition-summary-pill {
-  margin: 0 0 0 auto;
-  padding: 3px 9px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, #16a34a 50%, var(--border));
-  background: color-mix(in srgb, #22c55e 16%, var(--bg-surface));
-  color: #15803d;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.3;
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-.nutrition-summary-pill[hidden] {
-  display: none !important;
-}
-
-html[data-theme='dark'] .nutrition-summary-pill {
-  border-color: color-mix(in srgb, #4ade80 50%, var(--border));
-  background: color-mix(in srgb, #22c55e 18%, var(--bg-surface));
-  color: #86efac;
-}
-
-.nutrition-summary-prefs-cols {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 10px 16px;
-}
-
-.nutrition-summary-prefs-cols[hidden] {
-  display: none !important;
-}
-
-.nutrition-summary-sub {
-  display: grid;
-  gap: 6px;
-  align-content: start;
-  min-width: 0;
-}
-
-.nutrition-summary-sub-label {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-secondary);
-}
-
-.nutrition-summary-restrictions {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 10px 16px;
-  min-height: 0;
-}
-
-.nutrition-summary-restrictions:not(:has(#nutrition-summary-notes:not([hidden]))) {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.nutrition-summary-restrictions .nutrition-summary-scroll {
-  min-height: 0;
-}
-
-.nutrition-summary-tags {
-  display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
-  align-self: start;
-  gap: 5px;
-  height: auto;
-  min-height: 0;
-}
-
-.nutrition-summary-tag {
-  display: inline-flex;
-  align-items: center;
-  max-width: 100%;
-  padding: 2px 7px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
-  background: color-mix(in srgb, var(--accent) 10%, var(--bg-surface));
-  color: var(--text-primary);
-  font-size: 11px;
-  font-weight: 650;
-  line-height: 1.3;
-}
-
-.nutrition-summary-empty-lead {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.4;
-  color: var(--text-secondary);
-}
-
-.nutrition-summary-empty-lead[hidden],
-.nutrition-summary-sub[hidden],
-.nutrition-summary-tags[hidden] {
-  display: none !important;
-}
-
-.nutrition-summary-empty,
-.nutrition-summary-notes {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.nutrition-summary-notes {
-  min-height: 0;
-  overflow-y: auto;
-  padding-left: 14px;
-  border-left: 1px solid var(--border);
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--text-secondary);
-}
-
-.nutrition-summary-notes[hidden] {
-  display: none !important;
-}
-
-.nutrition-profile-save-ico {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-}
-
-#nutrition-profile-save {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-#nutrition-profile-save.is-saved,
-#nutrition-profile-save.is-saved:hover {
-  background: #16a34a;
-  border-color: #16a34a;
-  color: #fff;
-  transform: none;
-  box-shadow: 0 4px 12px color-mix(in srgb, #16a34a 30%, transparent);
-}
-
-html[data-theme='dark'] #nutrition-profile-save.is-saved,
-html[data-theme='dark'] #nutrition-profile-save.is-saved:hover {
-  background: #15803d;
-  border-color: #15803d;
-}
-
-.nutrition-profile-block {
-  margin: 0;
-  padding: 16px 18px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
-  display: grid;
-  gap: 14px;
-  min-width: 0;
-  overflow-y: auto;
-  align-content: start;
-}
-
-.nutrition-profile-block legend {
-  padding: 0 6px;
-  font-size: 12px;
-  font-weight: 750;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-}
-
-.nutrition-profile-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.nutrition-profile-field {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-}
-
-.nutrition-profile-field--wide {
-  grid-column: 1 / -1;
-}
-
-.nutrition-meals-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  grid-column: 1 / -1;
-  align-items: stretch;
-}
-
-.nutrition-meal-card {
-  position: relative;
-  padding-right: 22px;
-}
-
-.nutrition-meal-remove {
-  appearance: none;
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  z-index: 1;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--text-tertiary);
-  font: inherit;
-  font-size: 16px;
-  line-height: 1;
-  cursor: pointer;
-  opacity: 0;
-}
-
-.nutrition-meal-card:hover .nutrition-meal-remove,
-.nutrition-meal-card:focus-within .nutrition-meal-remove {
-  opacity: 1;
-}
-
-.nutrition-meal-remove:hover {
-  color: var(--text-primary);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-}
-
-.nutrition-meal-add {
-  appearance: none;
-  display: grid;
-  place-items: center;
-  min-height: 92px;
-  padding: 0;
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--text-tertiary);
-  font: inherit;
-  font-size: 1.6rem;
-  font-weight: 500;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.nutrition-meal-add:hover,
-.nutrition-meal-add:focus-visible {
-  outline: none;
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
-  background: color-mix(in srgb, var(--accent) 6%, var(--bg-surface));
-  color: var(--accent);
-}
-
-@media (hover: none) {
-  .nutrition-meal-remove {
-    opacity: 1;
-  }
-}
-
-.nutrition-profile-field input.nutrition-meal-name {
-  width: 100%;
-  min-height: 0;
-  padding: 0 0 2px;
-  border: none;
-  border-bottom: 1px dashed transparent;
-  border-radius: 0;
-  background: transparent;
-  font-size: 13px;
-  font-weight: 750;
-  letter-spacing: -0.01em;
-  color: var(--text-primary);
-  cursor: text;
-}
-
-.nutrition-profile-field input.nutrition-meal-name:hover,
-.nutrition-profile-field input.nutrition-meal-name:focus {
-  outline: none;
-  border: none;
-  border-bottom: 1px dashed color-mix(in srgb, var(--accent) 55%, var(--border));
-  background: transparent;
-  box-shadow: none;
-}
-
-.nutrition-profile-label,
-.nutrition-profile-field > .nutrition-profile-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-secondary);
-}
-
-.nutrition-profile-field input,
-.nutrition-profile-field select,
-.nutrition-profile-field textarea,
-.nutrition-tag-add input {
-  width: 100%;
-  box-sizing: border-box;
-  min-height: 40px;
-  padding: 8px 12px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--bg-base) 40%, var(--bg-surface));
-  color: var(--text-primary);
-  font: inherit;
-  font-size: 14px;
-}
-
-.nutrition-profile-field textarea {
-  min-height: 84px;
-  resize: vertical;
-}
-
-.nutrition-profile-field input:focus,
-.nutrition-profile-field select:focus,
-.nutrition-profile-field textarea:focus,
-.nutrition-tag-add input:focus {
-  outline: none;
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
-}
-
-.nutrition-profile-input-unit {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 8px;
-}
-
-.nutrition-profile-input-unit > span {
-  font-size: 13px;
-  font-weight: 650;
-  color: var(--text-secondary);
-}
-
-.nutrition-profile-tags,
-.nutrition-tag-field {
-  display: grid;
-  gap: 10px;
-}
-
-.nutrition-prefs-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.nutrition-restrictions-split {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 12px;
-  min-width: 0;
-  align-items: stretch;
-}
-
-.nutrition-restrictions-left {
-  display: grid;
-  gap: 12px;
-  min-width: 0;
-  align-content: start;
-}
-
-.nutrition-restrictions-left .nutrition-pref-card {
-  height: 146px;
-  min-height: 146px;
-  max-height: 146px;
-}
-
-.nutrition-restrictions-split > .nutrition-notes-card {
-  height: auto;
-  min-height: 0;
-  max-height: none;
-}
-
-.nutrition-pref-card--wide {
-  grid-column: 1 / -1;
-}
-
-.nutrition-notes-card {
-  grid-template-rows: auto minmax(0, 1fr);
-}
-
-.nutrition-notes-input {
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  box-sizing: border-box;
-  padding: 7px 10px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--bg-base) 40%, var(--bg-surface));
-  color: var(--text-primary);
-  font: inherit;
-  font-size: 13px;
-  line-height: 1.4;
-  resize: none;
-}
-
-.nutrition-notes-input:focus {
-  outline: none;
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
-}
-
-.nutrition-pref-card {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 8px;
-  min-width: 0;
-  height: 180px;
-  min-height: 180px;
-  max-height: 180px;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--bg-base) 45%, var(--bg-surface));
-  overflow: hidden;
-}
-
-.nutrition-pref-title {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 750;
-  color: var(--accent);
-}
-
-.nutrition-pref-body {
-  min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.nutrition-pref-empty {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--text-secondary);
-}
-
-.nutrition-pref-card .nutrition-tag-list {
-  min-height: 100%;
-  align-items: center;
-  gap: 5px;
-}
-
-.nutrition-tag-inline {
-  flex: 1 1 88px;
-  min-width: 72px;
-  max-width: 100%;
-  width: auto;
-  box-sizing: border-box;
-  min-height: 22px;
-  padding: 2px 4px;
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  color: var(--text-primary);
-  font: inherit;
-  font-size: 11px;
-  line-height: 1.3;
-}
-
-.nutrition-tag-inline:focus {
-  outline: none;
-}
-
-.nutrition-pref-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  max-width: 100%;
-  padding: 2px 6px 2px 8px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
-  background: color-mix(in srgb, var(--accent) 10%, var(--bg-surface));
-  color: var(--text-primary);
-  font-size: 11px;
-  font-weight: 650;
-  line-height: 1.3;
-}
-
-.nutrition-pref-tag .nutrition-tag-remove {
-  width: 16px;
-  height: 16px;
-  font-size: 12px;
-}
-
-.nutrition-pref-empty[hidden],
-.nutrition-tag-list[hidden] {
-  display: none !important;
-}
-
-.nutrition-tag-list {
-  display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
-  gap: 8px;
-  min-height: 0;
-}
-
-.nutrition-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  max-width: 100%;
-  padding: 5px 8px 5px 10px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
-  background: color-mix(in srgb, var(--accent) 10%, var(--bg-surface));
-  color: var(--text-primary);
-  font-size: 13px;
-  font-weight: 650;
-}
-
-.nutrition-tag-remove {
-  appearance: none;
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--text-secondary);
-  font: inherit;
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.nutrition-tag-remove:hover {
-  color: var(--text-primary);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-}
-
-.nutrition-tag-add {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: center;
-}
-
-.nutrition-profile-footer {
-  display: grid;
-  justify-items: end;
-  gap: 8px;
-  flex-shrink: 0;
-  padding-top: 0;
-  background: var(--bg-base);
-}
-
-.nutrition-profile-status {
-  margin: 0;
-  justify-self: stretch;
-  font-size: 13px;
-  font-weight: 650;
-  color: var(--text-secondary);
-  text-align: right;
-}
-
-.nutrition-profile-status[hidden] {
-  display: none !important;
-}
-
-.nutrition-profile-status.is-error {
-  color: var(--danger, #c44);
-}
-
-@media (max-width: 640px) {
-  .nutrition-athlete-card {
-    grid-template-columns: 1fr;
-  }
-
-  .nutrition-athlete-aside {
-    padding-left: 0;
-    border-left: none;
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .nutrition-athlete-chip {
-    min-width: 0;
-  }
-
-  .nutrition-profile-grid,
-  .nutrition-meals-list,
-  .nutrition-prefs-grid,
-  .nutrition-restrictions-split,
-  .nutrition-summary,
-  .nutrition-summary-prefs-cols,
-  .nutrition-summary-restrictions {
-    grid-template-columns: 1fr;
-  }
-
-  .nutrition-summary {
-    grid-template-rows: none;
-    height: auto;
-  }
-
-  .nutrition-summary-card--capped .nutrition-summary-scroll {
-    max-height: 10.5rem;
-  }
-
-  .nutrition-restrictions-split > .nutrition-notes-card {
-    min-height: 160px;
-  }
-
-  .nutrition-summary-notes {
-    padding-left: 0;
-    padding-top: 10px;
-    border-left: none;
-    border-top: 1px solid var(--border);
-  }
-
-  .nutrition-profile,
-  .nutrition-profile-form,
-  .nutrition-profile-body {
-    display: flex;
-    flex-direction: column;
-    grid-template-rows: none;
-    height: auto;
-    overflow: visible;
-  }
-
-  .nutrition-profile-body {
-    overflow-y: auto;
-  }
-
-  .nutrition-summary {
-    height: auto;
-  }
-
-  .nutrition-summary-card--fill,
-  .nutrition-summary-card--capped {
-    height: auto;
-  }
-
-  .nutrition-profile-field--wide,
-  .nutrition-pref-card--wide,
-  .nutrition-meals-list {
-    grid-column: auto;
-  }
-}
-
-/* ── Athlete Nutrición ────────────────────────────── */
-
-.athlete-nutrition {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  width: min(720px, 100%);
-  margin: 0 auto;
-}
-
-.athlete-nutrition-header {
-  display: grid;
-  gap: 8px;
-  text-align: left;
-  justify-items: start;
-  padding: 4px 0 0;
-}
-
-.athlete-nutrition-title {
-  margin: 0;
-  font-size: clamp(1.75rem, 4vw, 2.15rem);
-  font-weight: 750;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-  line-height: 1.15;
-}
-
-.athlete-nutrition-loading,
-.athlete-nutrition-error,
-.athlete-nutrition-empty {
-  display: grid;
-  justify-items: center;
-  gap: 12px;
-  text-align: center;
-  padding: 36px 28px;
-  border-radius: var(--radius-lg);
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--text-primary) 6%, transparent);
-}
-
-.athlete-nutrition-loading[hidden],
-.athlete-nutrition-error[hidden],
-.athlete-nutrition-empty[hidden],
-.athlete-nutrition-body[hidden] {
-  display: none !important;
-}
-
-.athlete-nutrition-loading {
-  color: var(--text-secondary);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.athlete-nutrition-error p,
-.athlete-nutrition-empty-lead {
-  margin: 0;
-  max-width: 28rem;
-  font-size: 15px;
-  line-height: 1.45;
-  color: var(--text-secondary);
-}
-
-.athlete-nutrition-empty-title {
-  margin: 0;
-  font-size: 1.35rem;
-  font-weight: 750;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-}
-
-.athlete-nutrition-body {
-  display: grid;
-  gap: 28px;
-}
-
-.athlete-nutrition-section {
-  display: grid;
-  gap: 12px;
-}
-
-.athlete-nutrition-group-title {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 750;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-primary);
-}
-
-.athlete-nutrition-current-list,
-.athlete-nutrition-archive-list {
-  display: grid;
-  gap: 10px;
-}
-
-.athlete-nutrition-current-card {
-  display: grid;
-  gap: 0;
-  padding: 16px 18px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--accent);
-  background: var(--bg-surface);
-}
-
-.athlete-nutrition-current-summary {
-  display: grid;
-  gap: 10px;
-}
-
-.athlete-nutrition-current-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.athlete-nutrition-month {
-  font-size: 17px;
-  font-weight: 750;
-  letter-spacing: -0.01em;
-  color: var(--text-primary);
-}
-
-.athlete-nutrition-status {
-  flex: 0 0 auto;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #4ade80;
-  background: color-mix(in srgb, #22c55e 16%, var(--bg-surface));
-  border: 1px solid color-mix(in srgb, #22c55e 40%, transparent);
-}
-
-html[data-theme="light"] .athlete-nutrition-status {
-  color: #15803d;
-  background: color-mix(in srgb, #22c55e 14%, var(--bg-surface));
-}
-
-.athlete-nutrition-subtitle-line,
-.athlete-nutrition-valid {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.4;
-  color: var(--text-secondary);
-}
-
-.athlete-nutrition-macros {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 16px;
-  font-size: 14px;
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
-}
-
-.athlete-nutrition-macro {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.athlete-nutrition-macro strong {
-  font-weight: 750;
-  color: var(--text-primary);
-}
-
-.athlete-nutrition-macro-icon {
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  font-size: 11px;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.athlete-nutrition-macro-icon.is-kcal {
-  width: auto;
-  height: auto;
-  font-size: 15px;
-  background: none;
-}
-
-.athlete-nutrition-macro-icon.is-protein {
-  color: #dbeafe;
-  background: #2563eb;
-}
-
-.athlete-nutrition-macro-icon.is-carbs {
-  color: #f3e8ff;
-  background: #7c3aed;
-}
-
-.athlete-nutrition-macro-icon.is-fat {
-  color: #422006;
-  background: #eab308;
-}
-
-html[data-theme="light"] .athlete-nutrition-macro-icon.is-protein {
-  color: #eff6ff;
-}
-
-html[data-theme="light"] .athlete-nutrition-macro-icon.is-carbs {
-  color: #faf5ff;
-}
-
-.athlete-nutrition-current-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 2px;
-}
-
-.athlete-nutrition-view-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--accent);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 650;
-  cursor: pointer;
-}
-
-.athlete-nutrition-view-btn:hover {
-  opacity: 0.85;
-}
-
-.athlete-nutrition-view-arrow {
-  font-size: 14px;
-  line-height: 1;
-}
-
-.athlete-nutrition-archive-item {
-  position: relative;
-  border-radius: var(--radius-lg);
-  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-  background: var(--bg-surface);
-  overflow: hidden;
-}
-
-.athlete-nutrition-archive-item.is-open {
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
-}
-
-.athlete-nutrition-archive-delete {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 2;
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: 0;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--bg-base) 55%, var(--bg-surface));
-  color: var(--text-tertiary);
-  font-size: 13px;
-  line-height: 1;
-  cursor: pointer;
-  opacity: 1;
-}
-
-.athlete-nutrition-archive-delete:hover {
-  color: #fecaca;
-  background: color-mix(in srgb, #ef4444 18%, var(--bg-surface));
-}
-
-html[data-theme="light"] .athlete-nutrition-archive-delete:hover {
-  color: #b91c1c;
-}
-
-@media (hover: hover) {
-  .athlete-nutrition-archive-delete {
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .athlete-nutrition-archive-item:hover .athlete-nutrition-archive-delete,
-  .athlete-nutrition-archive-item:focus-within .athlete-nutrition-archive-delete,
-  .athlete-nutrition-archive-delete:focus-visible {
-    opacity: 1;
-    pointer-events: auto;
-  }
-}
-
-.athlete-nutrition-archive-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 14px 40px 14px 16px;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.athlete-nutrition-archive-header:hover .athlete-nutrition-month {
-  color: var(--accent);
-}
-
-.athlete-nutrition-archive-heading {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.athlete-nutrition-archive-meta {
-  font-size: 13px;
-  line-height: 1.4;
-  color: var(--text-tertiary);
-}
-
-.athlete-nutrition-chevron {
-  flex: 0 0 auto;
-  width: 8px;
-  height: 8px;
-  margin-right: 4px;
-  border-right: 2px solid var(--text-tertiary);
-  border-bottom: 2px solid var(--text-tertiary);
-  transform: rotate(-45deg);
-  transition: transform 0.22s ease, border-color 0.22s ease;
-}
-
-.athlete-nutrition-archive-item.is-open .athlete-nutrition-chevron {
-  transform: rotate(45deg);
-  border-color: var(--accent);
-}
-
-.athlete-nutrition-detail {
-  display: grid;
-  gap: 14px;
-}
-
-.athlete-nutrition-current-card .athlete-nutrition-detail:not(:empty) {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
-}
-
-.athlete-nutrition-archive-item .athlete-nutrition-detail:not(:empty) {
-  padding: 0 16px 16px;
-}
-
-.athlete-nutrition-plan-content {
-  display: grid;
-  gap: 14px;
-}
-
-.athlete-nutrition-plan-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 750;
-  color: var(--text-primary);
-}
-
-.athlete-nutrition-subtitle {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 750;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-}
-
-.athlete-nutrition-muted {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-tertiary);
-}
-
-.athlete-nutrition-notes {
-  margin: 0;
-  white-space: pre-wrap;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--text-secondary);
-}
-
-.athlete-nutrition-timeline {
-  --timeline-rail-size: 24px;
-  position: relative;
-  display: grid;
-  gap: 0;
-}
-
-.athlete-nutrition-timeline-rail {
-  position: absolute;
-  top: 4px;
-  bottom: 4px;
-  left: 0;
-  width: var(--timeline-rail-size);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.athlete-nutrition-timeline-cap {
-  flex: 0 0 auto;
-  font-size: 14px;
-  line-height: 1;
-}
-
-.athlete-nutrition-timeline-line {
-  flex: 1 1 auto;
-  width: 2px;
-  margin: 6px 0;
-  border-radius: 999px;
-  background: repeating-linear-gradient(
-    to bottom,
-    color-mix(in srgb, var(--accent) 70%, var(--border)) 0 3px,
-    transparent 3px 8px
-  );
-}
-
-.athlete-nutrition-timeline-list {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  gap: 12px;
-  padding: 22px 0;
-}
-
-.athlete-nutrition-timeline-item {
-  display: grid;
-  grid-template-columns: var(--timeline-rail-size) 3.25rem minmax(0, 1fr);
-  gap: 8px 10px;
-  align-items: center;
-}
-
-.athlete-nutrition-timeline-dot {
-  grid-column: 1;
-  justify-self: center;
-  align-self: center;
-  z-index: 2;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 3px var(--bg-surface);
-}
-
-.athlete-nutrition-meal-time {
-  grid-column: 2;
-  font-size: 13px;
-  font-weight: 750;
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-
-.athlete-nutrition-meal {
-  grid-column: 3;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 11rem;
-  gap: 10px 14px;
-  align-items: center;
-  min-width: 0;
-  padding: 12px 14px;
-  border-radius: var(--radius-md);
-  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
-  background: color-mix(in srgb, var(--bg-page, var(--bg-base)) 35%, var(--bg-surface));
-}
-
-.athlete-nutrition-meal-main {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px 10px;
-  min-width: 0;
-}
-
-.athlete-nutrition-meal-icon {
-  flex: 0 0 auto;
-  font-size: 15px;
-  line-height: 1;
-}
-
-.athlete-nutrition-meal-name {
-  margin: 0;
-  flex: 0 0 auto;
-  font-size: 15px;
-  font-weight: 750;
-  color: var(--text-primary);
-}
-
-.athlete-nutrition-meal-foods {
-  margin: 0;
-  flex: 1 1 12rem;
-  min-width: 0;
-  font-size: 14px;
-  line-height: 1.45;
-  color: var(--text-secondary);
-}
-
-.athlete-nutrition-meal-notes {
-  margin: 0;
-  width: 11rem;
-  max-width: 11rem;
-  min-width: 0;
-  align-self: center;
-  text-align: right;
-  overflow-wrap: anywhere;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  overflow: hidden;
-  font-size: 13px;
-  line-height: 1.4;
-  color: var(--text-tertiary);
-}
-
-.athlete-nutrition-meal-notes:empty {
-  visibility: hidden;
-}
-
-@media (max-width: 640px) {
-  .athlete-nutrition-timeline-item {
-    grid-template-columns: var(--timeline-rail-size) 3rem minmax(0, 1fr);
-  }
-
-  .athlete-nutrition-meal {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .athlete-nutrition-meal-notes {
-    width: auto;
-    max-width: none;
-    text-align: left;
-  }
-
-  .athlete-nutrition-meal-notes:empty {
-    display: none;
-  }
-}
-
-/* ── Athlete Avances ─────────────────────────────── */
-
-.athlete-avances-view {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-.athlete-avances {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-}
-
-.athlete-avances-header {
-  flex-shrink: 0;
-  display: grid;
-  gap: 8px;
-  text-align: center;
-  justify-items: center;
-  width: min(720px, 100%);
-  margin: 0 auto;
-  padding: 20px 20px 16px;
-  box-sizing: border-box;
-}
-
-.athlete-avances-title {
-  margin: 0;
-  font-size: clamp(1.75rem, 4vw, 2.15rem);
-  font-weight: 750;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-  line-height: 1.15;
-}
-
-.athlete-avances-month-hint {
-  margin: 0;
-  max-width: 36rem;
-  padding: 8px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--accent);
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 8%, var(--bg-surface));
-  animation: athlete-avances-hint-pulse 2.2s ease-in-out infinite;
-}
-
-@keyframes athlete-avances-hint-pulse {
-  0%,
-  100% {
-    opacity: 0.55;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .athlete-avances-month-hint {
-    animation: none;
-    opacity: 1;
-  }
-}
-
-.athlete-avances-current-weight {
-  margin: 4px 0 0;
-  display: inline-flex;
-  gap: 8px;
-  align-items: baseline;
-  font-size: 13px;
-  color: var(--text-tertiary);
-}
-
-.athlete-avances-current-weight strong {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.athlete-avances-body {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--border) 65%, transparent) transparent;
-}
-
-.athlete-avances-body::-webkit-scrollbar {
-  width: 5px;
-}
-
-.athlete-avances-body::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.athlete-avances-body::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--border) 70%, transparent);
-  border-radius: 999px;
-}
-
-.athlete-avances-body::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--border-hover, var(--border)) 85%, transparent);
-}
-
-.athlete-avances-body-inner {
-  width: min(720px, 100%);
-  margin: 0 auto;
-  padding: 4px 20px 32px;
-  box-sizing: border-box;
-  display: grid;
-  gap: 28px;
-}
-
-.athlete-avances-section-title {
-  margin: 0 0 12px;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.athlete-avances-history {
-  display: grid;
-  gap: 16px;
-  margin-top: 12px;
-  padding-top: 28px;
-  border-top: 1px solid var(--border);
-}
-
-.athlete-avances-history-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px 16px;
-}
-
-.athlete-avances-history-title {
-  margin: 0;
-  font-size: clamp(1.55rem, 3.5vw, 1.9rem);
-  font-weight: 750;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
-  color: var(--text-primary);
-}
-
-.athlete-avances-history-header .progress-photos-compare-bar {
-  margin-top: 0;
-  justify-content: flex-end;
-}
-
-.athlete-avances-upload {
-  display: grid;
-  gap: 4px;
-}
-
-.athlete-avances-form {
-  display: grid;
-  gap: 16px;
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
-  box-sizing: border-box;
-}
-
-.athlete-avances-pair {
-  display: grid;
-  gap: 8px;
-  justify-items: center;
-}
-
-.athlete-avances-pair-title {
-  margin: 0;
-  justify-self: center;
-  font-size: 13px;
-  font-weight: 750;
-  letter-spacing: -0.01em;
-  color: var(--text-primary);
-}
-
-.athlete-avances-pair-frame {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: stretch;
-  width: min(100%, 420px);
-  margin-inline: auto;
-  overflow: hidden;
-  border: 1.5px dashed var(--border);
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--bg) 70%, var(--bg-surface));
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.athlete-avances-pair-frame:hover {
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
-}
-
-.athlete-avances-pair-frame:has(.athlete-avances-photo-slot.has-preview) {
-  border-style: solid;
-  background: var(--bg-surface);
-}
-
-.athlete-avances-pair-divider {
-  width: 1px;
-  align-self: stretch;
-  background: color-mix(in srgb, var(--border) 85%, transparent);
-}
-
-.athlete-avances-photo-field--pair {
-  min-width: 0;
-}
-
-.athlete-avances-photo-field--pair .athlete-avances-photo-slot {
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  height: auto;
-  aspect-ratio: 3 / 4;
-  max-height: none;
-}
-
-.athlete-avances-photo-field--pair:hover .athlete-avances-photo-slot {
-  border-color: transparent;
-  background: color-mix(in srgb, var(--accent) 5%, transparent);
-}
-
-.athlete-avances-photo-field--pair .athlete-avances-photo-slot:focus-within {
-  outline: none;
-  background: color-mix(in srgb, var(--accent) 7%, transparent);
-}
-
-.athlete-avances-photo-field--pair .athlete-avances-photo-slot.has-preview {
-  border-style: none;
-}
-
-.athlete-avances-photo-badge {
-  position: absolute;
-  left: 10px;
-  bottom: 10px;
-  z-index: 3;
-  padding: 4px 8px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-  background: color-mix(in srgb, var(--bg-surface) 88%, transparent);
-  color: var(--text-primary);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  pointer-events: none;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-}
-
-.athlete-avances-form-footer {
-  display: grid;
-  gap: 14px;
-  width: min(100%, 420px);
-  margin-inline: auto;
-}
-
-.athlete-avances-weight-block {
-  display: grid;
-  gap: 8px;
-  width: min(100%, 220px);
-}
-
-.athlete-avances-field-weight {
-  width: 100%;
-  max-width: none;
-  grid-template-rows: auto 40px;
-}
-
-.athlete-avances-month-caption {
-  position: relative;
-  width: 100%;
-  height: auto;
-}
-
-.athlete-avances-month-caption-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--text-tertiary);
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
-  line-height: 1.3;
-  text-align: left;
-  cursor: pointer;
-}
-
-.athlete-avances-month-caption-btn:hover .athlete-avances-month-caption-action,
-.athlete-avances-month-caption-btn[aria-expanded='true'] .athlete-avances-month-caption-action {
-  text-decoration: underline;
-}
-
-.athlete-avances-month-caption-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.athlete-avances-month-caption-btn:disabled .athlete-avances-month-caption-action {
-  text-decoration: none;
-}
-
-.athlete-avances-month-caption-value {
-  color: var(--text-secondary);
-}
-
-.athlete-avances-month-caption-sep {
-  color: var(--text-tertiary);
-}
-
-.athlete-avances-month-caption-action {
-  color: var(--accent);
-  font-weight: 650;
-}
-
-.athlete-avances-month-caption .month-picker-panel {
-  left: 0;
-  transform: none;
-}
-
-.month-picker {
-  position: relative;
-  width: 100%;
-}
-
-.month-picker-trigger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  width: 100%;
-  box-sizing: border-box;
-  min-height: 0;
-  height: 40px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm, 8px);
-  background: var(--bg);
-  color: var(--text-primary);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 650;
-  line-height: 1.2;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.month-picker-trigger:hover {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
-}
-
-.month-picker-trigger[aria-expanded='true'] {
-  border-color: var(--accent);
-}
-
-.month-picker-trigger:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.month-picker-trigger-label {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: left;
-}
-
-.month-picker-trigger-ico {
-  display: inline-flex;
-  color: var(--text-secondary);
-  flex-shrink: 0;
-  transition: transform 0.18s ease;
-}
-
-.month-picker-trigger[aria-expanded='true'] .month-picker-trigger-ico {
-  transform: rotate(180deg);
-}
-
-.month-picker-panel {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 50%;
-  z-index: 20;
-  width: min(248px, 78vw);
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
-  box-shadow: 0 16px 40px color-mix(in srgb, var(--text-primary) 16%, transparent);
-  transform: translateX(-50%);
-}
-
-.month-picker-panel[hidden] {
-  display: none !important;
-}
-
-.month-picker-year {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.month-picker-year-label {
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-}
-
-.month-picker-year-btn {
-  display: inline-grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  margin: 0;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--bg-elevated, var(--bg-input)) 88%, transparent);
-  color: var(--text-primary);
-  font: inherit;
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, color 0.15s;
-}
-
-.month-picker-year-btn:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
-  color: var(--accent);
-}
-
-.month-picker-year-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.month-picker-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.month-picker-month {
-  margin: 0;
-  min-height: 36px;
-  padding: 6px 4px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--bg-input) 80%, transparent);
-  color: var(--text-primary);
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 650;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
-
-.month-picker-month:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
-  color: var(--accent);
-}
-
-.month-picker-month.is-selected {
-  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
-  background: color-mix(in srgb, var(--accent) 18%, var(--bg-surface));
-  color: var(--accent);
-}
-
-.month-picker-month:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.athlete-avances-field {
-  display: grid;
-  gap: 6px;
-}
-
-.athlete-avances-field-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-tertiary);
-}
-
-.athlete-avances-field input[type='number'] {
-  width: 100%;
-  box-sizing: border-box;
-  height: 40px;
-  min-height: 40px;
-  max-height: 40px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm, 8px);
-  background: var(--bg);
-  color: var(--text-primary);
-  font: inherit;
-  font-size: 14px;
-  line-height: 1.2;
-}
-
-.athlete-avances-field input[type='number']:focus {
-  outline: none;
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
-}
-
-.athlete-avances-field input:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-.athlete-avances-photo-slot {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 3 / 4;
-  overflow: hidden;
-  border: 1.5px dashed var(--border);
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--bg) 70%, var(--bg-surface));
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.athlete-avances-photo-field:hover .athlete-avances-photo-slot {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
-  background: color-mix(in srgb, var(--accent) 5%, var(--bg-surface));
-}
-
-.athlete-avances-photo-slot:focus-within {
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
-  outline: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
-  outline-offset: 2px;
-}
-
-.athlete-avances-photo-slot.has-preview {
-  border-style: solid;
-}
-
-.athlete-avances-photo-slot.is-disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.athlete-avances-photo-slot input[type='file'] {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  opacity: 0;
-  cursor: pointer;
-  border: 0;
-  z-index: 2;
-}
-
-.athlete-avances-photo-plus {
-  font-size: 2.25rem;
-  font-weight: 300;
-  line-height: 1;
-  color: var(--text-tertiary);
-  pointer-events: none;
-  user-select: none;
-}
-
-.athlete-avances-photo-slot.has-preview .athlete-avances-photo-plus {
-  display: none;
-}
-
-.athlete-avances-photo-preview {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.athlete-avances-photo-preview[hidden] {
-  display: none !important;
-}
-
-.athlete-avances-form-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 16px;
-}
-
-.athlete-avances-form-actions .recommend-cta {
-  min-width: 120px;
-  flex-shrink: 0;
-}
-
-.athlete-avances-form-actions .recommend-cta:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-.athlete-avances-form-status {
-  flex: 1 1 100%;
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.athlete-avances-form-status.is-ok {
-  color: var(--text-primary);
-}
-
-.athlete-avances-form-status.is-error {
-  color: #c0392b;
-}
-
-.athlete-avances-toast {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin: 0 0 12px;
-  padding: 14px 16px;
-  border: 1px solid color-mix(in srgb, #1f9d6a 28%, var(--border));
-  border-radius: var(--radius-md);
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, #1f9d6a 14%, var(--bg-surface)),
-      color-mix(in srgb, var(--accent) 8%, var(--bg-surface))
-    );
-  box-shadow: 0 10px 28px color-mix(in srgb, #1f9d6a 12%, transparent);
-  opacity: 0;
-  transform: translateY(-10px) scale(0.98);
-  pointer-events: none;
-  transition:
-    opacity 0.32s ease,
-    transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.athlete-avances-toast[hidden] {
-  display: none !important;
-}
-
-.athlete-avances-toast.is-visible {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-  pointer-events: auto;
-}
-
-.athlete-avances-toast.is-leaving {
-  opacity: 0;
-  transform: translateY(-6px) scale(0.99);
-}
-
-.athlete-avances-toast-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  color: #0f7a52;
-  background: color-mix(in srgb, #1f9d6a 16%, var(--bg-surface));
-  animation: athlete-avances-toast-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-html[data-theme='dark'] .athlete-avances-toast-icon {
-  color: #5ddea8;
-  background: color-mix(in srgb, #1f9d6a 22%, transparent);
-}
-
-.athlete-avances-toast-copy {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-  padding-top: 2px;
-}
-
-.athlete-avances-toast-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-}
-
-.athlete-avances-toast-detail {
-  margin: 0;
-  font-size: 12.5px;
-  line-height: 1.45;
-  color: var(--text-secondary);
-}
-
-@keyframes athlete-avances-toast-pop {
-  from {
-    transform: scale(0.7);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .athlete-avances-toast,
-  .athlete-avances-toast-icon {
-    animation: none;
-    transition: none;
-  }
-
-  .athlete-avances-toast.is-visible {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-.athlete-avances-results {
-  flex: none;
-  min-height: 0;
-  overflow: visible;
-  margin-top: 8px;
-}
 
 /* ── Profile ─────────────────────────────────────── */
 

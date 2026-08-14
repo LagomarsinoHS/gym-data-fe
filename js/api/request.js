@@ -54,12 +54,7 @@ export async function postBinary(path, body, { auth = false } = {}) {
   });
 
   if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    const err = new Error(
-      (typeof data?.message === 'string' && data.message) ||
-      `API ${res.status}: ${url.pathname}`,
-    );
-    throw attachApiError(err, res.status, data || {});
+    throw await throwApiError(res, url);
   }
 
   const blob = await res.blob();
@@ -129,23 +124,34 @@ function authHeaders(auth) {
 
 async function send(url, options) {
   const res = await fetch(url, options);
-  const text = await res.text();
-  let data = null;
-  if (text) {
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = {};
-    }
-  }
+  const data = await parseResponseBody(res);
   if (!res.ok) {
-    const err = new Error(
-      (typeof data?.message === 'string' && data.message) ||
-      `API ${res.status}: ${url.pathname}`,
-    );
-    throw attachApiError(err, res.status, data || {});
+    throw buildApiError(res, url, data);
   }
   return data;
+}
+
+async function throwApiError(res, url) {
+  const data = await parseResponseBody(res);
+  throw buildApiError(res, url, data);
+}
+
+async function parseResponseBody(res) {
+  const text = await res.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {};
+  }
+}
+
+function buildApiError(res, url, data) {
+  const err = new Error(
+    (typeof data?.message === 'string' && data.message) ||
+    `API ${res.status}: ${url.pathname}`,
+  );
+  return attachApiError(err, res.status, data || {});
 }
 
 /**

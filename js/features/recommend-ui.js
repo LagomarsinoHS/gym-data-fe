@@ -5,7 +5,9 @@
  * Plan shape: { exercises: [{ id, name, …, sets, reps, rest }], note? }
  */
 import { fillCardMedia } from '../utils/cards.js';
+import { mapApiError } from '../utils/api-errors.js';
 import { label, titleCase, ui } from '../utils/labels.js';
+import { setInlineStatus } from '../utils/dom-status.js';
 import { prescriptionLines } from '../utils/prescription.js';
 
 const EQUIP_MAX = 2;
@@ -383,28 +385,14 @@ function setLoading(show) {
 }
 
 function setStatus(message, kind = '') {
-  if (!statusEl) return;
-  if (!message) {
-    statusEl.hidden = true;
-    statusEl.textContent = '';
-    statusEl.classList.remove('is-error', 'is-ok');
-    return;
-  }
-  statusEl.hidden = false;
-  statusEl.textContent = message;
-  statusEl.classList.toggle('is-error', kind === 'error');
-  statusEl.classList.toggle('is-ok', kind === 'ok');
+  setInlineStatus(statusEl, message, kind);
 }
 
 async function onSubmit(e) {
   e.preventDefault();
-  if (loading) return;
+  if (loading || submitBtn?.disabled) return;
   const zone = zoneSelect?.value;
   const equipment = [...selectedEquipment];
-  if (!zone || equipment.length < 1 || equipment.length > EQUIP_MAX) {
-    syncSubmitEnabled();
-    return;
-  }
 
   setStatus('');
   setLoading(true);
@@ -415,6 +403,6 @@ async function onSubmit(e) {
   } catch (err) {
     console.error(err);
     setLoading(false);
-    setStatus(err.message || ui('recommendFail'), 'error');
+    setStatus(mapApiError(err, { fallback: 'recommendFail' }), 'error');
   }
 }

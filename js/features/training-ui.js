@@ -6,7 +6,7 @@
  */
 import { assetUrl } from '../utils/assets.js';
 import { fillCardMedia } from '../utils/cards.js';
-import { normalizeSearch } from '../utils/helpers.js';
+import { normalizeSearch, sortByOrder } from '../utils/helpers.js';
 import { exerciseName, label, ui } from '../utils/labels.js';
 import { prescriptionLines, prescriptionNote } from '../utils/prescription.js';
 import { setView } from './session-ui.js';
@@ -51,7 +51,7 @@ export function renderCoachTrainingProgram(user) {
     return;
   }
 
-  const sessions = [...prog].sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0));
+  const sessions = sortByOrder(prog);
   const frag = document.createDocumentFragment();
   sessions.forEach((session, index) => {
     frag.appendChild(createCoachPlanSession(session, { index }));
@@ -62,9 +62,7 @@ export function renderCoachTrainingProgram(user) {
 function createCoachPlanSession(session, { index = 0 } = {}) {
   const id = String(session?.id || '');
   const name = String(session?.name || '').trim() || '—';
-  const items = [...(session?.items || [])]
-    .filter(item => item?.exercise)
-    .sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0));
+  const items = sortByOrder([...(session?.items || [])].filter(item => item?.exercise));
   const sets = totalCoachSessionSets(items);
   const sessionNumber = (session?.order ?? index) + 1;
 
@@ -258,9 +256,9 @@ function renderProgramIntoGrid({
   grid.innerHTML = '';
 
   const assigned = (items || []).filter(item => item?.exercise);
-  const program = assigned
-    .filter(item => matchesTrainingFilters(item, filters))
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const program = sortByOrder(
+    assigned.filter(item => matchesTrainingFilters(item, filters)),
+  );
 
   if (!program.length) {
     grid.appendChild(createTrainingEmptyState(!assigned.length, { emptyKey, showCatalogCta }));

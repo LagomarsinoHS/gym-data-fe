@@ -5,6 +5,7 @@
  * Data: GET /users/:userId/progress-photos (single fetch; images lazy-load).
  */
 import { analyzeProgressPhotos, getProgressPhotos } from '../api/users.js';
+import { mapApiError } from '../utils/api-errors.js';
 import { getLang, ui } from '../utils/labels.js';
 import {
   athleteDisplayName,
@@ -12,13 +13,13 @@ import {
   store,
 } from './coach-athletes-store.js';
 import {
+  bindProgressCompareControls,
   createProgressHistoryRenderer,
   formatWeight,
   updateProgressCompareBar,
 } from './progress-history-ui.js';
 import {
   closeProgressPhotoLightbox,
-  initProgressPhotoLightbox,
 } from './progress-photo-lightbox.js';
 import { canAccessProgressAiAnalysis } from './session-ui.js';
 
@@ -54,7 +55,6 @@ const history = createProgressHistoryRenderer({
 });
 
 export function initProgressPhotosUi() {
-  initProgressPhotoLightbox();
   backBtn = document.getElementById('progress-photos-back');
   compareBar = document.getElementById('progress-photos-compare-bar');
   compareBtn = document.getElementById('progress-photos-compare-btn');
@@ -79,23 +79,12 @@ export function initProgressPhotosUi() {
     store.navigateTo(returnTo);
   });
 
-  compareBtn?.addEventListener('click', () => {
-    if (history.getViewMode() === 'timeline') {
-      clearAnalyzeAiState();
-      history.enterPickMode();
-      renderProgressPhotosBody();
-      return;
-    }
-    if (history.getViewMode() === 'pick') {
-      clearAnalyzeAiState();
-      history.exitToTimeline();
-    }
-  });
-
-  compareConfirmBtn?.addEventListener('click', () => {
-    if (!history.enterCompareMode()) return;
-    clearAnalyzeAiState();
-    renderProgressPhotosBody();
+  bindProgressCompareControls({
+    history,
+    compareBtn,
+    compareConfirmBtn,
+    onRender: renderProgressPhotosBody,
+    onBeforeModeChange: clearAnalyzeAiState,
   });
 }
 
@@ -170,9 +159,7 @@ async function runAnalyzeWithAi(yearMonths) {
     analyzeAiState = {
       loading: false,
       sections: null,
-      error:
-        (typeof err?.message === 'string' && err.message.trim()) ||
-        ui('progressPhotosAnalyzeAiFail'),
+      error: mapApiError(err, { fallback: 'progressPhotosAnalyzeAiFail' }),
     };
   }
 
@@ -242,6 +229,7 @@ async function ensurePhotosLoaded() {
     photosPayload = null;
   } finally {
     if (seq === loadSeq) loading = false;
+    renderProgressPhotosBody();
   }
 }
 

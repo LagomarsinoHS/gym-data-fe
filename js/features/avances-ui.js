@@ -1,40 +1,59 @@
 /**
  * Coach — Avances: pick an athlete, then open progress-photos.
  * Markup: #avances-view
+ *
+ * Note: openProgressPhotos is injected in init to avoid a circular import
+ * (avances → progress-photos → session → avances).
  */
-import { getCoachAthletes } from '../api/users.js';
 import { ui } from '../utils/labels.js';
 import { athleteDisplayName } from './coach-athletes-store.js';
-import { openProgressPhotos } from './progress-photos-ui.js';
+import { createCoachAthletePicker } from './coach-athlete-picker.js';
 
 const PAGE_SIZE = 10;
-
-/** @type {any[]} */
-let athletes = [];
-let page = 0;
-let pages = 0;
-let loading = false;
-let loadSeq = 0;
-let loadError = null;
 
 let listEl;
 let loadingEl;
 let emptyEl;
 let loadMoreBtn;
+/** @type {(athleteId: string, opts?: object) => void} */
+let openProgressPhotos = () => {};
 
-export function initAvancesUi() {
+const picker = createCoachAthletePicker({
+  pageSize: PAGE_SIZE,
+  getElements: () => ({
+    listEl: listEl || document.getElementById('avances-list'),
+    loadingEl: loadingEl || document.getElementById('avances-loading'),
+    emptyEl: emptyEl || document.getElementById('avances-empty'),
+    loadMoreBtn: loadMoreBtn || document.getElementById('avances-load-more'),
+  }),
+  renderRow: createAthleteRow,
+  emptyKeys: {
+    loadFail: 'avancesLoadFail',
+    empty: { title: 'avancesEmptyTitle', lead: 'avancesEmptyLead' },
+  },
+});
+
+export function initAvancesUi(opts = {}) {
+  if (typeof opts.openProgressPhotos === 'function') {
+    openProgressPhotos = opts.openProgressPhotos;
+  }
+
   listEl = document.getElementById('avances-list');
   loadingEl = document.getElementById('avances-loading');
   emptyEl = document.getElementById('avances-empty');
   loadMoreBtn = document.getElementById('avances-load-more');
+  loadMoreBtn?.addEventListener('click', () => void picker.loadMore());
+}
 
-  loadMoreBtn?.addEventListener('click', () => void loadMore());
+export function resetAvancesUi() {
+  picker.reset();
 }
 
 export function syncAvancesLabels() {
   document.querySelectorAll('#avances-view [data-ui]').forEach(el => {
     el.textContent = ui(el.dataset.ui);
   });
+  picker.syncLabels();
 }
 
 export async function syncAvancesView() {
@@ -42,97 +61,7 @@ export async function syncAvancesView() {
   if (!viewEl || viewEl.hidden) return;
 
   syncAvancesLabels();
-  if (!athletes.length && !loading) {
-    await reload();
-  } else {
-    render();
-  }
-}
-
-async function reload() {
-  athletes = [];
-  page = 0;
-  pages = 0;
-  loadError = null;
-  await fetchPage(1, { replace: true });
-}
-
-async function loadMore() {
-  if (loading || page >= pages) return;
-  await fetchPage(page + 1, { replace: false });
-}
-
-async function fetchPage(nextPage, { replace }) {
-  const seq = ++loadSeq;
-  loading = true;
-  loadError = null;
-  render();
-
-  try {
-    const payload = await getCoachAthletes({
-      page: nextPage,
-      limit: PAGE_SIZE,
-    });
-    if (seq !== loadSeq) return;
-
-    const items = Array.isArray(payload?.data) ? payload.data : [];
-    page = Number(payload?.page) || nextPage;
-    pages = Number(payload?.pages) || 0;
-    athletes = replace ? items : athletes.concat(items);
-  } catch (err) {
-    if (seq !== loadSeq) return;
-    loadError = err;
-    if (replace) athletes = [];
-  } finally {
-    if (seq === loadSeq) loading = false;
-    render();
-  }
-}
-
-function render() {
-  if (!listEl || !loadingEl || !emptyEl) return;
-
-  const bootLoading = loading && athletes.length === 0;
-  loadingEl.hidden = !bootLoading;
-
-  if (bootLoading) {
-    emptyEl.hidden = true;
-    listEl.hidden = true;
-    if (loadMoreBtn) loadMoreBtn.hidden = true;
-    return;
-  }
-
-  if (loadError && athletes.length === 0) {
-    emptyEl.hidden = false;
-    listEl.hidden = true;
-    const title = emptyEl.querySelector('.avances-empty-title');
-    const lead = emptyEl.querySelector('.avances-empty-lead');
-    if (title) title.textContent = ui('avancesLoadFail');
-    if (lead) lead.textContent = '';
-    if (loadMoreBtn) loadMoreBtn.hidden = true;
-    return;
-  }
-
-  if (athletes.length === 0) {
-    emptyEl.hidden = false;
-    listEl.hidden = true;
-    const title = emptyEl.querySelector('.avances-empty-title');
-    const lead = emptyEl.querySelector('.avances-empty-lead');
-    if (title) title.textContent = ui('avancesEmptyTitle');
-    if (lead) lead.textContent = ui('avancesEmptyLead');
-    if (loadMoreBtn) loadMoreBtn.hidden = true;
-    return;
-  }
-
-  emptyEl.hidden = true;
-  listEl.hidden = false;
-  listEl.replaceChildren(...athletes.map(createAthleteRow));
-
-  if (loadMoreBtn) {
-    const hasMore = pages > 0 ? page < pages : false;
-    loadMoreBtn.hidden = !hasMore;
-    loadMoreBtn.disabled = loading;
-  }
+  await picker.ensureLoaded();
 }
 
 function createAthleteRow(athlete) {

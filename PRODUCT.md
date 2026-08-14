@@ -1,5 +1,7 @@
 # ExerciseDB — Qué es y qué ofrece
 
+> **V estable — 2026-08-13.** Snapshot de producto alineado al frontend en `develop` a esta fecha (cleanup FE, nutrición coach list/read/archive, admin users rediseñado, pickers Avances/Nutrición estabilizados). Pendientes: ver `docs/TODO.md`.
+
 Plataforma de entrenamiento que une un **catálogo profesional de ejercicios**, planes propios y del coach, seguimiento físico con fotos, y **recomendaciones con IA**. Pensada para atletas que entrenan solos o con un entrenador, y para coaches que gestionan alumnos.
 
 ---
@@ -51,6 +53,10 @@ Plataforma de entrenamiento que une un **catálogo profesional de ejercicios**, 
 - Aceptás o rechazás desde la app
 - Ves quién es tu coach en el perfil
 
+### Nutrición
+- Ves la **pauta alimenticia** que armó tu coach (macros + comidas por horario)
+- Historial de pautas anteriores; podés ocultar archivadas
+
 ### Perfil y cuenta
 - Registro / login
 - Foto de perfil, nombre y cambio de contraseña
@@ -87,6 +93,11 @@ Plataforma de entrenamiento que une un **catálogo profesional de ejercicios**, 
 ### Avances de alumnos
 - Mismas fotos, timeline y comparativas que ve el atleta
 - **Análisis con IA** de dos meses *(Growth / Pro)*: lectura estructurada de los cambios visibles
+
+### Nutrición
+- Perfil nutricional del alumno (hábitos, preferencias, comidas deseadas)
+- **Pauta alimenticia**: listar / ver / archivar (crear y editar editor en roadmap V1)
+- Mismo picker de alumnos que Avances; Volver a alumnos restaura la lista
 
 ### Cupos y planes de coach
 | Plan   | Cupo de alumnos (orientativo) |
@@ -147,12 +158,15 @@ La IA **elige solo del catálogo** (no inventa ejercicios) y escribe la justific
 
 Estas piezas están contempladas en el producto pero aún no son el foco vendible:
 
-- **Pauta nutricional**: el coach sube una guía alimenticia; el atleta la ve en su app
+- **Editor de pauta nutricional** (coach crea/edita macros y comidas; list/read/archive ya shipped en V estable 2026-08-13)
 - **PDF brand**: export con nombre/logo del coach, fecha y pie “Preparado por…”
 - Pantalla completa de **Configuración**
 - Flujo de **pago / upgrade** dentro de la app
 - Más opciones de perfil (email, notificaciones, privacy, etc.)
 - (IA) Usar datos corporales del perfil en recommend / análisis de progreso
+- (V2 nutrición) Targets sugeridos desde antropometría / objetivo
+- Admin: colas dedicadas paid/expiring, audit log, restore soft-delete
+
 ---
 
 ## A quién le sirve

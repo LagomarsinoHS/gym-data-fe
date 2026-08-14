@@ -6,24 +6,10 @@
 import { progressPhotoThumbUrl } from '../utils/cloudinary.js';
 import { userProfile } from '../utils/helpers.js';
 import { getLang, ui } from '../utils/labels.js';
+import { formatHeightCm, formatWeight } from '../utils/profile-labels.js';
 import { openProgressPhotoLightbox } from './progress-photo-lightbox.js';
 
-export function formatWeight(weight) {
-  if (weight == null || weight === '') return '—';
-  if (typeof weight === 'number' && Number.isFinite(weight)) {
-    return `${weight} kg`;
-  }
-  const text = String(weight).trim();
-  return text || '—';
-}
-
-/** @returns {string | null} */
-export function formatHeightCm(heightCm) {
-  if (heightCm == null || heightCm === '') return null;
-  const n = Number(heightCm);
-  if (!Number.isFinite(n)) return null;
-  return `${Math.round(n)} cm`;
-}
+export { formatHeightCm, formatWeight } from '../utils/profile-labels.js';
 
 export function flattenTimelineMonths(payload) {
   /** @type {Array<{ yearMonth: string, month: number, year?: number, weightKg?: number | null, front: any, back: any }>} */
@@ -100,6 +86,44 @@ export function updateProgressCompareBar({
     if (confirmLabel) confirmLabel.textContent = ui('progressPhotosCompareView');
     compareConfirmBtn.disabled = selectedYearMonths.length < 2;
   }
+}
+
+/**
+ * Wire compare / cancel / confirm controls for progress history views.
+ * @param {{
+ *   history: ReturnType<typeof createProgressHistoryRenderer>,
+ *   compareBtn: HTMLElement | null | undefined,
+ *   compareConfirmBtn: HTMLButtonElement | null | undefined,
+ *   onRender: () => void,
+ *   onBeforeModeChange?: () => void,
+ * }} opts
+ */
+export function bindProgressCompareControls({
+  history,
+  compareBtn,
+  compareConfirmBtn,
+  onRender,
+  onBeforeModeChange,
+}) {
+  compareBtn?.addEventListener('click', () => {
+    if (history.getViewMode() === 'timeline') {
+      onBeforeModeChange?.();
+      history.enterPickMode();
+      onRender();
+      return;
+    }
+    if (history.getViewMode() === 'pick') {
+      onBeforeModeChange?.();
+      history.exitToTimeline();
+      onRender();
+    }
+  });
+
+  compareConfirmBtn?.addEventListener('click', () => {
+    if (!history.enterCompareMode()) return;
+    onBeforeModeChange?.();
+    onRender();
+  });
 }
 
 /**
@@ -199,6 +223,7 @@ export function createProgressHistoryRenderer(opts = {}) {
     }
 
     if (!payload) {
+      resultsEl.append(createEmptyState());
       notifyStateChange();
       return;
     }

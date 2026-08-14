@@ -3,15 +3,21 @@
  * Markup: #athlete-avances-view
  */
 import { getProgressPhotos, uploadProgressPhotos } from '../api/users.js';
+import { mapApiError } from '../utils/api-errors.js';
 import { getLang, ui } from '../utils/labels.js';
 import {
+  currentYearMonthUtc,
+  isValidYearMonth,
+  normalizeYearMonth,
+} from '../utils/year-month.js';
+import {
+  bindProgressCompareControls,
   createProgressHistoryRenderer,
   formatWeight,
   updateProgressCompareBar,
 } from './progress-history-ui.js';
 import {
   closeProgressPhotoLightbox,
-  initProgressPhotoLightbox,
 } from './progress-photo-lightbox.js';
 
 const WEIGHT_MIN = 20;
@@ -75,7 +81,6 @@ export function initAthleteAvancesUi(opts = {}) {
   if (typeof opts.getUser === 'function') getUser = opts.getUser;
   if (typeof opts.refreshUser === 'function') refreshUser = opts.refreshUser;
 
-  initProgressPhotoLightbox();
   formEl = document.getElementById('athlete-avances-form');
   frontInput = document.getElementById('athlete-avances-front');
   backInput = document.getElementById('athlete-avances-back');
@@ -157,20 +162,11 @@ export function initAthleteAvancesUi(opts = {}) {
     }
   });
 
-  compareBtn?.addEventListener('click', () => {
-    if (history.getViewMode() === 'timeline') {
-      history.enterPickMode();
-      renderHistoryBody();
-      return;
-    }
-    if (history.getViewMode() === 'pick') {
-      history.exitToTimeline();
-    }
-  });
-
-  compareConfirmBtn?.addEventListener('click', () => {
-    if (!history.enterCompareMode()) return;
-    renderHistoryBody();
+  bindProgressCompareControls({
+    history,
+    compareBtn,
+    compareConfirmBtn,
+    onRender: renderHistoryBody,
   });
 
   syncYearMonthBounds();
@@ -209,12 +205,6 @@ export function syncAthleteAvancesView() {
   void ensurePhotosLoaded().then(() => renderHistoryBody());
 }
 
-function currentYearMonthUtc(date = new Date()) {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  return `${year}-${month}`;
-}
-
 function formatMonthLabel(yearMonth) {
   const match = String(yearMonth || '').match(/^(\d{4})-(\d{2})$/);
   if (!match) return String(yearMonth || '');
@@ -230,20 +220,11 @@ function formatMonthLabel(yearMonth) {
 }
 
 function syncYearMonthBounds() {
-  const current = currentYearMonthUtc();
-  let value = String(yearMonthInput?.value || '').trim();
-  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(value) || value > current) {
-    value = current;
-  }
-  setYearMonthValue(value, { silent: true });
+  setYearMonthValue(normalizeYearMonth(yearMonthInput?.value), { silent: true });
 }
 
 function setYearMonthValue(yearMonth, { silent = false } = {}) {
-  const current = currentYearMonthUtc();
-  let value = String(yearMonth || '').trim();
-  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(value) || value > current) {
-    value = current;
-  }
+  const value = normalizeYearMonth(yearMonth);
   if (yearMonthInput) yearMonthInput.value = value;
   syncMonthTriggerLabel();
   if (!silent) {
@@ -256,7 +237,7 @@ function syncMonthTriggerLabel() {
   if (!monthTriggerLabel) return;
   const value = String(yearMonthInput?.value || '').trim();
   const current = currentYearMonthUtc();
-  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) {
+  if (!isValidYearMonth(value)) {
     monthTriggerLabel.textContent = ui('athleteAvancesMonthCurrent');
     return;
   }
@@ -322,9 +303,7 @@ function renderMonthPanel() {
 
 function selectedYearMonth() {
   const value = String(yearMonthInput?.value || '').trim();
-  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) return null;
-  if (value > currentYearMonthUtc()) return null;
-  return value;
+  return isValidYearMonth(value) ? value : null;
 }
 
 function syncMonthHint() {
@@ -381,6 +360,7 @@ async function ensurePhotosLoaded({ force = false } = {}) {
     photosPayload = null;
   } finally {
     if (seq === loadSeq) loading = false;
+    renderHistoryBody();
   }
 }
 
@@ -559,10 +539,7 @@ async function onSave() {
     renderHistoryBody();
     updateCurrentWeightDisplay();
   } catch (err) {
-    const message =
-      (typeof err?.message === 'string' && err.message.trim()) ||
-      ui('athleteAvancesSaveFail');
-    setFormStatus(message, { isError: true });
+    setFormStatus(mapApiError(err, { fallback: 'athleteAvancesSaveFail' }), { isError: true });
   } finally {
     setSaving(false);
   }

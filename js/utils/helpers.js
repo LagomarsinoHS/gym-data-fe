@@ -6,6 +6,12 @@ export function debounce(fn, ms) {
   };
 }
 
+/** Sort sessions/items by `order` ascending (stable copy). */
+export function sortByOrder(list) {
+  if (!Array.isArray(list)) return [];
+  return [...list].sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0));
+}
+
 /**
  * Personal fields from GET /users/me (`user.profile`).
  * Also accepts flat name holders (coach summary, invite athlete snippet).

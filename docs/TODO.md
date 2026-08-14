@@ -2,6 +2,10 @@
 
 Solo pendientes. Lo ya hecho: [FRONTEND-CAPACIDADES.md](./FRONTEND-CAPACIDADES.md).
 
+> **V estable — 2026-08-13.** Snapshot estable del FE (cleanup olas 1–4, nutrición list/read/archive, admin users, pickers). Lo de abajo son los siguientes pasos.
+
+> Cleanup FE (olas 1–4): docs/i18n/CSS muerto, alineación FE↔BE, helpers compartidos, listas/pickers unificados, splits de session/nutrition/CSS — ver historial reciente.
+
 ---
 
 ## Prioridad

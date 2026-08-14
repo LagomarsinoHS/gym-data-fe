@@ -8,7 +8,9 @@
 import { getCoachAthletes, getCoachInvites, inviteCoachAthlete } from '../api/users.js';
 import { ui } from '../utils/labels.js';
 import { ApiErrorCode, mapApiError } from '../utils/api-errors.js';
-import { userProfile } from '../utils/helpers.js';
+import { debounce, userProfile } from '../utils/helpers.js';
+import { setInlineStatus } from '../utils/dom-status.js';
+import { bindOverlay } from '../utils/overlay.js';
 import { openProgressPhotos } from './progress-photos-ui.js';
 import { openAthleteNutrition } from './coach-nutrition-ui.js';
 import {
@@ -20,6 +22,7 @@ import {
 import {
   store,
   athleteDisplayName,
+  athleteHasPlan,
   findAthlete,
   resetCoachAthletesStore,
   isAthleteDirty,
@@ -60,7 +63,6 @@ let sortWrap;
 let sortBtn;
 let sortMenu;
 let closeTimer = 0;
-let searchTimer = 0;
 /** @type {'default' | 'without-plan' | 'with-plan'} */
 let studentsSort = 'default';
 /** Athlete ids with a recent accepted invite (not yet dismissed this session). */
@@ -99,7 +101,6 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
     e.stopPropagation();
     toggleInviteQuotaTip();
   });
-  document.getElementById('add-student-close')?.addEventListener('click', closeAddStudentModal);
   whatsappBtn?.addEventListener('click', () => void onSubmitInvite({ copyWhatsApp: true }));
   loadMoreBtn?.addEventListener('click', () => void loadMoreAthletes());
   searchInput?.addEventListener('input', onSearchInput);
@@ -114,8 +115,11 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
       onStudentsSortPick(btn.dataset.sort);
     });
   });
-  overlay.addEventListener('click', e => {
-    if (e.target === overlay) closeAddStudentModal();
+  bindOverlay({
+    overlay,
+    closeSelectors: ['#add-student-close'],
+    onClose: closeAddStudentModal,
+    stopEscapePropagation: true,
   });
   form.addEventListener('submit', onSubmit);
 
@@ -131,11 +135,7 @@ export function initStudentsUi({ navigateTo: nav, openExercise: openEx } = {}) {
 
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
-    if (overlay.classList.contains('open')) {
-      e.stopImmediatePropagation();
-      closeAddStudentModal();
-      return;
-    }
+    if (overlay?.classList.contains('open')) return;
     if (document.getElementById('students-invite-wrap')?.classList.contains('is-tip-open')) {
       e.stopImmediatePropagation();
       closeInviteQuotaTip();
@@ -200,6 +200,24 @@ export async function loadCoachAthletes({ force = false } = {}) {
   }
 
   return fetchAthletesPage(1, { replace: true });
+}
+
+/**
+ * Enter Mis alumnos: show boot loading, then wait for /me + athletes (+ invites)
+ * before painting the list — avoids empty chrome flash.
+ */
+export async function enterStudentsView() {
+  const needsFetch = !store.athletesLoaded;
+  if (needsFetch) setStudentsLoading(true);
+
+  await Promise.all([
+    refreshUser().catch((err) => {
+      console.error(err);
+      return null;
+    }),
+    loadCoachAthletes(),
+  ]);
+  syncInviteStudentButtons();
 }
 
 async function loadMoreAthletes() {
@@ -277,16 +295,17 @@ function hasMoreAthletes() {
 
 function onSearchInput() {
   syncSearchClear();
-  window.clearTimeout(searchTimer);
-  searchTimer = window.setTimeout(() => {
-    const next = searchInput?.value.trim() ?? '';
-    if (next === store.searchQuery) return;
-    store.searchQuery = next;
-    store.openAthleteId = null;
-    store.athletesLoaded = false;
-    void fetchAthletesPage(1, { replace: true });
-  }, SEARCH_DEBOUNCE_MS);
+  debouncedStudentsSearch();
 }
+
+const debouncedStudentsSearch = debounce(() => {
+  const next = searchInput?.value.trim() ?? '';
+  if (next === store.searchQuery) return;
+  store.searchQuery = next;
+  store.openAthleteId = null;
+  store.athletesLoaded = false;
+  void fetchAthletesPage(1, { replace: true });
+}, SEARCH_DEBOUNCE_MS);
 
 function clearStudentsSearch() {
   if (!searchInput) return;
@@ -300,8 +319,6 @@ function clearStudentsSearch() {
 }
 
 function resetStudentsSearch({ keepInput = false } = {}) {
-  window.clearTimeout(searchTimer);
-  searchTimer = 0;
   store.searchQuery = '';
   if (!keepInput && searchInput) searchInput.value = '';
   syncSearchClear();
@@ -489,17 +506,7 @@ function inviteErrorMessage(err) {
 }
 
 function setStatus(message, kind = '') {
-  if (!statusEl) return;
-  if (!message) {
-    statusEl.hidden = true;
-    statusEl.textContent = '';
-    statusEl.classList.remove('is-error', 'is-ok');
-    return;
-  }
-  statusEl.hidden = false;
-  statusEl.textContent = message;
-  statusEl.classList.toggle('is-error', kind === 'error');
-  statusEl.classList.toggle('is-ok', kind === 'ok');
+  setInlineStatus(statusEl, message, kind);
 }
 
 function setInviteButtonsDisabled(disabled) {
@@ -626,12 +633,6 @@ function syncStudentsSortMenuState() {
     btn.setAttribute('aria-checked', active ? 'true' : 'false');
   });
   sortWrap?.classList.toggle('has-active-sort', studentsSort !== 'default');
-}
-
-function athleteHasPlan(athlete) {
-  const prog = athlete?.coachTrainingProgram;
-  if (!Array.isArray(prog) || prog.length === 0) return false;
-  return prog.some(session => Array.isArray(session?.items) && session.items.length > 0);
 }
 
 /** Client-side sort over the currently loaded athletes page(s). */

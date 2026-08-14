@@ -13,15 +13,16 @@ import { initRecommendUi, syncRecommendLabels, renderRecommendPlan } from './fea
 import {
   initStudentsUi,
   syncStudentsLabels,
-  loadCoachAthletes,
+  enterStudentsView,
 } from './features/students-ui.js';
-import { initProgressPhotosUi } from './features/progress-photos-ui.js';
+import { initProgressPhotosUi, openProgressPhotos } from './features/progress-photos-ui.js';
+import { initProgressPhotoLightbox } from './features/progress-photo-lightbox.js';
 import {
   initCoachNutritionUi,
   syncNutritionLabels,
   syncNutritionView,
 } from './features/coach-nutrition-ui.js';
-import { initAvancesUi, syncAvancesLabels } from './features/avances-ui.js';
+import { initAvancesUi, syncAvancesLabels, syncAvancesView } from './features/avances-ui.js';
 import {
   initAthleteAvancesUi,
   syncAthleteAvancesLabels,
@@ -169,13 +170,16 @@ async function init() {
       else if (view === 'admin-overview') void refreshAdminOverview();
       else if (view === 'admin-users') void refreshAdminUsers();
       else if (view === 'students') {
-        void refreshUser().finally(() => void loadCoachAthletes());
+        void enterStudentsView();
       }
       else if (view === 'coach-templates') {
         void loadCoachTemplates();
       }
       else if (view === 'nutrition') {
         void syncNutritionView();
+      }
+      else if (view === 'avances') {
+        void syncAvancesView();
       }
       else if (view === 'athlete-nutrition') {
         void loadAthleteNutritionPlans();
@@ -197,13 +201,14 @@ async function init() {
   });
   initThemeUi();
   initNavDrawer();
+  initProgressPhotoLightbox();
   initStudentsUi({
     navigateTo: setView,
     openExercise: id => openModal(id),
   });
   initCoachNutritionUi({ navigateTo: setView });
-  initAvancesUi();
   initProgressPhotosUi();
+  initAvancesUi({ openProgressPhotos });
   initAthleteAvancesUi({ getUser, refreshUser });
   initAthleteNutritionUi();
   initProfileUi();

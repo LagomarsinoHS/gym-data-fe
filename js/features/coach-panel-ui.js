@@ -9,6 +9,8 @@
 import { getCoachAthletes, getCoachInvites } from '../api/users.js';
 import { formatDate } from '../utils/dates.js';
 import { ui } from '../utils/labels.js';
+import { setInlineStatus } from '../utils/dom-status.js';
+import { athleteHasPlan } from './coach-athletes-store.js';
 import { isCoach } from './session-ui.js';
 
 const PAGE_LIMIT = 50;
@@ -116,12 +118,6 @@ async function fetchAthleteStats() {
   return { total, withoutPlan };
 }
 
-function athleteHasPlan(athlete) {
-  const prog = athlete?.coachTrainingProgram;
-  if (!Array.isArray(prog) || prog.length === 0) return false;
-  return prog.some(session => Array.isArray(session?.items) && session.items.length > 0);
-}
-
 function setStats(total, withoutPlan) {
   if (totalEl) totalEl.textContent = total;
   if (withoutPlanEl) withoutPlanEl.textContent = withoutPlan;
@@ -136,16 +132,7 @@ function setLoading(show) {
 }
 
 function setStatus(message, kind = '') {
-  if (!statusEl) return;
-  if (!message) {
-    statusEl.hidden = true;
-    statusEl.textContent = '';
-    statusEl.classList.remove('is-error');
-    return;
-  }
-  statusEl.hidden = false;
-  statusEl.textContent = message;
-  statusEl.classList.toggle('is-error', kind === 'error');
+  setInlineStatus(statusEl, message, kind);
 }
 
 // ── Invites history ───────────────────────────────────────────────────
@@ -354,14 +341,5 @@ function setInvitesLoading(show) {
 }
 
 function setInvitesStatus(message, kind = '') {
-  if (!invitesStatusEl) return;
-  if (!message) {
-    invitesStatusEl.hidden = true;
-    invitesStatusEl.textContent = '';
-    invitesStatusEl.classList.remove('is-error');
-    return;
-  }
-  invitesStatusEl.hidden = false;
-  invitesStatusEl.textContent = message;
-  invitesStatusEl.classList.toggle('is-error', kind === 'error');
+  setInlineStatus(invitesStatusEl, message, kind);
 }

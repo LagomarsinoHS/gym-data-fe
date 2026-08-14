@@ -10,8 +10,10 @@ import {
   softDeleteAdminUser,
 } from '../api/admin.js';
 import { formatDate } from '../utils/dates.js';
-import { userProfile } from '../utils/helpers.js';
+import { debounce, userProfile } from '../utils/helpers.js';
 import { ui } from '../utils/labels.js';
+import { formatGoal, formatSex } from '../utils/profile-labels.js';
+import { setInlineStatus } from '../utils/dom-status.js';
 import { getUser, isAdmin } from './session-ui.js';
 
 const PAGE_SIZE = 50;
@@ -30,7 +32,6 @@ let listEl;
 let loadMoreBtn;
 let metaEl;
 
-let searchTimer = 0;
 let loadSeq = 0;
 let openUserId = null;
 
@@ -243,15 +244,16 @@ async function loadUsers({ reset = false, append = false } = {}) {
   }
 }
 
+const debouncedAdminUsersSearch = debounce(() => {
+  const next = searchInput?.value.trim() ?? '';
+  if (next === state.searchQuery) return;
+  state.searchQuery = next;
+  void loadUsers({ reset: true });
+}, SEARCH_DEBOUNCE_MS);
+
 function onSearchInput() {
   searchClearBtn?.classList.toggle('visible', Boolean(searchInput?.value));
-  window.clearTimeout(searchTimer);
-  searchTimer = window.setTimeout(() => {
-    const next = searchInput?.value.trim() ?? '';
-    if (next === state.searchQuery) return;
-    state.searchQuery = next;
-    void loadUsers({ reset: true });
-  }, SEARCH_DEBOUNCE_MS);
+  debouncedAdminUsersSearch();
 }
 
 function clearSearch() {
@@ -342,17 +344,7 @@ function setLoading(on) {
 }
 
 function setStatus(message, kind = '') {
-  if (!statusEl) return;
-  if (!message) {
-    statusEl.hidden = true;
-    statusEl.textContent = '';
-    statusEl.classList.remove('is-error', 'is-ok');
-    return;
-  }
-  statusEl.hidden = false;
-  statusEl.textContent = message;
-  statusEl.classList.toggle('is-error', kind === 'error');
-  statusEl.classList.toggle('is-ok', kind === 'ok');
+  setInlineStatus(statusEl, message, kind);
 }
 
 function createUserRow(user) {
@@ -425,8 +417,15 @@ function createUserRow(user) {
     deleteBtn = document.createElement('button');
     deleteBtn.type = 'button';
     deleteBtn.className = 'admin-user-delete-btn';
-    deleteBtn.textContent = ui('adminUsersDelete');
     deleteBtn.setAttribute('aria-label', ui('adminUsersDelete'));
+    const deleteIcon = document.createElement('span');
+    deleteIcon.className = 'admin-user-delete-ico';
+    deleteIcon.setAttribute('aria-hidden', 'true');
+    deleteIcon.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 4.3 2.5 18a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>';
+    const deleteLabel = document.createElement('span');
+    deleteLabel.textContent = ui('adminUsersDelete');
+    deleteBtn.append(deleteIcon, deleteLabel);
     deleteBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       openSubConfirmModal({
@@ -440,7 +439,7 @@ function createUserRow(user) {
 
   const body = document.createElement('div');
   body.className = 'student-row-body';
-  body.append(createUserDetailPanel(user), createSubscriptionActions(user, row));
+  body.append(createUserDetailPanel(user, row));
 
   row.append(header, body);
 
@@ -449,7 +448,7 @@ function createUserRow(user) {
   return row;
 }
 
-function createUserDetailPanel(user) {
+function createUserDetailPanel(user, row) {
   const profile = userProfile(user);
   const first = String(profile.firstName || '').trim() || '—';
   const last = String(profile.lastName || '').trim() || '—';
@@ -465,29 +464,25 @@ function createUserDetailPanel(user) {
     createInfoCard({
       icon: 'calendar',
       title: ui('adminUsersCardAccount'),
-      lines: [
-        `${ui('adminUsersCreated')}: ${formatDate(user?.createdAt)}`,
-        `${ui('adminUsersLastLogin')}: ${formatDate(user?.lastLoginAt)}`,
+      facts: [
+        { label: ui('adminUsersCreated'), value: formatDate(user?.createdAt) },
+        { label: ui('adminUsersLastLogin'), value: formatDate(user?.lastLoginAt) },
       ],
     }),
     createInfoCard({
       icon: 'calendar',
       title: ui('adminUsersCardSubscription'),
-      lines: [
-        `${ui('adminUsersStarted')}: ${formatDate(user?.subscription?.startedAt)}`,
-        `${ui('adminUsersExpires')}: ${formatDate(user?.subscription?.expiresAt)}`,
+      facts: [
+        { label: ui('adminUsersStarted'), value: formatDate(user?.subscription?.startedAt) },
+        { label: ui('adminUsersExpires'), value: formatDate(user?.subscription?.expiresAt) },
       ],
       footer: createSubscriptionProgress(user?.subscription),
     }),
-    createInfoCard({
-      icon: 'person',
-      title: ui('adminUsersCardRolePlan'),
-      lines: [`${formatRole(role)} - ${formatPlan(plan)}`],
-    }),
+    createRolePlanCard(role, plan),
     createInfoCard({
       icon: 'person',
       title: ui('adminUsersCardCoach'),
-      lines: [formatCoachDisplay(user)],
+      facts: [{ label: ui('adminUsersCardCoach'), value: formatCoachDisplay(user), hideLabel: true }],
     }),
   );
 
@@ -496,34 +491,27 @@ function createUserDetailPanel(user) {
 
   const profileTitle = document.createElement('h4');
   profileTitle.className = 'admin-user-profile-title';
-  profileTitle.textContent = profileSectionTitle(role);
+  profileTitle.textContent = ui('adminUsersProfilePersonal');
   profileCard.append(profileTitle);
 
   const profileGrid = document.createElement('div');
   profileGrid.className = 'admin-user-profile-grid';
   profileGrid.append(
-    createProfileFact('person', ui('firstName'), first),
+    createProfileFact('person', ui('adminUsersFirstName'), first),
     createProfileFact('ruler', ui('adminUsersHeight'), profile.heightCm != null ? `${profile.heightCm} cm` : '—'),
-    createProfileFact('person', ui('lastName'), last),
-    createProfileFact('goal', ui('adminUsersGoal'), formatGoal(user?.goal) || '—'),
-    createProfileFact('sex', ui('adminUsersSex'), formatSex(profile.sex)),
+    createProfileFact('person', ui('adminUsersLastName'), last),
+    createProfileFact('goal', ui('adminUsersGoal'), formatGoal(user?.goal) || (user?.goal ? String(user.goal) : '—')),
+    createProfileFact('sex', ui('adminUsersSex'), formatSex(profile.sex) || '—'),
     createProfileFact('calendar', ui('adminUsersBirth'), formatDate(profile.birthDate)),
   );
   profileCard.append(profileGrid);
 
-  panel.append(summary, profileCard);
-  return panel;
-}
+  const bottom = document.createElement('div');
+  bottom.className = 'admin-user-bottom-grid';
+  bottom.append(profileCard, createSubscriptionActions(user, row));
 
-function profileSectionTitle(role) {
-  switch (String(role || '')) {
-    case 'coach':
-      return ui('adminUsersProfileCoach');
-    case 'admin':
-      return ui('adminUsersProfileAdmin');
-    default:
-      return ui('adminUsersProfileAthlete');
-  }
+  panel.append(summary, bottom);
+  return panel;
 }
 
 /** Prefer display name from API when present; otherwise em dash (not raw coachId). */
@@ -538,7 +526,7 @@ function formatCoachDisplay(user) {
   return '—';
 }
 
-function createInfoCard({ icon, title, lines, footer = null }) {
+function createInfoCard({ icon, title, facts = [], lines = null, footer = null }) {
   const card = document.createElement('div');
   card.className = 'admin-user-info-card';
 
@@ -555,15 +543,68 @@ function createInfoCard({ icon, title, lines, footer = null }) {
   titleEl.textContent = title;
 
   const body = document.createElement('div');
-  body.className = 'admin-user-info-lines';
-  for (const line of lines) {
-    const p = document.createElement('p');
-    p.textContent = line;
-    body.append(p);
+  body.className = 'admin-user-info-facts';
+
+  if (Array.isArray(facts) && facts.length) {
+    for (const fact of facts) {
+      const item = document.createElement('div');
+      item.className = 'admin-user-info-fact';
+      if (!fact.hideLabel) {
+        const labelEl = document.createElement('span');
+        labelEl.className = 'admin-user-info-fact-label';
+        labelEl.textContent = fact.label;
+        item.append(labelEl);
+      }
+      const valueEl = document.createElement('span');
+      valueEl.className = 'admin-user-info-fact-value';
+      valueEl.textContent = fact.value || '—';
+      item.append(valueEl);
+      body.append(item);
+    }
+  } else if (Array.isArray(lines)) {
+    body.className = 'admin-user-info-lines';
+    for (const line of lines) {
+      const p = document.createElement('p');
+      p.textContent = line;
+      body.append(p);
+    }
   }
 
   content.append(titleEl, body);
   if (footer) content.append(footer);
+  card.append(iconEl, content);
+  return card;
+}
+
+function createRolePlanCard(role, plan) {
+  const planKey = String(plan || 'free');
+  const card = document.createElement('div');
+  card.className = 'admin-user-info-card admin-user-info-card--role-plan';
+
+  const iconEl = document.createElement('span');
+  iconEl.className = 'admin-user-info-icon';
+  iconEl.setAttribute('aria-hidden', 'true');
+  iconEl.innerHTML = adminIconSvg('shield');
+
+  const content = document.createElement('div');
+  content.className = 'admin-user-info-content';
+
+  const titleEl = document.createElement('p');
+  titleEl.className = 'admin-user-info-title';
+  titleEl.textContent = ui('adminUsersCardRolePlan');
+
+  const roleEl = document.createElement('p');
+  roleEl.className = 'admin-user-role-plan-role';
+  roleEl.textContent = formatRole(role);
+
+  const planEl = document.createElement('span');
+  planEl.className =
+    planKey === 'free'
+      ? 'admin-user-role-plan-badge is-free'
+      : 'admin-user-role-plan-badge is-paid';
+  planEl.textContent = formatPlan(planKey);
+
+  content.append(titleEl, roleEl, planEl);
   card.append(iconEl, content);
   return card;
 }
@@ -696,6 +737,8 @@ function adminIconSvg(kind) {
       return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3.5v3M16 3.5v3M3.5 10h17"/></svg>`;
     case 'person':
       return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 19.5c1.6-3.2 4-4.8 6.5-4.8s4.9 1.6 6.5 4.8"/></svg>`;
+    case 'shield':
+      return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6.5v5.2c0 4.2 2.9 7.2 7 8.3 4.1-1.1 7-4.1 7-8.3V6.5L12 3Z"/><circle cx="12" cy="10.2" r="2.2"/><path d="M9.2 15.2c1.1-1.4 2.1-2 2.8-2s1.7.6 2.8 2"/></svg>`;
     case 'ruler':
       return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16.5 16.5 4a2.1 2.1 0 0 1 3 3L7 19.5a2.1 2.1 0 0 1-3-3Z"/><path d="m8.5 9.5 1.5 1.5M11 7l1.5 1.5M13.5 4.5 15 6"/></svg>`;
     case 'goal':
@@ -755,7 +798,7 @@ function createSubscriptionActions(user, row) {
 
   const grantBtn = document.createElement('button');
   grantBtn.type = 'button';
-  grantBtn.className = 'recommend-again-btn';
+  grantBtn.className = 'admin-user-grant-btn';
   grantBtn.textContent = ui('adminUsersGrant');
 
   const revokeBtn = document.createElement('button');
@@ -790,7 +833,11 @@ function createSubscriptionActions(user, row) {
     });
   });
 
-  form.append(planSelect, daysInput, grantBtn, revokeBtn);
+  const actionsRow = document.createElement('div');
+  actionsRow.className = 'admin-user-grant-actions';
+  actionsRow.append(grantBtn, revokeBtn);
+
+  form.append(planSelect, daysInput, actionsRow);
   wrap.append(form, actionStatus);
   return wrap;
 }
@@ -1101,33 +1148,5 @@ function formatPlan(plan) {
       return ui('adminPlanPro');
     default:
       return ui('adminPlanFree');
-  }
-}
-
-function formatGoal(goal) {
-  switch (String(goal || '')) {
-    case 'strength':
-      return ui('profileGoalStrength');
-    case 'hypertrophy':
-      return ui('profileGoalHypertrophy');
-    case 'fat_loss':
-      return ui('profileGoalFatLoss');
-    case 'general':
-      return ui('profileGoalGeneral');
-    default:
-      return goal ? String(goal) : '—';
-  }
-}
-
-function formatSex(sex) {
-  switch (String(sex || '')) {
-    case 'male':
-      return ui('profileSexMale');
-    case 'female':
-      return ui('profileSexFemale');
-    case 'other':
-      return ui('profileSexOther');
-    default:
-      return '—';
   }
 }

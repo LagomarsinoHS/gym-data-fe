@@ -16,6 +16,16 @@ export function ui(key, ...args) {
   return typeof entry === 'function' ? entry(...args) : entry;
 }
 
+/** Apply `data-ui` labels under a root selector (or element). */
+export function syncViewLabels(root) {
+  const scope =
+    typeof root === 'string' ? document.querySelector(root) : root;
+  if (!scope) return;
+  scope.querySelectorAll('[data-ui]').forEach((el) => {
+    el.textContent = ui(el.dataset.ui);
+  });
+}
+
 /** Translate a data value (category, equipment, muscle, …) */
 export function label(value) {
   if (!value) return '';
