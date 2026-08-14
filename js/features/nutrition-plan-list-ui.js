@@ -22,8 +22,10 @@ import {
  *   archivedMeta: (plan: object) => string,
  *   onToggleCurrent: (planId: string) => void,
  *   onToggleArchived: (planId: string) => void,
- *   appendCurrentActions?: (plan: object, summaryEl: HTMLElement) => void,
+ *   appendCurrentActions?: (plan: object, actionsEl: HTMLElement) => void,
  *   appendArchivedActions?: (plan: object, itemEl: HTMLElement) => void,
+ *   onCreatePlan?: () => void,
+ *   createPlanLabel?: string,
  * }} opts
  */
 export function renderNutritionPlansList(root, {
@@ -38,16 +40,27 @@ export function renderNutritionPlansList(root, {
   onToggleArchived,
   appendCurrentActions,
   appendArchivedActions,
+  onCreatePlan,
+  createPlanLabel,
 }) {
   root.replaceChildren();
 
   const active = plans.filter((plan) => plan.status !== 'archived');
   const archived = plans.filter((plan) => plan.status === 'archived');
   const coachLayout = typeof appendCurrentActions === 'function';
+  const createBtn = typeof onCreatePlan === 'function'
+    ? createNewPlanButton(createPlanLabel, onCreatePlan)
+    : null;
 
   if (active.length) {
     const section = el('section', 'athlete-nutrition-section');
-    section.append(el('h3', 'athlete-nutrition-group-title', activeTitle));
+    if (createBtn) {
+      const header = el('div', 'athlete-nutrition-group-header is-actions-only');
+      header.append(createBtn);
+      section.append(header);
+    } else if (activeTitle) {
+      section.append(el('h3', 'athlete-nutrition-group-title', activeTitle));
+    }
     const list = el('div', 'athlete-nutrition-current-list');
     for (const plan of active) {
       list.append(createCurrentCard(plan, {
@@ -64,7 +77,8 @@ export function renderNutritionPlansList(root, {
 
   if (archived.length) {
     const section = el('section', 'athlete-nutrition-section');
-    section.append(el('h3', 'athlete-nutrition-group-title', archivedTitle));
+    const archivedCreate = !active.length ? createBtn : null;
+    section.append(createGroupHeader(archivedTitle, archivedCreate));
     const list = el('div', 'athlete-nutrition-archive-list');
     for (const plan of archived) {
       list.append(createArchivedItem(plan, {
@@ -78,6 +92,25 @@ export function renderNutritionPlansList(root, {
     section.append(list);
     root.append(section);
   }
+}
+
+function createGroupHeader(title, actionEl) {
+  if (!actionEl) return el('h3', 'athlete-nutrition-group-title', title);
+  const header = el('div', 'athlete-nutrition-group-header');
+  header.append(el('h3', 'athlete-nutrition-group-title', title), actionEl);
+  return header;
+}
+
+function createNewPlanButton(label, onCreatePlan) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'athlete-nutrition-new-btn';
+  btn.textContent = label || '+';
+  btn.addEventListener('click', (event) => {
+    event.preventDefault();
+    onCreatePlan();
+  });
+  return btn;
 }
 
 function createCurrentCard(plan, {
@@ -97,6 +130,7 @@ function createCurrentCard(plan, {
     el('span', 'athlete-nutrition-month', formatMonthYear(plan?.validFrom)),
     el('span', 'athlete-nutrition-status', ui('athleteNutritionStatusActive')),
   );
+  summary.append(top);
 
   const toggle = document.createElement('button');
   toggle.type = 'button';
@@ -111,9 +145,6 @@ function createCurrentCard(plan, {
     onToggleCurrent(id);
   });
 
-  if (coachLayout) top.append(toggle);
-  summary.append(top);
-
   const footer = el('div', 'athlete-nutrition-current-footer');
   const validText = coachLayout
     ? ui('athleteNutritionValidFrom', formatShortDate(plan?.validFrom))
@@ -121,13 +152,15 @@ function createCurrentCard(plan, {
       ? ui('athleteNutritionValidFrom', formatShortDate(plan.validFrom))
       : '';
 
+  footer.append(el('p', 'athlete-nutrition-valid', validText));
+
   if (coachLayout) {
-    footer.append(el('p', 'athlete-nutrition-valid', validText));
+    const footerActions = el('div', 'athlete-nutrition-current-footer-actions');
+    appendCurrentActions?.(plan, footerActions);
+    footerActions.append(toggle);
+    footer.append(footerActions);
   } else {
-    footer.append(
-      el('p', 'athlete-nutrition-valid', validText),
-      toggle,
-    );
+    footer.append(toggle);
   }
 
   summary.append(
@@ -135,8 +168,6 @@ function createCurrentCard(plan, {
     createMacrosRow(plan?.targets),
     footer,
   );
-
-  appendCurrentActions?.(plan, summary);
 
   const body = el('div', 'athlete-nutrition-detail');
   if (open) body.append(createPlanBody(plan, { includeTargets: false, includeTitle: false }));
@@ -160,17 +191,17 @@ function createArchivedItem(plan, {
 
   const header = document.createElement('button');
   header.type = 'button';
-  header.className = 'athlete-nutrition-archive-header';
+  header.className = `athlete-nutrition-archive-header${coachLayout ? ' is-coach' : ''}`;
   header.setAttribute('aria-expanded', String(open));
 
   const heading = el('span', 'athlete-nutrition-archive-heading');
+  const planTitle = String(plan?.title || '').trim() || formatMonthYear(plan?.validFrom);
   heading.append(
-    el('span', 'athlete-nutrition-month', formatMonthYear(plan?.validFrom)),
+    el('span', 'athlete-nutrition-month', planTitle),
     el('span', 'athlete-nutrition-archive-meta', archivedMeta(plan)),
   );
   const chevron = el('span', 'athlete-nutrition-chevron');
   chevron.setAttribute('aria-hidden', 'true');
-  if (coachLayout) chevron.textContent = open ? '▾' : '▸';
   header.append(heading, chevron);
   header.addEventListener('click', () => {
     if (!id) return;

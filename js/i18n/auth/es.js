@@ -1,0 +1,21 @@
+/** Auth UI (es) */
+export default {
+  loginTitle: "Iniciar sesión",
+  registerTitle: "Crear cuenta",
+  firstName: "Nombre",
+  lastName: "Apellido",
+  email: "Email",
+  password: "Contraseña",
+  authRole: "Tipo de cuenta",
+  roleAthlete: "Atleta",
+  roleCoach: "Entrenador",
+  roleAdmin: "Admin",
+  loginSubmit: "Entrar",
+  registerSubmit: "Crear cuenta",
+  createAccount: "Crear cuenta",
+  haveAccount: "Iniciar sesión",
+  registerFail: "No se pudo crear la cuenta.",
+  loginFail: "No se pudo iniciar sesión.",
+  invalidCredentials: "Email o contraseña incorrectos.",
+  emailTaken: "Ese email ya está registrado.",
+};

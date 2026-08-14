@@ -147,7 +147,6 @@ function renderCoachNutritionPlan() {
   const bodyEl = document.getElementById('nutrition-plan-body');
   const editorEl = document.getElementById('nutrition-plan-editor');
   const toolbarEl = document.getElementById('nutrition-plan-toolbar');
-  const createBtn = document.getElementById('nutrition-plan-create');
 
   if (!loadingEl || !errorEl || !emptyEl || !bodyEl || !editorEl) return;
 
@@ -161,8 +160,7 @@ function renderCoachNutritionPlan() {
   emptyEl.hidden = !showEmpty;
   bodyEl.hidden = !showList;
   editorEl.hidden = !showEditor;
-  if (toolbarEl) toolbarEl.hidden = showEditor;
-  if (createBtn) createBtn.hidden = !showList;
+  if (toolbarEl) toolbarEl.hidden = !showList;
 
   if (showList) renderPlans(bodyEl);
 }
@@ -172,7 +170,7 @@ function renderPlans(root) {
     plans,
     openCurrentId,
     openArchivedId,
-    activeTitle: ui('nutritionPlanActive'),
+    activeTitle: '',
     archivedTitle: ui('nutritionPlanArchived'),
     currentSubtitle: planSubtitle,
     archivedMeta: archivedPlanMeta,
@@ -186,8 +184,7 @@ function renderPlans(root) {
       openCurrentId = null;
       renderCoachNutritionPlan();
     },
-    appendCurrentActions: (plan, summaryEl) => {
-      const actions = el('div', 'nutrition-plan-card-actions');
+    appendCurrentActions: (plan, actionsEl) => {
       const archiveBtn = document.createElement('button');
       archiveBtn.type = 'button';
       archiveBtn.className = 'recommend-again-btn nutrition-plan-archive-btn';
@@ -198,8 +195,7 @@ function renderPlans(root) {
         event.stopPropagation();
         void confirmArchive(plan);
       });
-      actions.append(archiveBtn);
-      summaryEl.append(actions);
+      actionsEl.append(archiveBtn);
     },
   });
 }

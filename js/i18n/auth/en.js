@@ -1,0 +1,21 @@
+/** Auth UI (en) */
+export default {
+  loginTitle: "Sign in",
+  registerTitle: "Create account",
+  firstName: "First name",
+  lastName: "Last name",
+  email: "Email",
+  password: "Password",
+  authRole: "Account type",
+  roleAthlete: "Athlete",
+  roleCoach: "Coach",
+  roleAdmin: "Admin",
+  loginSubmit: "Sign in",
+  registerSubmit: "Create account",
+  createAccount: "Create account",
+  haveAccount: "Sign in",
+  registerFail: "Could not create account.",
+  loginFail: "Could not sign in.",
+  invalidCredentials: "Invalid email or password.",
+  emailTaken: "That email is already registered.",
+};

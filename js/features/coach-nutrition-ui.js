@@ -310,6 +310,8 @@ function syncWorkspaceModeUi() {
   });
   const profileEl = document.getElementById('nutrition-profile');
   if (profileEl) profileEl.hidden = workspaceMode !== 'profile';
+  const highlightsEl = document.getElementById('nutrition-highlights');
+  if (highlightsEl) highlightsEl.hidden = workspaceMode === 'plan';
 }
 
 function fillAthleteCard(athlete) {

@@ -1,0 +1,22 @@
+/** Admin UI — overview (es) */
+export default {
+  navGroupAdmin: "Admin",
+  adminOverview: "Overview",
+  adminOverviewLead: "Estado general de la plataforma.",
+  adminOverviewLoading: "Cargando estadísticas…",
+  adminOverviewLoadFail: "No se pudieron cargar las estadísticas.",
+  adminOverviewOpenUsers: "Ver usuarios",
+  adminOverviewOpenExpiring: "Ver usuarios",
+  adminPlanFree: "Free",
+  adminPlanPremium: "Premium",
+  adminPlanGrowth: "Growth",
+  adminPlanPro: "Pro",
+  adminSectionUsers: "Usuarios",
+  adminSectionSubs: "Suscripciones",
+  adminSectionActivity: "Actividad",
+  adminSectionAttention: "Requiere atención",
+  adminActivity30: "+{n} usuarios últimos 30 días",
+  adminActivity7: "+{n} usuarios últimos 7 días",
+  adminAttentionExpiringOne: "1 usuario tiene su pago próximo a vencer.",
+  adminAttentionExpiringMany: "{n} usuarios tienen su pago próximo a vencer.",
+};

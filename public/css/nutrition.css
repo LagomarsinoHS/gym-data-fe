@@ -351,6 +351,10 @@
   background: color-mix(in srgb, var(--accent) 6%, var(--bg-base));
 }
 
+.nutrition-highlights[hidden] {
+  display: none !important;
+}
+
 .nutrition-highlight {
   display: grid;
   justify-items: center;
@@ -469,9 +473,9 @@ html[data-theme='dark'] .nutrition-highlight-value.is-fasted {
 }
 
 .nutrition-plan {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   min-height: 0;
   overflow: hidden;
   flex: 1;
@@ -479,35 +483,39 @@ html[data-theme='dark'] .nutrition-highlight-value.is-fasted {
 
 .nutrition-plan-toolbar {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px 16px;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 0 0 auto;
 }
 
 .nutrition-plan-toolbar[hidden] {
   display: none !important;
 }
 
-.nutrition-plan-toolbar-copy {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.nutrition-plan-title {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 750;
-  color: var(--text-primary);
-  letter-spacing: -0.02em;
-}
-
-.nutrition-plan-lead {
-  margin: 0;
+#nutrition-plan-toolbar .athlete-nutrition-new-btn {
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  background: var(--accent);
+  color: #fff;
   font-size: 13px;
-  color: var(--text-secondary);
-  line-height: 1.4;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 22%, transparent);
+  transition: background 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+#nutrition-plan-toolbar .athlete-nutrition-new-btn:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--accent) 90%, #000);
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+#nutrition-plan-toolbar .athlete-nutrition-new-btn:active {
+  background: color-mix(in srgb, var(--accent) 82%, #000);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .nutrition-plan-loading,
@@ -524,6 +532,7 @@ html[data-theme='dark'] .nutrition-highlight-value.is-fasted {
   font-size: 14px;
   min-height: 0;
   overflow: auto;
+  flex: 1 1 auto;
 }
 
 .nutrition-plan-loading {
@@ -553,7 +562,8 @@ html[data-theme='dark'] .nutrition-highlight-value.is-fasted {
 .nutrition-plan-error[hidden],
 .nutrition-plan-empty[hidden],
 .nutrition-plan-body[hidden],
-.nutrition-plan-editor[hidden] {
+.nutrition-plan-editor[hidden],
+.nutrition-plan-toolbar[hidden] {
   display: none !important;
 }
 
@@ -561,6 +571,7 @@ html[data-theme='dark'] .nutrition-highlight-value.is-fasted {
   min-height: 0;
   overflow: auto;
   padding-bottom: 12px;
+  flex: 1 1 auto;
 }
 
 .nutrition-plan-editor {
@@ -1502,6 +1513,30 @@ html[data-theme='dark'] #nutrition-profile-save.is-saved:hover {
   gap: 12px;
 }
 
+.athlete-nutrition-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.athlete-nutrition-group-header.is-actions-only {
+  justify-content: flex-end;
+}
+
+#nutrition-plan .athlete-nutrition-section:has(.is-actions-only) {
+  gap: 8px;
+}
+
+.nutrition-view:has(#nutrition-plan:not([hidden])) .nutrition-workspace {
+  gap: 2px;
+}
+
+.nutrition-view:has(#nutrition-plan:not([hidden])) .nutrition-workspace-context {
+  padding-bottom: 0;
+}
+
 .athlete-nutrition-group-title {
   margin: 0;
   font-size: 12px;
@@ -1509,6 +1544,25 @@ html[data-theme='dark'] #nutrition-profile-save.is-saved:hover {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-primary);
+}
+
+.athlete-nutrition-new-btn {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.athlete-nutrition-new-btn:hover {
+  opacity: 0.8;
 }
 
 .athlete-nutrition-current-list,
@@ -1524,6 +1578,27 @@ html[data-theme='dark'] #nutrition-profile-save.is-saved:hover {
   border-radius: var(--radius-lg);
   border: 1px solid var(--accent);
   background: var(--bg-surface);
+}
+
+#nutrition-plan .athlete-nutrition-current-card {
+  align-self: start;
+  height: max-content;
+  padding: 14px 16px 10px;
+}
+
+#nutrition-plan .athlete-nutrition-current-summary {
+  gap: 6px;
+}
+
+#nutrition-plan .athlete-nutrition-current-footer {
+  margin-top: 2px;
+  align-items: center;
+}
+
+#nutrition-plan .nutrition-plan-archive-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  line-height: 1.2;
 }
 
 .athlete-nutrition-current-summary {
@@ -1641,6 +1716,13 @@ html[data-theme="light"] .athlete-nutrition-macro-icon.is-carbs {
   margin-top: 2px;
 }
 
+.athlete-nutrition-current-footer-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
 .athlete-nutrition-view-btn {
   display: inline-flex;
   align-items: center;
@@ -1733,6 +1815,10 @@ html[data-theme="light"] .athlete-nutrition-archive-delete:hover {
   font: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+.athlete-nutrition-archive-header.is-coach {
+  padding-right: 18px;
 }
 
 .athlete-nutrition-archive-header:hover .athlete-nutrition-month {

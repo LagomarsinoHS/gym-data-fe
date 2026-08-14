@@ -1,9 +1,9 @@
-import { common } from './common.js';
-import { auth } from './auth.js';
-import { athlete } from './athlete.js';
-import { coach } from './coach.js';
-import { profile } from './profile.js';
-import { admin } from './admin.js';
+import { common } from './common/index.js';
+import { auth } from './auth/index.js';
+import { athlete } from './athlete/index.js';
+import { coach } from './coach/index.js';
+import { profile } from './profile/index.js';
+import { admin } from './admin/index.js';
 
 /** Flat dictionaries — `ui(key)` and data-ui keep working unchanged */
 export const UI_LABELS = {
