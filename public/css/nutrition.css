@@ -1513,6 +1513,45 @@ html[data-theme='dark'] #nutrition-profile-save.is-saved:hover {
   gap: 12px;
 }
 
+.athlete-nutrition-section.is-archived {
+  gap: 14px;
+  margin-top: 12px;
+  padding-top: 4px;
+  border-top: none;
+}
+
+.athlete-nutrition-group-header.is-archived {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
+  width: 100%;
+  min-width: 0;
+}
+
+.athlete-nutrition-group-header.is-archived .athlete-nutrition-group-title {
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.athlete-nutrition-group-rule {
+  flex: 1 1 0;
+  align-self: center;
+  width: auto;
+  min-width: 48px;
+  height: 0;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
+  background: transparent;
+}
+
 .athlete-nutrition-group-header {
   display: flex;
   align-items: center;

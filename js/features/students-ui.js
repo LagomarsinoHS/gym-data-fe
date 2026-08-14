@@ -9,6 +9,8 @@ import { getCoachAthletes, getCoachInvites, inviteCoachAthlete } from '../api/us
 import { ui } from '../utils/labels.js';
 import { ApiErrorCode, mapApiError } from '../utils/api-errors.js';
 import { debounce, userProfile } from '../utils/helpers.js';
+import { ageFromBirthDate } from '../utils/dates.js';
+import { formatHeightCm, formatSex, formatWeight } from '../utils/profile-labels.js';
 import { setInlineStatus } from '../utils/dom-status.js';
 import { bindOverlay } from '../utils/overlay.js';
 import { openProgressPhotos } from './progress-photos-ui.js';
@@ -681,6 +683,26 @@ function createDetail(label, value, { trailing = null } = {}) {
   return row;
 }
 
+/** Optional profile facts — only fields the athlete has filled. */
+function createAthleteExtraDetails(athlete) {
+  const profile = userProfile(athlete);
+  const rows = [];
+
+  const sex = formatSex(profile.sex);
+  if (sex) rows.push(createDetail(ui('profileSex'), sex));
+
+  const age = ageFromBirthDate(profile.birthDate);
+  if (age != null) rows.push(createDetail(ui('profileAge'), ui('nutritionAgeYears', age)));
+
+  const weightText = formatWeight(athlete?.currentWeightKg);
+  if (weightText !== '—') rows.push(createDetail(ui('profileWeight'), weightText));
+
+  const heightText = formatHeightCm(profile.heightCm);
+  if (heightText) rows.push(createDetail(ui('profileHeight'), heightText));
+
+  return rows;
+}
+
 function toggleStudentRow(row) {
   const opening = !row.classList.contains('is-open');
   document.querySelectorAll('#students-list .student-row.is-open').forEach(other => {
@@ -756,6 +778,9 @@ function createStudentRow(athlete) {
     nameRow.append(badge);
   }
 
+  const goalPill = createGoalPill(athlete?.goal);
+  if (goalPill) nameRow.append(goalPill);
+
   meta.append(nameRow);
 
   const chevron = document.createElement('span');
@@ -767,21 +792,28 @@ function createStudentRow(athlete) {
   const body = document.createElement('div');
   body.className = 'student-row-body';
 
-  const emailLine = document.createElement('div');
-  emailLine.className = 'student-row-detail-line';
+  const panel = document.createElement('div');
+  panel.className = 'student-row-panel';
 
-  emailLine.append(
+  const info = document.createElement('div');
+  info.className = 'student-row-info';
+  info.append(
+    createDetail(ui('firstName'), first || '—'),
+    createDetail(ui('lastName'), last || '—'),
     createDetail(ui('email'), email || '—'),
+    ...createAthleteExtraDetails(athlete),
+  );
+
+  const actions = document.createElement('div');
+  actions.className = 'student-row-aside-actions';
+  actions.append(
     createAthleteProgressButton(id),
     createAthleteNutritionButton(athlete),
     createAthleteDownloadMenu(id),
   );
 
-  body.append(createDetail(ui('firstName'), first || '—', {
-    trailing: createGoalPill(athlete?.goal),
-  }));
-  body.append(createDetail(ui('lastName'), last || '—'));
-  body.append(emailLine, createAthletePlan(athlete));
+  panel.append(info, actions);
+  body.append(panel, createAthletePlan(athlete));
 
   header.addEventListener('click', () => toggleStudentRow(row));
   row.append(header, body);
@@ -910,17 +942,9 @@ function createGoalPill(goal) {
   const goalLabel = formatAthleteGoal(goal);
   if (!goalLabel) return null;
 
-  const group = document.createElement('span');
-  group.className = 'student-row-goal';
-
-  const lab = document.createElement('span');
-  lab.className = 'student-row-goal-label';
-  lab.textContent = ui('profileGoal');
-
   const pill = document.createElement('span');
   pill.className = 'student-row-goal-pill';
   pill.textContent = goalLabel;
-
-  group.append(lab, pill);
-  return group;
+  pill.title = `${ui('profileGoal')}: ${goalLabel}`;
+  return pill;
 }

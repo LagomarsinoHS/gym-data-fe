@@ -484,6 +484,10 @@ function createSessionRow(session, athleteId) {
   editBtn.textContent = items.length ? ui('sessionEdit') : ui('sessionAddExercises');
   editBtn.addEventListener('click', e => {
     e.stopPropagation();
+    if (!items.length) {
+      beginSessionAssign(athleteId, id);
+      return;
+    }
     openSessionEditor(athleteId, id);
   });
   actions.append(editBtn);

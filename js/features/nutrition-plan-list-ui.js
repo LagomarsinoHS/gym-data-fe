@@ -76,9 +76,9 @@ export function renderNutritionPlansList(root, {
   }
 
   if (archived.length) {
-    const section = el('section', 'athlete-nutrition-section');
+    const section = el('section', 'athlete-nutrition-section is-archived');
     const archivedCreate = !active.length ? createBtn : null;
-    section.append(createGroupHeader(archivedTitle, archivedCreate));
+    section.append(createGroupHeader(archivedTitle, archivedCreate, { archived: true }));
     const list = el('div', 'athlete-nutrition-archive-list');
     for (const plan of archived) {
       list.append(createArchivedItem(plan, {
@@ -94,10 +94,20 @@ export function renderNutritionPlansList(root, {
   }
 }
 
-function createGroupHeader(title, actionEl) {
-  if (!actionEl) return el('h3', 'athlete-nutrition-group-title', title);
-  const header = el('div', 'athlete-nutrition-group-header');
-  header.append(el('h3', 'athlete-nutrition-group-title', title), actionEl);
+function createGroupHeader(title, actionEl, { archived = false } = {}) {
+  if (!archived) {
+    if (!actionEl) return el('h3', 'athlete-nutrition-group-title', title);
+    const header = el('div', 'athlete-nutrition-group-header');
+    header.append(el('h3', 'athlete-nutrition-group-title', title), actionEl);
+    return header;
+  }
+
+  const header = el('div', 'athlete-nutrition-group-header is-archived');
+  const rule = document.createElement('hr');
+  rule.className = 'athlete-nutrition-group-rule';
+  rule.setAttribute('aria-hidden', 'true');
+  header.append(el('h3', 'athlete-nutrition-group-title', title), rule);
+  if (actionEl) header.append(actionEl);
   return header;
 }
 
@@ -209,7 +219,7 @@ function createArchivedItem(plan, {
   });
 
   const body = el('div', 'athlete-nutrition-detail');
-  if (open) body.append(createPlanBody(plan, { includeTargets: true, includeTitle: true }));
+  if (open) body.append(createPlanBody(plan, { includeTargets: true, includeTitle: false }));
 
   item.append(header, body);
   return item;
