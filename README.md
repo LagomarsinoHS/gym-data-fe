@@ -33,9 +33,12 @@ Consume la API desplegada en Render (o tu backend local).
 
 ## Stack
 
-- HTML + CSS + **JavaScript ES modules** (sin bundler)
+- **React 19 + TypeScript + Vite**
+- **Tailwind CSS v4**
+- React Router
 - Fetch API
-- Sirve con cualquier static server (Live Server, `npx serve`, etc.)
+
+Migración en curso: shell, login/registro, `GET /users/me` y **catálogo** (filtros, search, WOD, grid, modal) ya corren en React. El resto de vistas se porta después. El snapshot vanilla queda en `legacy.html` + `js/` + `public/css/`.
 
 ---
 
@@ -43,40 +46,46 @@ Consume la API desplegada en Render (o tu backend local).
 
 ```
 gym-data-fe/
-├── index.html              # App principal
-├── js/
-│   ├── main.js             # Catálogo, modal, plan
-│   ├── constants.js        # constantes no-i18n (ej. EQUIP_INITIAL)
-│   ├── i18n/               # copy EN/ES por dominio (common, auth, athlete, coach, profile, admin)
-│   ├── api/                # request, auth, users, exercises, nutrition-plans, token, coach-templates, admin
-│   ├── features/           # auth, session, training, students, nutrition, panel, invite, templates, avances, profile, admin…
-│   └── utils/              # assets, cards, helpers, labels, dates, api-errors, profile-labels, year-month, overlay, dom-status
-├── public/
-│   └── css/                # base.css, app.css, nutrition.css, progress.css
-├── PRODUCT.md              # visión de producto
+├── src/                    # App React (Vite)
+│   ├── api/                # request, token, auth, users
+│   ├── components/         # layout, gates
+│   ├── context/            # auth, theme, i18n
+│   ├── pages/              # catálogo (placeholder), login, coming soon
+│   └── styles.css          # tokens + Tailwind
+├── index.html              # entrada Vite
+├── legacy.html             # snapshot de la app vanilla
+├── js/                     # frontend anterior (referencia hasta terminar de portar)
+├── public/css/             # CSS anterior
+├── PRODUCT.md
 └── docs/
-    ├── FRONTEND-CAPACIDADES.md   # qué hace el FE hoy
-    ├── TODO.md                   # pendientes
-    └── nutricion_coach_v1.md     # draft histórico (superseded)
 ```
 
 ---
 
 ## Cómo correrlo
 
-1. Cloná el repo.
-2. Abrí la carpeta con un servidor estático (necesario por ES modules):
+Hace falta [Node.js](https://nodejs.org/) y **npm**.
 
 ```bash
-npx serve .
-# o Live Server en VS Code / Cursor apuntando a index.html
+npm i
+npm run dev
 ```
 
-3. Abrí la URL que te muestre (ej. `http://localhost:3000` del static server — **no confundir** con el puerto de la API).
+Queda en [http://localhost:8080](http://localhost:8080). Si el puerto está ocupado, Vite usa el siguiente.
+
+| Comando | Qué hace |
+| --- | --- |
+| `npm run dev` | servidor de desarrollo |
+| `npm run build` | build de producción |
+| `npm run preview` | previsualizar el build |
+| `npm run lint` | ESLint |
+| `npm run format` | Prettier |
+
+La API base se puede fijar con `VITE_API_BASE` (ver `.env.example`). Si no está, se elige por hostname:
 
 ### API local vs producción
 
-En `js/api/request.js` (`resolveApiBase`):
+En `src/api/request.ts` (`resolveApiBase`):
 
 | Dónde abrís el front | API usada |
 |----------------------|-----------|
@@ -130,7 +139,6 @@ Los campos `image` y `gif_url` vienen como paths relativos (`images/...`, `video
 
 ## Notas
 
-- Sin build step: editás y refrescás.
 - Render puede “dormir” el servicio gratis; el primer request tras inactividad puede tardar unos segundos.
 - Capacidades actuales: [`docs/FRONTEND-CAPACIDADES.md`](docs/FRONTEND-CAPACIDADES.md).
 - Producto: [`PRODUCT.md`](PRODUCT.md).
