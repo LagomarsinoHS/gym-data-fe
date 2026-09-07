@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "@/context/auth-context";
@@ -21,6 +21,7 @@ export function AuthModal() {
   const [localMode, setLocalMode] = useState<AuthMode>(mode);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const emailRef = useRef<HTMLInputElement | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -47,6 +48,12 @@ export function AuthModal() {
       document.body.style.overflow = "";
     };
   }, [mode, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const frame = window.requestAnimationFrame(() => emailRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -130,7 +137,7 @@ export function AuthModal() {
           ) : null}
           <label className="auth-field">
             <span className="auth-label">{t("email")}</span>
-            <input type="email" name="email" required autoComplete="email" />
+            <input ref={emailRef} type="email" name="email" required autoComplete="email" />
           </label>
           <label className="auth-field">
             <span className="auth-label">{t("password")}</span>

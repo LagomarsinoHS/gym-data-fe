@@ -103,6 +103,16 @@ export function CatalogFilters() {
   const { t } = useI18n();
   const { pathname } = useLocation();
   const { labels, labelsReady } = useCatalog();
+  const [revealing, setRevealing] = useState(true);
+
+  useEffect(() => {
+    if (!labelsReady) {
+      setRevealing(true);
+      return;
+    }
+    const timer = window.setTimeout(() => setRevealing(false), 700);
+    return () => window.clearTimeout(timer);
+  }, [labelsReady]);
 
   if (pathname !== "/") return null;
 
@@ -114,7 +124,7 @@ export function CatalogFilters() {
           <span>{t("loadingFilters")}</span>
         </div>
       ) : (
-        <div className="sidebar-filters is-revealing">
+        <div className={`sidebar-filters${revealing ? " is-revealing" : ""}`}>
           <FilterSection filterKey="category" title={t("category")} values={labels.category} />
           <FilterSection
             filterKey="equipment"
