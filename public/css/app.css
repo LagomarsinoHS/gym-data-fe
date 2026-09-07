@@ -469,7 +469,8 @@ html, body { height: 100%; }
   100% { transform: scale(1); }
 }
 
-.chip.chip-pop {
+.chip.chip-pop,
+.sidebar-filters.is-revealing .chip.chip-pop {
   animation: chip-pop 0.28s ease;
 }
 
