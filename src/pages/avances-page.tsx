@@ -25,7 +25,6 @@ export function AvancesPage() {
   const [toast, setToast] = useState<{ title: string; detail: string } | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [lightbox, setLightbox] = useState<string | null>(null);
   const [yearMonth, setYearMonth] = useState(currentYearMonthUtc);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerYear, setPickerYear] = useState(() => Number(currentYearMonthUtc().slice(0, 4)));
@@ -330,18 +329,12 @@ export function AvancesPage() {
                 emptyLead={t("progressPhotosEmptyLeadAthlete")}
                 heightCm={user?.profile.heightCm}
                 resultsClassName="athlete-avances-results"
-                onOpenPhoto={setLightbox}
+                person={user?.profile}
               />
             </section>
           </div>
         </div>
       </div>
-
-      {lightbox ? (
-        <div className="recommend-overlay open" onClick={() => setLightbox(null)}>
-          <img src={lightbox} alt="" className="progress-photos-lightbox-img" />
-        </div>
-      ) : null}
     </div>
   );
 }

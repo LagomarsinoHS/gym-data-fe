@@ -11,7 +11,13 @@ export function RoleGate({ role, children }: { role: Role; children: ReactNode }
 
   if (loading) return null;
   if (!user) {
-    return <Navigate to="/" replace state={{ auth: true, next: location.pathname }} />;
+    return (
+      <Navigate
+        to="/"
+        replace
+        state={{ auth: true, next: `${location.pathname}${location.search}` }}
+      />
+    );
   }
   if (user.role !== role) return <Navigate to={homePathFor(user)} replace />;
 

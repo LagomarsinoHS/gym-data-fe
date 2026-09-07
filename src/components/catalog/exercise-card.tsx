@@ -19,6 +19,7 @@ export function ExerciseCard({
   const name = exerciseName(exercise, lang);
   const gifSrc = assetUrl(exercise.gif_url);
   const [gifReady, setGifReady] = useState(false);
+  const [mediaReady, setMediaReady] = useState(false);
 
   return (
     <article
@@ -30,12 +31,13 @@ export function ExerciseCard({
         if (gifSrc) setGifReady(true);
       }}
     >
-      <div className="card-media">
+      <div className={`card-media${mediaReady ? " is-media-ready" : ""}`}>
         <img
-          className="card-thumb is-loaded"
+          className={`card-thumb${mediaReady ? " is-loaded" : ""}`}
           src={assetUrl(exercise.image)}
           alt={name}
           loading="lazy"
+          onLoad={() => setMediaReady(true)}
         />
         {gifReady && gifSrc ? <img className="card-gif" src={gifSrc} alt="" /> : null}
       </div>

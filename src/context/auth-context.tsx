@@ -62,6 +62,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!user || user.role !== "athlete") return;
+
+    function onVisibility() {
+      if (document.visibilityState !== "visible") return;
+      void loadInvite(user);
+    }
+
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [user]);
+
   async function loadInvite(next: MeUser | null) {
     if (!next || next.role !== "athlete") {
       setPendingInvite(null);

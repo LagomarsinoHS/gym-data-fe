@@ -18,10 +18,8 @@ export function getMe() {
   return get("/users/me", {}, { auth: true }) as Promise<MeUser>;
 }
 
-export function addToTrainingProgram(exerciseIds: string[], sessionId?: string) {
-  return post("/users/training-program", sessionId ? { exerciseIds, sessionId } : { exerciseIds }, {
-    auth: true,
-  }) as Promise<MeUser>;
+export function addToTrainingProgram(exerciseIds: string[]) {
+  return post("/users/training-program", { exerciseIds }, { auth: true }) as Promise<MeUser>;
 }
 
 export function removeFromTrainingProgram(exerciseId: string) {
@@ -33,14 +31,6 @@ export function updateTrainingProgramExercise(
   updates: { sets?: number; reps?: string; rest?: number; notes?: string },
 ) {
   return put(`/users/training-program/${exerciseId}`, updates, { auth: true }) as Promise<MeUser>;
-}
-
-export function setTrainingSessions(sessions: TrainingSession[]) {
-  return put(
-    "/users/me/training-sessions",
-    { trainingSessions: serializeSessions(sessions) },
-    { auth: true },
-  ) as Promise<MeUser>;
 }
 
 export function updateProfile(body: {

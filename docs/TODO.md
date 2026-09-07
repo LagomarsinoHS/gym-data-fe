@@ -2,7 +2,7 @@
 
 Solo pendientes. Lo ya hecho: [FRONTEND-CAPACIDADES.md](./FRONTEND-CAPACIDADES.md).
 
-> **V estable — 2026-08-13.** Snapshot estable del FE (cleanup olas 1–4, nutrición list/read/archive, admin users, pickers). Lo de abajo son los siguientes pasos.
+> **2026-09-07.** FE en React/Vite. Lo de abajo son siguientes pasos de producto (no de port).
 
 > Cleanup FE (olas 1–4): docs/i18n/CSS muerto, alineación FE↔BE, helpers compartidos, listas/pickers unificados, splits de session/nutrition/CSS — ver historial reciente.
 
@@ -78,10 +78,10 @@ Separarlos está bien: el perfil **informa** la pauta; la pauta **manda** lo que
 - [ ] Storage archivo — solo si sumamos PDF/imagen
 
 ### Frontend
-- [x] UI coach pauta — tabs Perfil | Pauta; list/read/archive (`coach-nutrition-plan-ui.js`)
+- [x] UI coach pauta — tabs Perfil | Pauta; list/read/archive (`coach-nutrition-plans.tsx`)
 - [ ] UI coach pauta — create/edit (prefill desde perfil; sort por `time` al guardar)
-- [x] UI atleta (`athlete-nutrition`)
-- Shared render: `nutrition-plan-render.js`
+- [x] UI atleta (`nutrition-page.tsx`)
+- Shared render: `nutrition-plan-list.tsx`
 ---
 
 ## Onboarding coach (“invitar alumno en 2 minutos”)

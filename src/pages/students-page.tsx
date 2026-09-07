@@ -86,6 +86,7 @@ export function StudentsPage() {
   const [newIds, setNewIds] = useState<Set<string>>(
     () => new Set(getStudentsRoster().newIds),
   );
+  const [planError, setPlanError] = useState<{ athleteId: string; message: string } | null>(null);
 
   const canInvite = canInviteAthlete(user);
 
@@ -196,14 +197,20 @@ export function StudentsPage() {
   }
 
   async function persist(athlete: CoachAthlete, sessions: TrainingSession[]) {
-    await setAthleteCoachProgram(athlete.id, sessions);
-    const next = { ...athlete, coachTrainingProgram: sessions };
-    setAthletes((prev) => {
-      const list = prev.map((row) => (row.id === athlete.id ? next : row));
-      writeStudentsRoster({ athletes: list });
-      return list;
-    });
-    return next;
+    try {
+      await setAthleteCoachProgram(athlete.id, sessions);
+      const next = { ...athlete, coachTrainingProgram: sessions };
+      setAthletes((prev) => {
+        const list = prev.map((row) => (row.id === athlete.id ? next : row));
+        writeStudentsRoster({ athletes: list });
+        return list;
+      });
+      setPlanError((prev) => (prev?.athleteId === athlete.id ? null : prev));
+      return next;
+    } catch (err) {
+      setPlanError({ athleteId: athlete.id, message: t("athletePlanSaveFail") });
+      throw err;
+    }
   }
 
   function beginAssign(athlete: CoachAthlete, session: TrainingSession) {
@@ -543,6 +550,7 @@ export function StudentsPage() {
               onEditSession={(session) => beginAssign(athlete, session)}
               onRemoveSession={(session) => setRemoveTarget({ athlete, session })}
               onReorderSessions={(sessions) => {
+                const previous = athlete.coachTrainingProgram ?? [];
                 setAthletes((prev) => {
                   const list = prev.map((row) =>
                     row.id === athlete.id ? { ...row, coachTrainingProgram: sessions } : row,
@@ -550,9 +558,20 @@ export function StudentsPage() {
                   writeStudentsRoster({ athletes: list });
                   return list;
                 });
-                void persist(athlete, sessions);
+                void persist(athlete, sessions).catch(() => {
+                  setAthletes((prev) => {
+                    const list = prev.map((row) =>
+                      row.id === athlete.id ? { ...row, coachTrainingProgram: previous } : row,
+                    );
+                    writeStudentsRoster({ athletes: list });
+                    return list;
+                  });
+                });
               }}
-              onProgress={() => navigate("/coach/avances", { state: { athlete } })}
+              planError={planError?.athleteId === athlete.id ? planError.message : ""}
+              onProgress={() =>
+                navigate("/coach/avances", { state: { athlete, returnTo: "students" } })
+              }
               onNutrition={() => navigate("/coach/nutricion", { state: { athlete } })}
               downloadOpen={rowDownloadId === athlete.id}
               downloadBusy={downloadBusy}
@@ -650,11 +669,13 @@ export function StudentsPage() {
               order: sessions.length,
               items: [],
             };
-            void persist(athlete, [...sessions, session]).then((next) => {
-              setOpenId(next.id);
-              setOpenSessionId(session.id);
-              setSessionModal(null);
-            });
+            void persist(athlete, [...sessions, session])
+              .then((next) => {
+                setOpenId(next.id);
+                setOpenSessionId(session.id);
+                setSessionModal(null);
+              })
+              .catch(() => {});
           }}
         >
           <label className="recommend-field">
@@ -669,6 +690,12 @@ export function StudentsPage() {
             />
           </label>
           <p className="recommend-hint">{t("addSessionHint")}</p>
+          <p
+            className="recommend-status is-error"
+            hidden={sessionModal?.id !== planError?.athleteId}
+          >
+            {planError?.message}
+          </p>
           <button type="submit" className="recommend-submit">
             <span className="recommend-submit-label">{t("addSessionSubmit")}</span>
           </button>
@@ -683,6 +710,12 @@ export function StudentsPage() {
         onClose={() => setRemoveTarget(null)}
       >
         <p className="confirm-modal-lead">{t("sessionRemoveConfirm")}</p>
+        <p
+          className="recommend-status is-error"
+          hidden={removeTarget?.athlete.id !== planError?.athleteId}
+        >
+          {planError?.message}
+        </p>
         <div className="confirm-modal-actions">
           <button
             type="button"
@@ -700,8 +733,9 @@ export function StudentsPage() {
               void persist(
                 athlete,
                 (athlete.coachTrainingProgram ?? []).filter((row) => row.id !== session.id),
-              );
-              setRemoveTarget(null);
+              )
+                .then(() => setRemoveTarget(null))
+                .catch(() => {});
             }}
           >
             {t("sessionRemoveConfirmBtn")}
@@ -814,6 +848,7 @@ function StudentRow({
   onEditSession,
   onRemoveSession,
   onReorderSessions,
+  planError,
   onProgress,
   onNutrition,
   downloadOpen,
@@ -832,6 +867,7 @@ function StudentRow({
   onEditSession: (session: TrainingSession) => void;
   onRemoveSession: (session: TrainingSession) => void;
   onReorderSessions: (sessions: TrainingSession[]) => void;
+  planError: string;
   onProgress: () => void;
   onNutrition: () => void;
   downloadOpen: boolean;
@@ -927,6 +963,11 @@ function StudentRow({
           onReorderSessions={onReorderSessions}
           openSessionId={openSessionId}
         />
+        {planError ? (
+          <p className="student-plan-save-error" role="alert">
+            {planError}
+          </p>
+        ) : null}
       </div>
     </div>
   );

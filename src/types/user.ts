@@ -73,7 +73,6 @@ export type MeUser = {
   goal?: UserGoal | null;
   coach?: PersonName | null;
   trainingProgram?: TrainingProgramItem[];
-  trainingSessions?: TrainingSession[];
   coachTrainingProgram?: TrainingSession[];
   currentWeightKg?: number | null;
   lastLoginAt?: string;

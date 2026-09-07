@@ -20,18 +20,10 @@ import { cleanReps, formatReps } from "@/lib/reps";
 import { exerciseShareUrl } from "@/lib/url";
 import type { Lang } from "@/lib/prefs";
 import type { Exercise } from "@/types/exercise";
-import { athleteSessions } from "@/lib/training-sessions";
 import type { MeUser, TrainingProgramItem, TrainingSession } from "@/types/user";
 
 export function ExerciseModal() {
-  const {
-    openId,
-    closeExercise,
-    activeSessionId,
-    setActiveSessionId,
-    assignTarget,
-    setAssignTarget,
-  } = useCatalog();
+  const { openId, closeExercise, flashExercise, assignTarget, setAssignTarget } = useCatalog();
   const { user, applyUser } = useAuth();
   const { openAuth } = useAuthModal();
   const { t, lang } = useI18n();
@@ -50,9 +42,8 @@ export function ExerciseModal() {
   const rxSetsRef = useRef<HTMLInputElement | null>(null);
   const closeExerciseRef = useRef(closeExercise);
   closeExerciseRef.current = closeExercise;
+  const savedIdRef = useRef<string | null>(null);
 
-  const sessions = athleteSessions(user);
-  const targetSession = sessions.find((session) => session.id === activeSessionId) ?? sessions[0];
   const programItem = (user?.trainingProgram ?? []).find((item) =>
     itemMatchesExercise(item, openId),
   );
@@ -75,11 +66,15 @@ export function ExerciseModal() {
     undoTimer.current = 0;
     setPlanUndo(false);
     closeExercise();
+    if (savedIdRef.current) {
+      flashExercise(savedIdRef.current);
+      savedIdRef.current = null;
+    }
     if (!snap) return;
     void removeFromTrainingProgram(snap.exerciseId)
       .then(applyUser)
       .catch(() => applyUser(snap.prev));
-  }, [applyUser, closeExercise]);
+  }, [applyUser, closeExercise, flashExercise]);
 
   useEffect(() => {
     if (!openId) {
@@ -231,7 +226,7 @@ export function ExerciseModal() {
     setPlanBusy(true);
     setPlanError("");
     try {
-      applyUser(await addToTrainingProgram([exercise.id], targetSession?.id));
+      applyUser(await addToTrainingProgram([exercise.id]));
     } catch {
       setPlanError(t("addToPlanFail"));
     } finally {
@@ -290,6 +285,7 @@ export function ExerciseModal() {
         );
       } else {
         applyUser(await updateTrainingProgramExercise(exercise.id, updates));
+        if (isTraining) savedIdRef.current = exercise.id;
       }
       setRxOpen(false);
       setRxStatus("");
@@ -374,21 +370,6 @@ export function ExerciseModal() {
 
         {showPlanActions ? (
           <div className="modal-actions">
-            {!isAssign && !isTraining && sessions.length > 1 ? (
-              <label className="modal-rx-field">
-                <span className="modal-rx-label">{t("trainingSessionsHeading")}</span>
-                <select
-                  value={targetSession?.id ?? ""}
-                  onChange={(event) => setActiveSessionId(event.target.value || null)}
-                >
-                  {sessions.map((session) => (
-                    <option key={session.id} value={session.id}>
-                      {session.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
             <div className="modal-actions-row">
               <button
                 type="button"
@@ -425,9 +406,7 @@ export function ExerciseModal() {
                               ? t("removeFromPlan")
                               : inPlan
                                 ? t("inPlan")
-                                : targetSession
-                                  ? t("addToSession", { name: targetSession.name })
-                                  : t("addToPlan"))}
+                                : t("addToPlan"))}
                 </span>
               </button>
               {canEditRx ? (

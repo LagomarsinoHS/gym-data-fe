@@ -5,6 +5,14 @@ export function exerciseShareUrl(id: string): string {
   return url.toString();
 }
 
+export function safeInternalPath(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const path = value.trim();
+  if (!path.startsWith("/")) return null;
+  if (path.startsWith("//") || path.includes("://") || path.includes("\\")) return null;
+  return path;
+}
+
 export function readExerciseFromUrl(): string | null {
   const params = new URLSearchParams(window.location.search);
   const fromQuery = params.get("exercise");

@@ -13,6 +13,13 @@ import type { CoachAthlete } from "@/types/user";
 
 const EMPTY_ANALYZE: AnalyzeAiState = { loading: false, sections: null, error: null };
 
+type ProgressReturnTo = "avances" | "students";
+
+type AvancesLocationState = {
+  athlete?: CoachAthlete;
+  returnTo?: ProgressReturnTo;
+};
+
 export function CoachAvancesPage() {
   const { t, lang } = useI18n();
   const { user } = useAuth();
@@ -23,19 +30,26 @@ export function CoachAvancesPage() {
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(0);
   const [athlete, setAthlete] = useState<CoachAthlete | null>(() => {
-    const fromState = (location.state as { athlete?: CoachAthlete } | null)?.athlete;
+    const fromState = (location.state as AvancesLocationState | null)?.athlete;
     return fromState ?? null;
+  });
+  const [returnTo, setReturnTo] = useState<ProgressReturnTo>(() => {
+    const fromState = location.state as AvancesLocationState | null;
+    return fromState?.athlete && fromState.returnTo === "students" ? "students" : "avances";
   });
   const [loading, setLoading] = useState(() => !athlete);
   const [data, setData] = useState<ProgressPhotosResponse | null>(null);
   const [photosLoading, setPhotosLoading] = useState(false);
-  const [lightbox, setLightbox] = useState<string | null>(null);
   const [historyMode, setHistoryMode] = useState<"timeline" | "pick" | "compare">("timeline");
   const [analyzeState, setAnalyzeState] = useState<AnalyzeAiState>(EMPTY_ANALYZE);
   const analyzeSeq = useRef(0);
 
   useEffect(() => {
     if (athlete) return;
+    if (athletes.length) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     void listCoachAthletes({ page: 1, limit: 20 })
@@ -123,7 +137,11 @@ export function CoachAvancesPage() {
                 onClick={() => {
                   clearAnalyze();
                   setHistoryMode("timeline");
-                  navigate("/alumnos", { state: { openAthleteId: athlete.id } });
+                  if (returnTo === "students") {
+                    navigate("/alumnos", { state: { openAthleteId: athlete.id } });
+                    return;
+                  }
+                  setAthlete(null);
                 }}
               >
                 <span className="session-editor-back-ico" aria-hidden="true">
@@ -138,7 +156,7 @@ export function CoachAvancesPage() {
                     <path d="M10 3L5 8l5 5" />
                   </svg>
                 </span>
-                <span>{t("progressPhotosBack")}</span>
+                <span>{t(returnTo === "avances" ? "navAvances" : "progressPhotosBack")}</span>
               </button>
               <header className="progress-photos-header">
                 <div
@@ -182,7 +200,7 @@ export function CoachAvancesPage() {
               payload={data}
               emptyLead={t("progressPhotosEmptyLead")}
               heightCm={athlete.profile.heightCm}
-              onOpenPhoto={setLightbox}
+              person={athlete.profile}
               onModeChange={(mode) => {
                 setHistoryMode(mode);
                 if (mode !== "compare") clearAnalyze();
@@ -195,11 +213,6 @@ export function CoachAvancesPage() {
             />
           )}
         </div>
-        {lightbox ? (
-          <div className="recommend-overlay open" onClick={() => setLightbox(null)}>
-            <img src={lightbox} alt="" className="progress-photos-lightbox-img" />
-          </div>
-        ) : null}
       </div>
     );
   }
@@ -230,7 +243,10 @@ export function CoachAvancesPage() {
                 key={row.id}
                 type="button"
                 className="avances-athlete-btn"
-                onClick={() => setAthlete(row)}
+                onClick={() => {
+                  setReturnTo("avances");
+                  setAthlete(row);
+                }}
               >
                 <span className="avances-athlete-name">{personName(row.profile) || row.email}</span>
                 <span className="avances-athlete-email">{row.email}</span>

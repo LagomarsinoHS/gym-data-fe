@@ -1,6 +1,5 @@
 export const THEME_KEY = "steelPulse.theme";
 export const LANG_KEY = "steelPulse.lang";
-export const ACTIVE_SESSION_KEY = "steelPulse.activeSessionId";
 
 export type Theme = "light" | "dark";
 export type Lang = "es" | "en";
@@ -37,20 +36,4 @@ export function getStoredLang(): Lang {
 
 export function setStoredLang(lang: Lang): void {
   write(LANG_KEY, lang);
-}
-
-export function getStoredActiveSessionId(): string | null {
-  return read(ACTIVE_SESSION_KEY);
-}
-
-export function setStoredActiveSessionId(id: string | null): void {
-  if (!id) {
-    try {
-      localStorage.removeItem(ACTIVE_SESSION_KEY);
-    } catch {
-      /* private mode / quota */
-    }
-    return;
-  }
-  write(ACTIVE_SESSION_KEY, id);
 }

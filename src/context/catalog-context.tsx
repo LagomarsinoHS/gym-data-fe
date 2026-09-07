@@ -11,9 +11,7 @@ import {
 import { useLocation, useSearchParams } from "react-router-dom";
 
 import { getExercise, getExercises, getLabels, getRandomExercise } from "@/api/exercises";
-import { useAuth } from "@/context/auth-context";
-import { getStoredActiveSessionId, setStoredActiveSessionId } from "@/lib/prefs";
-import { athleteSessions } from "@/lib/training-sessions";
+import { getEasterEgg, isEasterEggQuery, type EasterEgg } from "@/lib/easter-eggs";
 import { readExerciseFromUrl } from "@/lib/url";
 import type { CatalogFilters, Exercise, ExerciseLabels, FilterKey } from "@/types/exercise";
 import type { TrainingSession } from "@/types/user";
@@ -46,6 +44,7 @@ type CatalogContextValue = {
   clearFilters: () => void;
   clearFilter: (key: FilterKey, value: string) => void;
   exercises: Exercise[];
+  easterEgg: EasterEgg | null;
   total: number;
   loading: boolean;
   ready: boolean;
@@ -55,10 +54,11 @@ type CatalogContextValue = {
   openId: string | null;
   openExercise: (id: string) => void;
   closeExercise: () => void;
+  flashExerciseId: string | null;
+  flashExercise: (id: string) => void;
+  clearFlashExercise: () => void;
   wodLoading: boolean;
   playWod: () => Promise<void>;
-  activeSessionId: string | null;
-  setActiveSessionId: (id: string | null) => void;
   assignTarget: SessionAssignTarget | null;
   setAssignTarget: (target: SessionAssignTarget | null) => void;
 };
@@ -73,7 +73,6 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const isCatalog = location.pathname === "/";
-  const { user } = useAuth();
 
   const [labels, setLabels] = useState<ExerciseLabels>({
     category: [],
@@ -92,10 +91,8 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(() => readExerciseFromUrl());
   const [wodLoading, setWodLoading] = useState(false);
-  const [activeSessionId, setActiveSessionIdState] = useState<string | null>(
-    getStoredActiveSessionId,
-  );
   const [assignTarget, setAssignTarget] = useState<SessionAssignTarget | null>(null);
+  const [flashExerciseId, setFlashExerciseId] = useState<string | null>(null);
 
   const requestId = useRef(0);
   const loadingRef = useRef(false);
@@ -127,6 +124,14 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     );
   }, [setSearchParams]);
 
+  const flashExercise = useCallback((id: string) => {
+    setFlashExerciseId(id);
+  }, []);
+
+  const clearFlashExercise = useCallback(() => {
+    setFlashExerciseId(null);
+  }, []);
+
   useEffect(() => {
     const fromUrl = searchParams.get("exercise")?.trim();
     setOpenId(fromUrl || null);
@@ -156,6 +161,19 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
 
   const reload = useCallback(async (query: string, nextFilters: CatalogFilters) => {
     const id = ++requestId.current;
+
+    if (isEasterEggQuery(query)) {
+      setLoading(false);
+      loadingRef.current = false;
+      setError(null);
+      setExercises([]);
+      setPage(0);
+      setPages(0);
+      setTotal(0);
+      setReady(true);
+      return;
+    }
+
     setLoading(true);
     loadingRef.current = true;
     setReady(false);
@@ -210,7 +228,8 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   }, [isCatalog, search, filters, reload]);
 
   const loadMore = useCallback(() => {
-    if (!isCatalog || loadingRef.current || page >= pages || isIdSearch(search)) return;
+    if (!isCatalog || loadingRef.current || page >= pages || isIdSearch(search) || isEasterEggQuery(search))
+      return;
     const id = ++requestId.current;
     loadingRef.current = true;
     setLoading(true);
@@ -270,21 +289,6 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
-  const sessions = useMemo(() => athleteSessions(user), [user]);
-
-  useEffect(() => {
-    if (!sessions.length) return;
-    if (activeSessionId && sessions.some((session) => session.id === activeSessionId)) return;
-    const next = sessions[0].id;
-    setActiveSessionIdState(next);
-    setStoredActiveSessionId(next);
-  }, [activeSessionId, sessions]);
-
-  const setActiveSessionId = useCallback((id: string | null) => {
-    setActiveSessionIdState(id);
-    setStoredActiveSessionId(id);
-  }, []);
-
   const playWod = useCallback(async () => {
     setWodLoading(true);
     try {
@@ -294,6 +298,8 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       setWodLoading(false);
     }
   }, [openExercise]);
+
+  const easterEgg = useMemo(() => getEasterEgg(search), [search]);
 
   const value = useMemo<CatalogContextValue>(
     () => ({
@@ -306,19 +312,21 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       clearFilters,
       clearFilter,
       exercises,
+      easterEgg,
       total,
       loading,
       ready,
-      hasMore: page < pages && !isIdSearch(search),
+      hasMore: page < pages && !isIdSearch(search) && !easterEgg,
       error,
       loadMore,
       openId,
       openExercise,
       closeExercise,
+      flashExerciseId,
+      flashExercise,
+      clearFlashExercise,
       wodLoading,
       playWod,
-      activeSessionId,
-      setActiveSessionId,
       assignTarget,
       setAssignTarget,
     }),
@@ -332,6 +340,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       clearFilters,
       clearFilter,
       exercises,
+      easterEgg,
       total,
       loading,
       ready,
@@ -342,10 +351,11 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       openId,
       openExercise,
       closeExercise,
+      flashExerciseId,
+      flashExercise,
+      clearFlashExercise,
       wodLoading,
       playWod,
-      activeSessionId,
-      setActiveSessionId,
       assignTarget,
     ],
   );

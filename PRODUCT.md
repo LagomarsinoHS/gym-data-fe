@@ -1,6 +1,6 @@
 # ExerciseDB — Qué es y qué ofrece
 
-> **V estable — 2026-08-13.** Snapshot de producto alineado al frontend en `develop` a esta fecha (cleanup FE, nutrición coach list/read/archive, admin users rediseñado, pickers Avances/Nutrición estabilizados). Pendientes: ver `docs/TODO.md`.
+> **2026-09-07.** Producto alineado al FE React/Vite. Pendientes: ver `docs/TODO.md`. El editor de pauta nutricional sigue siendo stub (igual que en vanilla).
 
 Plataforma de entrenamiento que une un **catálogo profesional de ejercicios**, planes propios y del coach, seguimiento físico con fotos, y **recomendaciones con IA**. Pensada para atletas que entrenan solos o con un entrenador, y para coaches que gestionan alumnos.
 

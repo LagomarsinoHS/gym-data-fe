@@ -29,6 +29,7 @@ export function SessionEditorPage() {
   const [loading, setLoading] = useState(true);
   const [draftName, setDraftName] = useState("");
   const [showHint, setShowHint] = useState(() => !hasSeenFeatureHint("reorder-exercises"));
+  const [saveError, setSaveError] = useState("");
 
   const session = useMemo(
     () => sessions.find((row) => row.id === sessionId) ?? null,
@@ -89,19 +90,28 @@ export function SessionEditorPage() {
   }
 
   async function persist(next: TrainingSession[]) {
-    if (isTemplate) {
-      const data = await setCoachTemplates(next);
-      const saved = data.coachTemplates ?? next;
-      setSessions(saved);
-      syncAssign(saved);
-      return saved;
+    const previous = sessions;
+    try {
+      if (isTemplate) {
+        const data = await setCoachTemplates(next);
+        const saved = data.coachTemplates ?? next;
+        setSessions(saved);
+        syncAssign(saved);
+        setSaveError("");
+        return saved;
+      }
+      if (!athleteId) return next;
+      await setAthleteCoachProgram(athleteId, next);
+      patchStudentProgram(athleteId, next);
+      setSessions(next);
+      syncAssign(next);
+      setSaveError("");
+      return next;
+    } catch {
+      setSessions(previous);
+      setSaveError(isTemplate ? t("coachTemplatesSaveFail") : t("athletePlanSaveFail"));
+      throw new Error("session-save");
     }
-    if (!athleteId) return next;
-    await setAthleteCoachProgram(athleteId, next);
-    patchStudentProgram(athleteId, next);
-    setSessions(next);
-    syncAssign(next);
-    return next;
   }
 
   function syncAssign(next: TrainingSession[]) {
@@ -142,9 +152,13 @@ export function SessionEditorPage() {
       setDraftName(session?.name ?? "");
       return;
     }
-    await persist(
-      sessions.map((row) => (row.id === session.id ? { ...row, name: nextName } : row)),
-    );
+    try {
+      await persist(
+        sessions.map((row) => (row.id === session.id ? { ...row, name: nextName } : row)),
+      );
+    } catch {
+      setDraftName(session.name);
+    }
   }
 
   async function onReorder(exerciseId: string, toIndex: number) {
@@ -167,23 +181,31 @@ export function SessionEditorPage() {
     markFeatureHintSeen("reorder-exercises");
     setShowHint(false);
     setSessions(nextSessions);
-    await persist(nextSessions);
+    try {
+      await persist(nextSessions);
+    } catch {
+      /* persist reverts sessions and shows saveError */
+    }
   }
 
   async function onRemoveItem(exerciseId: string) {
     if (!session) return;
-    await persist(
-      sessions.map((row) =>
-        row.id === session.id
-          ? {
-              ...row,
-              items: row.items.filter(
-                (item) => String(item.exercise?.id || item.exerciseId) !== exerciseId,
-              ),
-            }
-          : row,
-      ),
-    );
+    try {
+      await persist(
+        sessions.map((row) =>
+          row.id === session.id
+            ? {
+                ...row,
+                items: row.items.filter(
+                  (item) => String(item.exercise?.id || item.exerciseId) !== exerciseId,
+                ),
+              }
+            : row,
+        ),
+      );
+    } catch {
+      /* persist shows saveError */
+    }
   }
 
   const items = sortItems(session?.items ?? []);
@@ -246,6 +268,11 @@ export function SessionEditorPage() {
                 }}
               />
               <p className="session-editor-subtitle">{subtitle}</p>
+              {saveError ? (
+                <p className="student-plan-save-error" role="alert">
+                  {saveError}
+                </p>
+              ) : null}
             </div>
             <button
               type="button"

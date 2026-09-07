@@ -1,4 +1,4 @@
-/** Generated from js/i18n via scripts/sync-i18n-from-legacy.mjs — do not add keys by hand. */
+/** App copy. Do not invent keys; reuse an existing one or add both es + en. */
 export const es = {
   category: "Categoría",
   equipment: "Equipamiento",
@@ -82,8 +82,7 @@ export const es = {
   recommendNoteTitle: "Por qué este plan",
   coachPlan: "Plan del coach",
   coachPlanEmpty: "Aún no tienes coach",
-  coachPlanEmptyLead:
-    "Cuando un coach te asigne, aquí verás el plan que preparó para ti. Mientras tanto, entrena con tu plan o explora el catálogo.",
+  coachPlanEmptyLead: "Cuando un coach te asigne, aquí verás el plan que preparó para ti. Mientras tanto, entrena con tu plan o explora el catálogo.",
   coachPlanLead: "Sesiones que tu coach armó para ti.",
   coachPlanProgramEmpty: "Ya tienes coach, pero todavía no armó tu plan.",
   coachInviteLabel: "Invitación pendiente",
@@ -169,8 +168,7 @@ export const es = {
   coachPanelInvitesInvitedAt: "Enviada",
   coachPanelInvitesRespondedAt: "Respondida",
   coachTemplates: "Plantillas",
-  coachTemplatesLead:
-    "Crea sesiones reutilizables (ej. Upper Body) y aplícalas a tus alumnos desde aquí o Mis alumnos.",
+  coachTemplatesLead: "Crea sesiones reutilizables (ej. Upper Body) y aplícalas a tus alumnos desde aquí o Mis alumnos.",
   coachTemplatesLoading: "Cargando plantillas…",
   coachTemplatesLoadFail: "No se pudieron cargar las plantillas.",
   coachTemplatesListHeading: "Tus plantillas",
@@ -235,8 +233,7 @@ export const es = {
   studentsDownloadFail: "No se pudo descargar el plan.",
   studentsLoading: "Cargando alumnos…",
   studentsEmptyTitle: "Aún no tienes alumnos",
-  studentsEmptyLead:
-    "Invita por email aunque aún no tenga cuenta. Al registrarse verá tu invitación (válida 24h).",
+  studentsEmptyLead: "Invita por email aunque aún no tenga cuenta. Al registrarse verá tu invitación (válida 24h).",
   studentsSearchEmptyTitle: "Sin resultados",
   studentsSearchEmptyLead: "Ningún alumno coincide con esa búsqueda.",
   studentsNewBadge: "Nuevo",
@@ -249,8 +246,7 @@ export const es = {
   inviteSendAndCopyWhatsApp: "Enviar + copiar WhatsApp",
   inviteSentAndCopied: "Enviada y copiada",
   inviteSentButCopyFail: "Invitación enviada, pero no se pudo copiar el mensaje.",
-  inviteWhatsAppMessage:
-    "¡Hola! {coachName} te invitó a entrenar juntos en ExerciseDB.\n\nRegistrate acá con este email ({email}):\n{url}\n\nDespués aceptá la invitación en la app. Válida 24h.",
+  inviteWhatsAppMessage: "¡Hola! {coachName} te invitó a entrenar juntos en ExerciseDB.\n\nRegistrate acá con este email ({email}):\n{url}\n\nDespués aceptá la invitación en la app. Válida 24h.",
   inviteEmailPlaceholder: "superAtleta@gmail.com",
   inviteSent: "Invitación enviada",
   inviteNotAthlete: "Ese email pertenece a una cuenta de coach o admin.",
@@ -335,8 +331,7 @@ export const es = {
   nutritionPlanArchiveConfirm: "¿Archivar esta pauta? El alumno la verá en pautas anteriores.",
   nutritionPlanArchiveFail: "No se pudo archivar la pauta.",
   nutritionPlanEditorTitle: "Nueva pauta",
-  nutritionPlanEditorLead:
-    "El editor (título, macros, comidas y horarios) queda para la próxima sesión. Prefill desde el perfil al crear.",
+  nutritionPlanEditorLead: "El editor (título, macros, comidas y horarios) queda para la próxima sesión. Prefill desde el perfil al crear.",
   nutritionPlanEditorBack: "Volver a pautas",
   nutritionTabList: "Secciones del perfil nutricional",
   nutritionTabSummary: "Resumen",
@@ -487,8 +482,7 @@ export const es = {
   profileNoUser: "Inicia sesión para ver tu perfil.",
   profileEditShort: "Editar",
   profileEditTitle: "Editar perfil",
-  profileEditLead:
-    "Actualiza nombre, datos opcionales del cuerpo y / o contraseña. Guarda con al menos un cambio.",
+  profileEditLead: "Actualiza nombre, datos opcionales del cuerpo y / o contraseña. Guarda con al menos un cambio.",
   profileEditFirstName: "Nombre",
   profileEditLastName: "Apellido",
   profileEditHeight: "Estatura (cm)",
@@ -533,8 +527,7 @@ export const es = {
   profileAvatarUploadError: "No se pudo subir la foto. Inténtalo de nuevo.",
   profileAvatarViewTitle: "Foto de perfil",
   profileDeactivateTitle: "¿Darse de baja?",
-  profileDeactivateLead:
-    "Esta acción desactiva tu cuenta. Para continuar, escribe tu correo tal como está registrado.",
+  profileDeactivateLead: "Esta acción desactiva tu cuenta. Para continuar, escribe tu correo tal como está registrado.",
   profileDeactivateCancel: "Cancelar",
   profileDeactivateConfirm: "Darme de baja",
   profileDeactivateMismatch: "El correo no coincide con tu cuenta.",
@@ -613,10 +606,8 @@ export const es = {
   adminUsersGrantTitle: "¿Otorgar plan?",
   adminUsersRevokeTitle: "¿Revocar plan?",
   adminUsersGrantConfirm: "Otorgar {plan} por {days} días a esta cuenta.",
-  adminUsersGrantConfirmOne:
-    "Otorgar {plan} por 1 día (si ya es pago, se suma al vencimiento actual).",
-  adminUsersGrantConfirmMany:
-    "Otorgar {plan} por {days} días (si ya es pago, se suma al vencimiento actual).",
+  adminUsersGrantConfirmOne: "Otorgar {plan} por 1 día (si ya es pago, se suma al vencimiento actual).",
+  adminUsersGrantConfirmMany: "Otorgar {plan} por {days} días (si ya es pago, se suma al vencimiento actual).",
   adminUsersGrantConfirmExtendOne: "Sumar 1 día de {plan} al vencimiento actual.",
   adminUsersGrantConfirmExtendMany: "Sumar {days} días de {plan} al vencimiento actual.",
   adminUsersRevokeConfirm: "Revocar el plan pago y dejar la cuenta en free.",
@@ -634,11 +625,7 @@ export const es = {
   adminUsersAdmins: "Admins",
   adminUsersDelta30: "+{n} últimos 30 días",
 
-  // React-only extras (not in js/i18n)
-  comingSoonLead: "Esta vista se está migrando al nuevo frontend.",
-  catalogPlaceholderTitle: "Catálogo",
-  catalogPlaceholderLead:
-    "El catálogo (filtros, grid y modal) se porta en la próxima entrega. El shell, el login y la sesión ya corren en React.",
+  // Extra keys used only by the React app
   openMenu: "Abrir menú",
   closeMenu: "Cerrar menú",
   exercisesCount: "{n} ejercicios",

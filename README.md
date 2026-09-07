@@ -1,8 +1,8 @@
 # ExerciseDB — Frontend
 
-> **V estable — 2026-08-13.** Marcá commits/tags con esta fecha para identificar el snapshot estable del FE (cleanup + nutrición/avances/admin polish). Detalle: [`docs/FRONTEND-CAPACIDADES.md`](docs/FRONTEND-CAPACIDADES.md).
+> **App React/Vite — 2026-09-07.** El port desde vanilla está completo. El CSS original vive en `public/css/`. Detalle: [`docs/FRONTEND-CAPACIDADES.md`](docs/FRONTEND-CAPACIDADES.md).
 
-Frontend estático para explorar una librería de **~1.324 ejercicios** de fitness (catálogo desde la API/BD): filtros, búsqueda, infinite scroll, detalle con GIF e instrucciones bilingües (ES/EN).
+Frontend para explorar una librería de **~1.324 ejercicios** de fitness (catálogo desde la API/BD): filtros, búsqueda, infinite scroll, detalle con GIF e instrucciones bilingües (ES/EN).
 
 Con sesión: **Mi plan** (entrenamiento, plan del coach, nutrición, avances), flujos de coach y admin.
 
@@ -34,11 +34,9 @@ Consume la API desplegada en Render (o tu backend local).
 ## Stack
 
 - **React 19 + TypeScript + Vite**
-- **Tailwind CSS v4**
+- **Tailwind CSS v4** (solo tokens / preflight; la UI usa las clases de `public/css/`)
 - React Router
 - Fetch API
-
-Migración en curso: shell, login/registro, `GET /users/me` y **catálogo** (filtros, search, WOD, grid, modal) ya corren en React. El resto de vistas se porta después. El snapshot vanilla queda en `legacy.html` + `js/` + `public/css/`.
 
 ---
 
@@ -47,15 +45,14 @@ Migración en curso: shell, login/registro, `GET /users/me` y **catálogo** (fil
 ```
 gym-data-fe/
 ├── src/                    # App React (Vite)
-│   ├── api/                # request, token, auth, users
-│   ├── components/         # layout, gates
-│   ├── context/            # auth, theme, i18n
-│   ├── pages/              # catálogo (placeholder), login, coming soon
-│   └── styles.css          # tokens + Tailwind
+│   ├── api/
+│   ├── components/
+│   ├── context/
+│   ├── pages/
+│   ├── i18n/
+│   └── styles.css          # importa public/css + Tailwind
 ├── index.html              # entrada Vite
-├── legacy.html             # snapshot de la app vanilla
-├── js/                     # frontend anterior (referencia hasta terminar de portar)
-├── public/css/             # CSS anterior
+├── public/css/             # CSS original (base, app, nutrition, progress)
 ├── PRODUCT.md
 └── docs/
 ```

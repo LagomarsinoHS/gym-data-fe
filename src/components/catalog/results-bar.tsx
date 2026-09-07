@@ -22,6 +22,7 @@ export function ResultsBar() {
     clearFilter,
     total,
     ready,
+    easterEgg,
     wodLoading,
     playWod,
   } = useCatalog();
@@ -75,7 +76,11 @@ export function ResultsBar() {
           ) : null}
         </div>
         <span className="results-count">
-          {pathname === "/" && ready ? t("exercisesCount", { n: total.toLocaleString() }) : ""}
+          {pathname === "/" && easterEgg
+            ? easterEgg.kicker
+            : pathname === "/" && ready
+              ? t("exercisesCount", { n: total.toLocaleString() })
+              : ""}
         </span>
       </div>
 

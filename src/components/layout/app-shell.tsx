@@ -28,8 +28,8 @@ export function AppShell() {
             className="nav-drawer-toggle"
             aria-expanded={drawerOpen}
             aria-controls="app-sidebar"
-            aria-label={t("openMenu")}
-            onClick={() => setDrawerOpen(true)}
+            aria-label={drawerOpen ? t("closeMenu") : t("openMenu")}
+            onClick={() => setDrawerOpen((open) => !open)}
           >
             <span className="nav-drawer-toggle-bars" aria-hidden="true" />
           </button>

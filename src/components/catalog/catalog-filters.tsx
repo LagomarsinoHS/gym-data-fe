@@ -24,6 +24,7 @@ function FilterSection({
   const selected = filters[filterKey];
   const [collapsed, setCollapsed] = useState(() => window.matchMedia("(max-width: 768px)").matches);
   const [shown, setShown] = useState(pageSize ?? values.length);
+  const [popValue, setPopValue] = useState<string | null>(null);
 
   const sorted = useMemo(
     () =>
@@ -68,10 +69,16 @@ function FilterSection({
           <button
             key={value}
             type="button"
-            className={`chip${selected === value ? " active" : ""}`}
+            className={`chip${selected === value ? " active" : ""}${popValue === value ? " chip-pop" : ""}`}
             data-filter={filterKey}
             data-value={value}
-            onClick={() => toggleFilter(filterKey, value)}
+            onAnimationEnd={() => {
+              if (popValue === value) setPopValue(null);
+            }}
+            onClick={() => {
+              if (selected !== value) setPopValue(value);
+              toggleFilter(filterKey, value);
+            }}
           >
             {valueLabel(value, lang)}
           </button>

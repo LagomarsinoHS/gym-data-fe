@@ -1,22 +1,4 @@
-import type { MeUser, TrainingProgramItem, TrainingSession } from "@/types/user";
-
-export function athleteSessions(user: MeUser | null): TrainingSession[] {
-  if (!user) return [];
-  if (user.trainingSessions?.length) {
-    return [...user.trainingSessions].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  }
-  if (user.trainingProgram?.length) {
-    return [
-      {
-        id: "legacy-default",
-        name: "Mis ejercicios",
-        order: 0,
-        items: user.trainingProgram,
-      },
-    ];
-  }
-  return [];
-}
+import type { TrainingProgramItem, TrainingSession } from "@/types/user";
 
 export function serializeSessions(sessions: TrainingSession[]) {
   return sessions.map((session, index) => ({

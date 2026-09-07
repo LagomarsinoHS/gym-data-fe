@@ -6,10 +6,11 @@ import { useAuthModal, type AuthMode } from "@/context/auth-modal-context";
 import { useCatalog } from "@/context/catalog-context";
 import { useI18n } from "@/context/i18n-context";
 import { authErrorMessage } from "@/lib/auth-errors";
-import { homePathFor } from "@/lib/capabilities";
+import { postLoginPath } from "@/lib/capabilities";
 
 type AuthLocationState = {
   auth?: boolean;
+  next?: string;
 };
 
 export function AuthModal() {
@@ -27,7 +28,10 @@ export function AuthModal() {
     const state = (location.state ?? null) as AuthLocationState | null;
     if (!state?.auth || user) return;
     openAuth();
-    navigate(location.pathname, { replace: true, state: null });
+    navigate(location.pathname, {
+      replace: true,
+      state: state.next ? { next: state.next } : null,
+    });
   }, [location.pathname, location.state, navigate, openAuth, user]);
 
   useEffect(() => {
@@ -83,7 +87,8 @@ export function AuthModal() {
       consumeSuccess();
       closeAuth();
       setSearch("");
-      navigate(homePathFor(nextUser), { replace: true });
+      const next = (location.state as AuthLocationState | null)?.next;
+      navigate(postLoginPath(nextUser, next), { replace: true });
     } catch (err) {
       setError(authErrorMessage(err, localMode, t));
     } finally {

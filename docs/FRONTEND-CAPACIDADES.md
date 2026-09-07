@@ -1,9 +1,9 @@
 # Inventario del frontend — qué hace hoy
 
-> **V estable — 2026-08-13.** Snapshot alineado al FE en `develop` (cleanup olas 1–4, nutrición list/read/archive, admin users rediseñado, pickers Avances/Nutrición). Pendiente principal: editor create/edit de pauta.
+> **2026-09-07.** Inventario del FE **React/Vite**. Pendiente de producto: editor create/edit de pauta (stub intencional).
 
 Documento de referencia de **todo** lo que el FE hace actualmente (llamadas, vistas, animaciones, stubs).  
-App: vanilla ES modules (`index.html` + `js/main.js`). Sin framework.
+App: React 19 + TypeScript + Vite (`index.html` → `src/main.tsx`). CSS original en `public/css/`.
 
 API: `localhost:3000` en local · develop Vercel → `gym-data-dev-aunw.onrender.com` · prod → `gym-data-8d3l.onrender.com`.
 
@@ -11,21 +11,15 @@ API: `localhost:3000` en local · develop Vercel → `gym-data-dev-aunw.onrender
 
 ## 1. Boot / arranque
 
-1. **`js/theme-boot.js`** (en `<head>`) — migra keys legacy `FLEX_*` → `steelPulse.*`, lee `steelPulse.theme` y pone `html[data-theme]` antes del paint (sin flash).
-2. Carga CSS: `base.css` (tokens) → `app.css` (UI) → `nutrition.css` → `progress.css`.
-3. **`init()` en `main.js`:**
-   - Sincroniza labels `[data-ui]` según idioma guardado
-   - `GET /exercises/labels` → chips de filtros
-   - Inicia sesión, auth, tema, drawer mobile, students, plantillas, avances, progress photos, athlete avances, athlete nutrición, coach panel, coach invite, recommend
-   - Revela filtros (animación cascade)
-   - En mobile: colapsa filtros + mueve results bar arriba
-   - `restoreSession()` → si hay token, `GET /users/me` (+ `onUserSynced` → pending invite)
-   - Primera página del catálogo
-   - Wire de eventos (search, chips, cards, modal, WOD, infinite scroll…)
+1. **`index.html` `<head>`** — lee `steelPulse.theme` y pone `html[data-theme]` antes del paint (sin flash).
+2. Carga CSS vía `src/styles.css`: `base.css` (tokens) → `app.css` (UI) → `nutrition.css` → `progress.css` (+ Tailwind preflight).
+3. **`src/main.tsx` + providers** (`AuthProvider`, `I18nProvider`, `ThemeProvider`, `CatalogProvider`):
+   - Restaura sesión: token `steelPulse.token` → `GET /users/me` (+ pending invite)
+   - Catálogo: `GET /exercises/labels` + primera página al entrar a `/`
+   - Deep link: `?exercise=` o `#id` abre el modal
    - Footer (taglines + contador de flexes)
-   - Deep link: si la URL trae `?exercise=` o `#id` → abre el modal
 
-Si el boot falla → mensaje de error en el contador de resultados.
+Si el catálogo falla → empty/error en el grid.
 
 ---
 
@@ -38,10 +32,11 @@ Si el boot falla → mensaje de error en el contador de resultados.
 | Logout | Menú cuenta → **Cerrar sesión** → borra token, user=null, vista catálogo, limpia recommend / cache alumnos / pending invite |
 | Restaurar sesión | Al boot / post-login: Bearer + `/users/me`; si falla → guest |
 
-- Overlay auth: backdrop / Escape cierran; errores mapeados (401, 409, etc.).
+- Overlay auth (`src/components/auth/auth-modal.tsx`): backdrop / Escape cierran; errores mapeados (401, 409, etc.).
 - Password min 4 (perfil / cambio); autocomplete distinto login vs register.
-- **Menú de cuenta** (`session-ui.js` / `#sidebar-user`): avatar con iniciales, nombre corto (`Humberto L`), badge de rol, chevron → dropdown.
-  - **Mi perfil**: activo → vista `#profile-view`. Header split (identidad azul + información personal) con botón **Editar** en el panel derecho: el formulario reemplaza el contenido derecho in-place (nombre, body stats, goal, contraseña) → `PATCH /users/me`. El grid de información personal **siempre** muestra los labels (rol, plan, fechas, sexo, nacimiento, edad, objetivo, + cupo si coach); valores faltantes → “—”. Avatar → Ver/Subir foto. Card **Mi coach** (atleta): si hay vínculo, **Dejar coach** (modal simple, sin email) → `DELETE /users/me/coach`. **Darse de baja** modal email → `DELETE /users/me`. Al entrar, `refreshUser()`.
+- Tras login/register: si hay `location.state.next` interno seguro (`RoleGate` y `/perfil` lo mandan), va ahí; si no, `homePathFor` (atleta → `/entrenamiento`, coach → `/panel`, admin → `/admin`). Login desde el sidebar / `/login` sin `next` → home del rol.
+- **Menú de cuenta** (`src/components/layout/user-menu.tsx`): avatar con iniciales, nombre corto, badge de rol, chevron → dropdown.
+  - **Mi perfil** (`src/pages/profile-page.tsx`): header split (identidad + información personal) con **Editar** in-place → `PATCH /users/me`. Labels del grid siempre visibles; faltantes → “—”. Avatar → Ver/Subir foto. Card **Mi coach** (atleta): **Dejar coach** → `DELETE /users/me/coach`. **Darse de baja** → `DELETE /users/me`. Al entrar, `refreshUser()`.
   - **Configuración**: visible pero `disabled` (tooltip “Próximamente”).
   - **Cerrar sesión**: activo (rojo).
   - Cierra con click afuera o Escape.
@@ -65,17 +60,17 @@ Si el boot falla → mensaje de error en el contador de resultados.
 | `nutrition` | Coach: picker alumno + tabs **Perfil** \| **Pauta** (list/read/archive; create/edit pendiente) |
 | `athlete-nutrition` | Atleta: pautas propias (`GET /nutrition-plans`; empty si no hay pauta; soft-delete archivadas) |
 | `athlete-avances` | Atleta: upload (mes actual o backfill) + historial timeline + comparar |
-| `coach-panel` | Resumen informativo (`coach-panel-ui`): total alumnos + sin pauta + historial invites |
-| `coach-templates` | Biblioteca de plantillas (`coach-templates-ui` + `js/api/coach-templates.js`): crear (`POST /coach/templates`), editar/guardar (`PUT`), aplicar 1..N ↔ 1..N (`POST /coach/templates/apply`). Toast de éxito (~3s, cerrable) al aplicar desde Plantillas; **Usar plantilla** desde Mis alumnos |
-| `students` | Mis alumnos (`students-ui` + cupo `coachQuota.canInvite` + `coach-sessions-ui` + `students-download-ui` + store); carga data antes de pintar |
-| `avances` | Coach: picker de alumnos (`coach-athlete-picker`) → abrir fotos de progreso |
+| `coach-panel` | Resumen (`src/pages/coach-panel-page.tsx`): total alumnos + sin pauta + historial invites |
+| `coach-templates` | Biblioteca (`src/pages/coach-templates-page.tsx` + `src/api/coach-templates.ts`): crear (`POST /coach/templates`), editar/guardar (`PUT`), aplicar 1..N ↔ 1..N (`POST /coach/templates/apply`). Toast (~3s) al aplicar; **Usar plantilla** desde Mis alumnos |
+| `students` | Mis alumnos (`src/pages/students-page.tsx` + cupo `coachQuota.canInvite` + `src/lib/students-cache.ts`); carga data antes de pintar |
+| `avances` | Coach: picker (`src/components/coach/athlete-picker.tsx`) → fotos de progreso |
 | `progress-photos` | Coach: timeline + comparar fotos de un alumno (lightbox) |
 | `session-editor` | Editor de una sesión del atleta (coach; drag para reordenar ejercicios) |
 | `profile` | Mi perfil (header split, editar in-place, foto, dejar coach, darse de baja; grid de info personal siempre muestra labels con “—” si falta dato; resto “Pronto”) |
 | `admin-overview` | Stats (`GET /admin/stats`) |
 | `admin-users` | Listado + acordeón detalle (Cuenta / Suscripción / Rol·Plan / Coach + gestión); grant/revoke + soft-delete |
 
-- Post-login: coach → `coach-panel`; admin → `admin-overview`; athlete → `training`.
+- Post-login: `state.next` si es path interno; si no, coach → `/panel`; admin → `/admin`; athlete → `/entrenamiento`.
 - Recomendar: nav locked + tooltip si no es Pro.
 - Identidad en sidebar: menú de cuenta (iniciales + rol); ver Auth.
 ---
@@ -104,10 +99,10 @@ Si el boot falla → mensaje de error en el contador de resultados.
 - Botón → `GET /exercises/random` → abre modal.
 
 ### Easter eggs (search)
-Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial).
+Códigos en `src/lib/easter-eggs.ts` (rest day, creador, mensajes, roast con CSS especial).
 
 ### Cards catálogo
-- Thumb lazy + shimmer hasta listo; hover carga GIF.
+- Thumb lazy + shimmer hasta `is-media-ready` (`onLoad`); hover carga GIF.
 - Click → modal.
 - Stagger `card-enter` al pintar; hover `translateY(-3px)`.
 
@@ -152,6 +147,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 - Cerrar durante undo **confirma** el remove.
 - Fallo al agregar: mensaje breve y resync.
+- Atleta en catálogo: siempre “Agregar a mi plan” (plan personal plano). “Agregar a la sesión” solo en modo asignar del coach.
 
 ### Pauta (lápiz)
 - Visible si el ejercicio está en el plan.
@@ -178,7 +174,7 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 ## 8. Coach — Panel
 
-- Vista informativa (`coach-panel-ui.js`): **Total de alumnos** y **Alumnos sin pauta**.
+- Vista informativa (`src/pages/coach-panel-page.tsx`): **Total de alumnos** y **Alumnos sin pauta**.
 - Data stats: pagina `GET /users/coach/athletes` hasta completar; “sin pauta” = sin sesiones con `items`.
 - Loading (opción B): spinner + stats ocultas hasta tener números (sin placeholders `—`).
 - **Invitaciones:** historial filtrable (`GET /users/coach/invites?status=&page=&limit=`).
@@ -201,18 +197,19 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
   - `POST /users/coach/training-program/export` binary (`athleteIds: []` = todos; `[id]` = uno) + `locale` + `format` (`xlsx` \| `pdf`).
   - Varios alumnos → ZIP. Layout: sesiones en un archivo, bloques por categoría, total de series.
 - Loading spinner al primer fetch; empty / sin resultados sin flash raro.
-- Al entrar (`enterStudentsView`): fetch alumnos **antes** de mostrar la vista (evita flash vacío).
+- Al entrar: fetch alumnos **antes** de mostrar la lista (evita flash vacío).
 - Lista → `GET /users/coach/athletes` (paginado 5 + Cargar más); cache en memoria.
 - Acordeón alumno → info + plan; al expandir: **Objetivo** en pill verde a la derecha de Nombre (si el atleta tiene `goal`).
 - **Agregar sesión** (modal nombre, local).
 - Sub-acordeón sesión → mini-cards (thumb, nombre, pauta) + Editar sesión.
 - **Reordenar**: drag & drop de la card completa.
-  - Sesiones en Mis alumnos: click abre/cierra; arrastrar reordena (sin re-render flash; dirty + Guardar plan).
+  - Sesiones en Mis alumnos: click abre/cierra; arrastrar reordena y **autosave** (`PUT` replace).
   - Ejercicios en `session-editor`: arrastrar la card; Editar / ✕ siguen activos.
-  - Tip contextual (localStorage `steelPulse.featureHints`, util `js/utils/feature-hints.js`): burbuja naranja compacta “Arrastra para reordenar” la primera vez que hay ≥2 sesiones/ejercicios; se cierra con “Entendido” o al reordenar.
-- Vista `session-editor`: cards, Editar / ✕, Agregar ejercicios; modal confirmar quitar sesión.
+  - Tip contextual (localStorage `steelPulse.featureHints`, `src/lib/session-editor.ts`): burbuja “Arrastra para reordenar” la primera vez que hay ≥2 sesiones/ejercicios; se cierra con “Entendido” o al reordenar.
+  - Si el persist falla: mensaje `athletePlanSaveFail` / `coachTemplatesSaveFail`; el reorder vuelve atrás; crear/borrar sesión no cierra el modal.
+- Vista `session-editor` (`src/pages/session-editor-page.tsx`): cards, Editar / ✕, Agregar ejercicios; modal confirmar quitar sesión.
 - Catálogo en modo asignar: banner + “Agregar a la sesión” + lápiz pauta (local); guardar vuelve al editor.
-- Sesiones en `athlete.coachTrainingProgram`; **Guardar plan** → `PUT /users/coach/athletes/:id/training-program` (replace; respuesta enriquecida).
+- Sesiones en `athlete.coachTrainingProgram`; autosave → `PUT /users/coach/athletes/:id/training-program` (replace).
 - **Usar plantilla**: desde el plan del alumno → modal multi-select de plantillas con ejercicios que el alumno aún no tiene → `POST /coach/templates/apply` (`templateIds` + `athleteIds: [id]`) en un solo request; sync local con `sessions` del response.
 - Fila alumno: botón **Avances** → `progress-photos` (return a Mis alumnos).
 
@@ -220,9 +217,9 @@ Códigos en `easter-egg.js` (rest day, creador, mensajes, roast con CSS especial
 
 ## 9b. Plantillas (coach)
 
-Vista `coach-templates` (`coach-templates-ui.js`, API `js/api/coach-templates.js`).
+Vista `coach-templates` (`src/pages/coach-templates-page.tsx`, API `src/api/coach-templates.ts`).
 
-- Lista / crear / editar ejercicios (scope virtual `TEMPLATES_SCOPE_ID`) / guardar → `GET|POST|PUT /coach/templates`.
+- Lista / crear / editar ejercicios / guardar → `GET|POST|PUT /coach/templates`.
 - **Aplicar a alumno** (desde una plantilla): modal multi-select de alumnos que aún no la tienen → `POST /coach/templates/apply` (`templateIds: [id]`, `athleteIds`).
 - Éxito → toast fijo inferior (~3s, botón ✕) con título + detalle; errores inline en status.
 - Response apply: `{ applied, skipped, failedAthletes, failedTemplates, sessions }` (pares y sesiones enriquecidas).
@@ -231,34 +228,34 @@ Vista `coach-templates` (`coach-templates-ui.js`, API `js/api/coach-templates.js
 
 ## 9c. Nutrición (atleta)
 
-Vista `athlete-nutrition` (`athlete-nutrition-ui.js`, API `js/api/nutrition-plans.js`).
+Vista `athlete-nutrition` (`src/pages/nutrition-page.tsx`, API `src/api/nutrition-plans.ts`).
 
-- Nav **Nutrición** bajo Mi plan (no reutiliza `#nutrition-view` del coach).
+- Nav **Nutrición** bajo Mi plan (`/nutricion`; coach usa `/coach/nutricion`).
 - `GET /nutrition-plans`: **Pauta actual** (card resumen + Ver detalle) y **Pautas anteriores** (acordeón mes · kcal · coach).
 - Detalle de comidas: timeline vertical (☀️ → puntos → 🌙); cada comida muestra hora, nombre, alimentos en línea y nota fija a la derecha.
 - Orden de `meals`: el array tal cual viene del API (sin sort en atleta). Convención: la UI coach ordenará por `time` al guardar.
 - Archivadas: hover esquina derecha → ✕ → confirm → `DELETE /nutrition-plans/:id` (soft `deletedAt`).
 - Empty si no hay pauta (sigue visible tras dejar coach; soft-delete solo quita del listado del atleta).
-- Render compartido con coach: `nutrition-plan-render.js`.
+- Render compartido con coach: `src/components/nutrition/nutrition-plan-list.tsx`.
 
 ---
 
 ## 9d. Nutrición (coach)
 
-Vista `nutrition` (`coach-nutrition-ui.js` + `coach-nutrition-profile-ui.js` + `coach-nutrition-plan-ui.js` + `nutrition-plan-list-ui.js`).
+Vista `nutrition` (`src/pages/coach-nutrition-page.tsx` + `coach-nutrition-profile.tsx` + `coach-nutrition-plans.tsx` + `nutrition-plan-list.tsx`).
 
-- Lista de alumnos vía **`coach-athlete-picker`** (mismo patrón que Avances) → workspace con card de contexto.
+- Lista de alumnos vía **`src/components/coach/athlete-picker.tsx`** (mismo patrón que Avances) → workspace con card de contexto.
 - Tabs **Perfil** | **Pauta** (toggle tipo idioma, a la derecha de “Volver a alumnos”; `User.nutrition` vs `nutritionPlans`).
 - **Volver a alumnos**: oculta workspace, muestra picker y re-renderiza la lista (no deja el picker vacío).
-- **Perfil**: formulario existente (actividad / hábitos / prefs / restricciones) en `coach-nutrition-profile-ui.js`.
-- **Pauta**: `GET /nutrition-plans?athleteId=` → pauta actual + anteriores (shared `nutrition-plan-list-ui` / render); **Archivar** → `PATCH .../archive`.
+- **Perfil**: formulario (actividad / hábitos / prefs / restricciones) en `src/components/nutrition/coach-nutrition-profile.tsx`.
+- **Pauta**: `GET /nutrition-plans?athleteId=` → pauta actual + anteriores (shared `nutrition-plan-list.tsx`); **Archivar** → `PATCH .../archive`.
 - **Crear pauta**: stub del editor (próxima: form + prefill desde perfil + sort por `time` al guardar).
 
 ---
 
 ## 9e. Admin — Usuarios
 
-Vista `admin-users` (`admin-users-ui.js`).
+Vista `admin-users` (`src/pages/admin-users-page.tsx`).
 
 - Toolbar: search (debounce), filtros rol / plan / sort / “por vencer”, load more.
 - Fila → acordeón **sin animación de altura** (evita jump de scroll); `scrollbar-gutter: stable` en la vista.
@@ -270,27 +267,27 @@ Vista `admin-users` (`admin-users-ui.js`).
 
 ## 10. Avances / fotos de progreso
 
-Historial y comparar viven en el módulo compartido `progress-history-ui.js` (coach + atleta).
+Historial y comparar viven en `src/components/progress/progress-history.tsx` (coach + atleta).
 
 ### Coach
-- Nav **Avances** (`avances-ui` + `coach-athlete-picker`): lista paginada de alumnos → abre `progress-photos`.
-- Vista `progress-photos` (`progress-photos-ui`): back a Avances o Mis alumnos; card alumno (nombre, correo, peso actual — en comparar, chip compacto).
+- Nav **Avances** (`src/pages/coach-avances-page.tsx` + `athlete-picker.tsx`): lista paginada de alumnos → abre el historial.
+- Vista detalles: back a Avances o Mis alumnos (`returnTo`); card alumno (nombre, correo, peso actual — en comparar, chip compacto).
 - Timeline cronológico (meses con foto/peso, más reciente arriba); cards usan thumb Cloudinary (`c_fit,w_480,h_640,q_auto,f_auto`); lightbox/descarga usan la URL original de Mongo.
 - **Comparar**: elegir ≥2 meses → **2 meses** lado a lado con tabs Frente/Espalda; **3+** doble carrusel (wrap). Métricas: Δ peso entre el más viejo y el más nuevo + **estatura** del perfil (`profile.heightCm`) si está cargada (coach y atleta; si no hay altura, no se muestra).
 - Con **2 meses**: botón **Analizar progreso** (Growth/Pro) → `POST` análisis IA; loading + resumen en UI.
 - `GET /users/:userId/progress-photos` → `{ currentWeightKg, years[] }` (un fetch; sin paginación de API).
 
 ### Atleta
-- Nav **Avances** (`athlete-avances-ui`): header fijo (título + hint del mes seleccionado + peso actual); scroll del cuerpo.
+- Nav **Avances** (`src/pages/avances-page.tsx`): header fijo (título + hint del mes seleccionado + peso actual); scroll del cuerpo.
 - Upload: pickers `+` con preview, peso (20–400); debajo del peso, caption “Mes actual · cambiar” (o el mes elegido) abre month-picker para backfill.
 - Guardar enabled solo con ≥1 foto + peso; `POST /users/me/progress-photos` multipart (`weightKg` + `front`/`back` + `yearMonth` opcional).
-- Historial: mismo timeline + comparar que el coach (vía `progress-history-ui`).
+- Historial: mismo timeline + comparar que el coach (vía `progress-history.tsx`).
 - Re-subir el mismo mes **reemplaza** (upsert); no hay UI de delete (API DELETE existe).
 
-### Lightbox compartido (`progress-photo-lightbox.js`)
+### Lightbox compartido (`src/components/progress/progress-photo-lightbox.tsx`)
 - Click en foto → modal con **URL original** (calidad completa); **Descargar** fetch→blob → `FirstName_LastName_Front|Back[_YYYY-MM].ext`.
 - En comparar: flechas / teclado recorren la galería del mismo lado (Frente↔Frente u Espalda↔Espalda).
-- Thumbs FE: `js/utils/cloudinary.js` (`progressPhotoThumbUrl`) — solo en cards; Mongo/BE sin cambios.
+- Thumbs FE: `src/lib/cloudinary.ts` (`progressPhotoThumbUrl`) — solo en cards; Mongo/BE sin cambios.
 
 ---
 
@@ -298,10 +295,10 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 
 - Colección `invites` en BE; **no** vive en el documento User ni en `GET /users/me`.
 - `GET /users/me/pending-coach-invite` → siempre `{ invite: null | { coachId, invitedAt, coach } }` (máx. 1 pendiente).
-- FE (`coach-invite-ui.js`): carga junto a cada `/users/me` (`restoreSession` / `refreshUser` vía `onUserSynced`), y de nuevo al volver a la pestaña (`visibilitychange`). No re-fetch al navegar.
+- FE (`src/context/auth-context.tsx` + `coach-invite-banner.tsx`): carga junto a `/users/me` (boot / login / `refreshUser`), y de nuevo al volver a la pestaña (`visibilitychange`, atleta). No re-fetch al navegar.
 - Banner + dot en Plan del coach → accept / reject `POST /users/me/pending-coach-invite/respond`.
-- Si accept falla por cupo del coach (`COACH_ATHLETE_QUOTA_FULL`): se oculta el copy/botones del invite y el banner muestra solo el mensaje localizado ~4s.
-- Errores de invite/respond: preferir `err.code` → `mapApiError` / copy en `js/i18n/` (ES/EN).
+- Si accept falla por cupo del coach (`COACH_ATHLETE_QUOTA_FULL` / `CoachAthleteQuotaFull`): se oculta el copy/botones y el banner muestra solo el mensaje ~4s.
+- Errores de invite/respond: `err.code` → `inviteErrorKey` en `src/lib/coach-athletes.ts` + copy en `src/i18n/`.
 
 ---
 
@@ -398,26 +395,27 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 
 ---
 
-## 15. Utils
+## 15. Utils (`src/lib/`)
 
 | Archivo | Rol |
 |---------|-----|
-| `helpers.js` | `debounce`, `normalizeSearch`, `dedupeById`, `userProfile` |
-| `prefs.js` | tema / idioma en localStorage (`steelPulse.theme` / `steelPulse.lang`) |
-| `feature-hints.js` | tips one-shot (`steelPulse.featureHints`); mark seen / create bubble |
-| `url.js` | share URL, leer/sync deep link |
-| `cards.js` | media, GIF hover, click delegado |
-| `labels.js` | `ui`, `label`, `exerciseName`, lang |
-| `profile-labels.js` | labels de perfil / goal / body stats (shared) |
-| `year-month.js` | parse / format `YYYY-MM` |
-| `overlay.js` | open/close overlays (confirm, etc.) |
-| `dom-status.js` | set/clear status messages en nodos |
-| `reps.js` | `cleanReps`, `formatReps` |
-| `assets.js` | `assetUrl` para media |
-| `cloudinary.js` | thumbs de progress photos |
-| `auth-errors.js` | mensajes de error de auth |
-| `api-errors.js` | mensajes de error de API por `code` |
-| `dates.js` | `formatDate` via `Intl.DateTimeFormat` (es: 2026-agosto-02 · en: August 2, 2026) |
+| `prefs.ts` | tema / idioma (`steelPulse.theme` / `steelPulse.lang`) |
+| `session-editor.ts` | tips one-shot (`steelPulse.featureHints`) + paths del editor |
+| `url.ts` | share URL, deep link, `safeInternalPath` / post-login |
+| `labels.ts` | `exerciseName`, `valueLabel` |
+| `user-display.ts` | nombre, iniciales, labels de rol |
+| `year-month.ts` | parse / format `YYYY-MM` |
+| `reps.ts` | `cleanReps`, `formatReps` |
+| `assets.ts` | `assetUrl` para media |
+| `cloudinary.ts` | thumbs de progress photos |
+| `auth-errors.ts` | mensajes de error de auth |
+| `coach-athletes.ts` | invite errors, goal/sex, “nuevo” alumno |
+| `capabilities.ts` | roles, `homePathFor`, `postLoginPath` |
+| `training-sessions.ts` | serialize / match items |
+| `students-cache.ts` | roster Mis alumnos en memoria |
+| `nutrition-plans.ts` | sort / helpers de pautas |
+| `easter-eggs.ts` | códigos del search |
+| `progress-lightbox.ts` | filename de descarga |
 
 ---
 
@@ -431,8 +429,6 @@ Historial y comparar viven en el módulo compartido `progress-history-ui.js` (co
 | `steelPulse.featureHints` | localStorage | tips vistos |
 | `steelPulse.seenNewAthletes` | localStorage | alumnos “Nuevo” ya vistos |
 | `mister-l-flexes` | sessionStorage | contador del 💪 del footer |
-
-Al boot, `theme-boot.js` migra una vez keys legacy `FLEX_*` → `steelPulse.*` (token, theme, lang, featureHints, seenNewAthletes) para no perder sesión/prefs.
 
 ---
 
@@ -451,35 +447,28 @@ Al boot, `theme-boot.js` migra una vez keys legacy `FLEX_*` → `steelPulse.*` (
 
 | Área | Archivos |
 |------|----------|
-| Entry / catálogo / modal / pauta | `js/main.js` |
-| Sesión / vistas / roles | `js/features/session-ui.js`, `session-capabilities.js` |
-| Mi perfil | `js/features/profile-ui.js` |
-| Auth UI | `js/features/auth-ui.js` |
-| Entrenamiento | `js/features/training-ui.js` |
-| Recommend | `js/features/recommend-ui.js` |
-| Coach Panel | `js/features/coach-panel-ui.js` |
-| Admin Overview / Users | `js/features/admin-overview-ui.js`, `admin-users-ui.js` |
-| Coach invite banner | `js/features/coach-invite-ui.js` |
-| Students | `js/features/students-ui.js` |
-| Students download | `js/features/students-download-ui.js` |
-| Coach sessions / editor | `js/features/coach-sessions-ui.js`, `coach-session-serialize.js` |
-| Coach templates | `js/features/coach-templates-ui.js` |
-| Athletes store | `js/features/coach-athletes-store.js` |
-| Avances coach (lista) | `js/features/avances-ui.js`, `coach-athlete-picker.js` |
-| Progress photos coach | `js/features/progress-photos-ui.js` |
-| Historial/comparar (shared) | `js/features/progress-history-ui.js` |
-| Avances atleta | `js/features/athlete-avances-ui.js` |
-| Nutrición atleta | `js/features/athlete-nutrition-ui.js` |
-| Nutrición coach | `js/features/coach-nutrition-ui.js`, `coach-nutrition-profile-ui.js`, `coach-nutrition-plan-ui.js`, `nutrition-plan-list-ui.js`, `coach-athlete-picker.js` |
-| Coach sessions | `js/features/coach-sessions-ui.js`, `coach-session-serialize.js` |
-| Session caps | `js/features/session-capabilities.js` |
-| Pauta render (shared) | `js/features/nutrition-plan-render.js` |
-| Lightbox + download | `js/features/progress-photo-lightbox.js` |
-| Drawer | `js/features/nav-drawer.js` |
-| Tema | `theme-boot.js`, `theme-ui.js` |
-| Footer / eggs | `footer.js`, `easter-egg.js` |
-| API | `js/api/request.js`, `auth.js`, `users.js`, `nutrition-plans.js`, `coach-templates.js`, `exercises.js`, `admin.js`, `token.js` |
-| Copy / i18n errors | `js/i18n/`, `js/utils/api-errors.js`, `js/utils/auth-errors.js` |
+| Entry / rutas | `src/main.tsx`, `src/App.tsx` |
+| Shell / drawer / footer | `src/components/layout/*` |
+| Auth / sesión | `src/context/auth-context.tsx`, `src/components/auth/auth-modal.tsx` |
+| Catálogo / modal / filtros | `src/context/catalog-context.tsx`, `src/components/catalog/*` |
+| Easter eggs | `src/lib/easter-eggs.ts`, `src/components/catalog/easter-egg-panel.tsx` |
+| Entrenamiento | `src/pages/training-page.tsx` |
+| Plan del coach | `src/pages/coach-plan-page.tsx`, `src/components/sessions/session-list.tsx` |
+| Recommend | `src/pages/recommend-page.tsx` |
+| Nutrición atleta | `src/pages/nutrition-page.tsx`, `src/components/nutrition/nutrition-plan-list.tsx` |
+| Nutrición coach | `src/pages/coach-nutrition-page.tsx`, `coach-nutrition-profile.tsx`, `coach-nutrition-plans.tsx` |
+| Avances atleta | `src/pages/avances-page.tsx` |
+| Avances coach | `src/pages/coach-avances-page.tsx` |
+| Historial / comparar / lightbox | `src/components/progress/*` |
+| Coach panel | `src/pages/coach-panel-page.tsx` |
+| Plantillas | `src/pages/coach-templates-page.tsx` |
+| Mis alumnos | `src/pages/students-page.tsx` |
+| Session editor | `src/pages/session-editor-page.tsx` |
+| Perfil | `src/pages/profile-page.tsx` |
+| Admin | `src/pages/admin-overview-page.tsx`, `admin-users-page.tsx` |
+| Invite banner | `src/components/layout/coach-invite-banner.tsx` |
+| API | `src/api/*` |
+| Copy | `src/i18n/es.ts`, `en.ts` |
 | Estilos | `public/css/base.css`, `app.css`, `nutrition.css`, `progress.css` |
 
 ---

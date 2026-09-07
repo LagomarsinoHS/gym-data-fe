@@ -13,7 +13,7 @@ import type { TrainingProgramItem } from "@/types/user";
 export function TrainingPage() {
   const { user } = useAuth();
   const { t, lang } = useI18n();
-  const { search, openExercise } = useCatalog();
+  const { search, openExercise, flashExerciseId, clearFlashExercise } = useCatalog();
 
   const items = useMemo(
     () =>
@@ -62,6 +62,8 @@ export function TrainingPage() {
             bareLabel={t("programBare")}
             setsLabel={t("prescriptionSets")}
             repsLabel={t("prescriptionReps")}
+            flashing={flashExerciseId === String(item.exercise?.id || item.exerciseId)}
+            onFlashEnd={clearFlashExercise}
             onOpen={() => openExercise(String(item.exercise?.id || item.exerciseId))}
           />
         ))}
@@ -76,6 +78,8 @@ function TrainingCard({
   bareLabel,
   setsLabel,
   repsLabel,
+  flashing,
+  onFlashEnd,
   onOpen,
 }: {
   item: TrainingProgramItem;
@@ -83,12 +87,15 @@ function TrainingCard({
   bareLabel: string;
   setsLabel: string;
   repsLabel: string;
+  flashing: boolean;
+  onFlashEnd: () => void;
   onOpen: () => void;
 }) {
   const name = exerciseName(item.exercise, lang) || item.exerciseId;
   const thumb = assetUrl(item.exercise?.image);
   const gif = assetUrl(item.exercise?.gif_url);
   const [gifReady, setGifReady] = useState(false);
+  const [mediaReady, setMediaReady] = useState(!thumb);
   const note = item.notes?.trim() ?? "";
   const lines = [
     item.sets != null ? { ico: "🏋️", text: `${item.sets} ${setsLabel}` } : null,
@@ -98,16 +105,23 @@ function TrainingCard({
 
   return (
     <article
-      className="training-card"
+      className={`training-card${flashing ? " is-updated" : ""}`}
       data-id={item.exerciseId}
+      onAnimationEnd={flashing ? onFlashEnd : undefined}
       onClick={onOpen}
       onMouseEnter={() => {
         if (gif) setGifReady(true);
       }}
     >
-      <div className="training-card-media">
+      <div className={`training-card-media${mediaReady ? " is-media-ready" : ""}`}>
         {thumb ? (
-          <img className="card-thumb is-loaded" src={thumb} alt={name} loading="lazy" />
+          <img
+            className={`card-thumb${mediaReady ? " is-loaded" : ""}`}
+            src={thumb}
+            alt={name}
+            loading="lazy"
+            onLoad={() => setMediaReady(true)}
+          />
         ) : null}
         {gifReady && gif ? <img className="card-gif" src={gif} alt="" /> : null}
       </div>

@@ -1,12 +1,14 @@
 import { useEffect, useRef } from "react";
 
+import { EasterEggPanel } from "@/components/catalog/easter-egg-panel";
 import { ExerciseCard } from "@/components/catalog/exercise-card";
 import { useCatalog } from "@/context/catalog-context";
 import { useI18n } from "@/context/i18n-context";
 
 export function ExerciseGrid() {
   const { t, lang } = useI18n();
-  const { exercises, ready, loading, hasMore, error, loadMore, openExercise } = useCatalog();
+  const { exercises, easterEgg, ready, loading, hasMore, error, loadMore, openExercise } =
+    useCatalog();
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -25,7 +27,9 @@ export function ExerciseGrid() {
   return (
     <div className="grid-wrapper">
       <div className="exercise-grid">
-        {!ready ? (
+        {easterEgg ? (
+          <EasterEggPanel egg={easterEgg} />
+        ) : !ready ? (
           <div className="catalog-boot-loading">
             <div className="load-spinner visible" aria-hidden="true" />
             <span>{t("loading")}</span>
@@ -52,9 +56,11 @@ export function ExerciseGrid() {
           ))
         )}
       </div>
-      <div className="load-sentinel" ref={sentinelRef}>
-        <div className={`load-spinner${loading && hasMore ? " visible" : ""}`} />
-      </div>
+      {easterEgg ? null : (
+        <div className="load-sentinel" ref={sentinelRef}>
+          <div className={`load-spinner${loading && hasMore ? " visible" : ""}`} />
+        </div>
+      )}
     </div>
   );
 }

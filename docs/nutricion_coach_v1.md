@@ -1,8 +1,8 @@
 # Módulo de Nutrición — Vista Coach
 
 > **Histórico / superseded.** Draft de diseño previo a la implementación.
-> **V estable — 2026-08-13:** perfil nutricional + pauta (list/read/archive) en `#nutrition-view` (tabs Perfil | Pauta + `coach-athlete-picker`);
-> vista atleta en `#athlete-nutrition-view`. Create/edit editor = siguiente. Ver `docs/FRONTEND-CAPACIDADES.md` (§9c/9d) y `docs/TODO.md`.
+> **2026-09-07:** perfil nutricional + pauta (list/read/archive) en `/coach/nutricion` (tabs Perfil | Pauta + picker);
+> vista atleta en `/nutricion`. Create/edit editor = siguiente. Ver `docs/FRONTEND-CAPACIDADES.md` (§9c/9d) y `docs/TODO.md`.
 
 ## Objetivo inicial
 

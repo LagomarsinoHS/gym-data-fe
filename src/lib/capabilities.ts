@@ -1,3 +1,4 @@
+import { safeInternalPath } from "@/lib/url";
 import type { MeUser } from "@/types/user";
 
 export function isCoach(user: MeUser | null): boolean {
@@ -38,4 +39,8 @@ export function homePathFor(user: MeUser | null): string {
   if (isCoach(user)) return "/panel";
   if (isAthlete(user)) return "/entrenamiento";
   return "/";
+}
+
+export function postLoginPath(user: MeUser, next?: unknown): string {
+  return safeInternalPath(next) ?? homePathFor(user);
 }

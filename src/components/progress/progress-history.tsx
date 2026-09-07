@@ -1,9 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { ProgressPhotoLightbox } from "@/components/progress/progress-photo-lightbox";
 import { useI18n } from "@/context/i18n-context";
 import { progressPhotoThumbUrl } from "@/lib/cloudinary";
+import type { ProgressLightboxItem } from "@/lib/progress-lightbox";
 import { timelineMonthLabel } from "@/lib/year-month";
 import type { AnalyzeAiState, ProgressMonth, ProgressPhotosResponse } from "@/types/progress";
+import type { PersonName } from "@/types/user";
+
+type OpenPhotoOpts = {
+  url: string;
+  title: string;
+  side: "front" | "back";
+  yearMonth?: string;
+  gallery?: ProgressLightboxItem[];
+};
 
 type ViewMode = "timeline" | "pick" | "compare";
 
@@ -27,7 +38,7 @@ export function ProgressHistory({
   resultsClassName,
   analyzeWithAi,
   onModeChange,
-  onOpenPhoto,
+  person,
 }: {
   payload: ProgressPhotosResponse | null;
   emptyLead: string;
@@ -40,14 +51,22 @@ export function ProgressHistory({
     onAnalyze: (yearMonths: [string, string]) => void;
   };
   onModeChange?: (mode: ViewMode) => void;
-  onOpenPhoto: (url: string) => void;
+  person?: PersonName | null;
 }) {
   const { t, lang } = useI18n();
   const [mode, setMode] = useState<ViewMode>("timeline");
   const [selected, setSelected] = useState<string[]>([]);
   const [compareSide, setCompareSide] = useState<"front" | "back">("front");
+  const [lightbox, setLightbox] = useState<{ items: ProgressLightboxItem[]; index: number } | null>(
+    null,
+  );
 
   const months = useMemo(() => flattenTimelineMonths(payload), [payload]);
+  const timelineGallery = useMemo(
+    () =>
+      timelineLightboxGallery(months, t("progressPhotosFront"), t("progressPhotosBackSide"), lang),
+    [lang, months, t],
+  );
   const comparable = months.filter((month) => month.front?.url || month.back?.url);
   const showCompareBar = mode !== "compare" && comparable.length >= 2;
 
@@ -68,6 +87,18 @@ export function ProgressHistory({
   function exitCompare() {
     setSelected([]);
     setView("timeline");
+  }
+
+  function openPhoto(opts: OpenPhotoOpts) {
+    const fallback: ProgressLightboxItem = {
+      url: opts.url,
+      title: opts.title,
+      side: opts.side,
+      ...(opts.yearMonth ? { yearMonth: opts.yearMonth } : {}),
+    };
+    const items = opts.gallery && opts.gallery.length > 0 ? opts.gallery : [fallback];
+    const index = items.findIndex((item) => item.url === opts.url);
+    setLightbox({ items, index: index >= 0 ? index : 0 });
   }
 
   const compareBar = showCompareBar ? (
@@ -215,7 +246,7 @@ export function ProgressHistory({
                 side={compareSide}
                 heightCm={heightCm ?? null}
                 onSide={setCompareSide}
-                onOpenPhoto={onOpenPhoto}
+                onOpenPhoto={openPhoto}
               />
             ) : (
               <>
@@ -227,12 +258,12 @@ export function ProgressHistory({
                 <CompareCarousel
                   side="front"
                   months={compared}
-                  onOpenPhoto={onOpenPhoto}
+                  onOpenPhoto={openPhoto}
                 />
                 <CompareCarousel
                   side="back"
                   months={compared}
-                  onOpenPhoto={onOpenPhoto}
+                  onOpenPhoto={openPhoto}
                 />
               </>
             )}
@@ -243,7 +274,12 @@ export function ProgressHistory({
           months.length ? (
             <div className="progress-photos-timeline" role="list">
               {months.map((month) => (
-                <TimelineItem key={month.yearMonth} month={month} onOpenPhoto={onOpenPhoto} />
+                <TimelineItem
+                  key={month.yearMonth}
+                  month={month}
+                  gallery={timelineGallery}
+                  onOpenPhoto={openPhoto}
+                />
               ))}
             </div>
           ) : (
@@ -254,16 +290,26 @@ export function ProgressHistory({
           )
         ) : null}
       </div>
+      <ProgressPhotoLightbox
+        open={Boolean(lightbox)}
+        items={lightbox?.items ?? []}
+        index={lightbox?.index ?? 0}
+        {...(person?.firstName ? { firstName: person.firstName } : {})}
+        {...(person?.lastName ? { lastName: person.lastName } : {})}
+        onClose={() => setLightbox(null)}
+      />
     </>
   );
 }
 
 function TimelineItem({
   month,
+  gallery,
   onOpenPhoto,
 }: {
   month: ProgressMonth;
-  onOpenPhoto: (url: string) => void;
+  gallery: ProgressLightboxItem[];
+  onOpenPhoto: (opts: OpenPhotoOpts) => void;
 }) {
   const { t, lang } = useI18n();
   const hasFront = Boolean(month.front?.url);
@@ -286,8 +332,22 @@ function TimelineItem({
       ) : null}
       {hasFront || hasBack ? (
         <div className="progress-photos-grid">
-          <PhotoCard title={t("progressPhotosFront")} photo={month.front} onOpen={onOpenPhoto} />
-          <PhotoCard title={t("progressPhotosBackSide")} photo={month.back} onOpen={onOpenPhoto} />
+          <PhotoCard
+            title={t("progressPhotosFront")}
+            photo={month.front}
+            side="front"
+            yearMonth={month.yearMonth}
+            gallery={gallery}
+            onOpen={onOpenPhoto}
+          />
+          <PhotoCard
+            title={t("progressPhotosBackSide")}
+            photo={month.back}
+            side="back"
+            yearMonth={month.yearMonth}
+            gallery={gallery}
+            onOpen={onOpenPhoto}
+          />
         </div>
       ) : (
         <div className="progress-photos-no-data">
@@ -301,15 +361,32 @@ function TimelineItem({
 function PhotoCard({
   title,
   photo,
+  side,
+  yearMonth,
+  gallery,
   onOpen,
   showTitle = true,
 }: {
   title: string;
   photo: ProgressMonth["front"];
-  onOpen: (url: string) => void;
+  side: "front" | "back";
+  yearMonth?: string;
+  gallery?: ProgressLightboxItem[];
+  onOpen: (opts: OpenPhotoOpts) => void;
   showTitle?: boolean;
 }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const labeled = yearMonth ? `${title} · ${timelineMonthLabel(yearMonth, lang)}` : title;
+  function open() {
+    if (!photo?.url) return;
+    onOpen({
+      url: photo.url,
+      title: labeled,
+      side,
+      ...(yearMonth ? { yearMonth } : {}),
+      ...(gallery ? { gallery } : {}),
+    });
+  }
   return (
     <article className="progress-photos-card">
       {showTitle ? <h4 className="progress-photos-card-title">{title}</h4> : null}
@@ -321,11 +398,11 @@ function PhotoCard({
           loading="lazy"
           role="button"
           tabIndex={0}
-          onClick={() => onOpen(photo.url)}
+          onClick={open}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
-              onOpen(photo.url);
+              open();
             }
           }}
         />
@@ -349,9 +426,9 @@ function ComparePair({
   side: "front" | "back";
   heightCm: number | null;
   onSide: (side: "front" | "back") => void;
-  onOpenPhoto: (url: string) => void;
+  onOpenPhoto: (opts: OpenPhotoOpts) => void;
 }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const hasFront = Boolean(newer.front?.url || older.front?.url);
   const hasBack = Boolean(newer.back?.url || older.back?.url);
   const sideLabel = side === "front" ? t("progressPhotosFront") : t("progressPhotosBackSide");
@@ -376,8 +453,20 @@ function ComparePair({
       </div>
       <div className="progress-photos-compare-pair-stage">
         <div className="progress-photos-compare-sides">
-          <CompareColumn month={newer} side={side} sideLabel={sideLabel} onOpenPhoto={onOpenPhoto} />
-          <CompareColumn month={older} side={side} sideLabel={sideLabel} onOpenPhoto={onOpenPhoto} />
+          <CompareColumn
+            month={newer}
+            side={side}
+            sideLabel={sideLabel}
+            gallery={lightboxGallery([newer, older], side, sideLabel, lang)}
+            onOpenPhoto={onOpenPhoto}
+          />
+          <CompareColumn
+            month={older}
+            side={side}
+            sideLabel={sideLabel}
+            gallery={lightboxGallery([newer, older], side, sideLabel, lang)}
+            onOpenPhoto={onOpenPhoto}
+          />
         </div>
       </div>
       <CompareMetrics
@@ -424,12 +513,14 @@ function CompareColumn({
   month,
   side,
   sideLabel,
+  gallery,
   onOpenPhoto,
 }: {
   month: ProgressMonth;
   side: "front" | "back";
   sideLabel: string;
-  onOpenPhoto: (url: string) => void;
+  gallery: ProgressLightboxItem[];
+  onOpenPhoto: (opts: OpenPhotoOpts) => void;
 }) {
   const { lang } = useI18n();
   const photo = side === "front" ? month.front : month.back;
@@ -443,7 +534,15 @@ function CompareColumn({
           {month.weightKg != null ? `${month.weightKg} kg` : "—"}
         </span>
       </div>
-      <PhotoCard title={sideLabel} photo={photo} onOpen={onOpenPhoto} showTitle={false} />
+      <PhotoCard
+        title={sideLabel}
+        photo={photo}
+        side={side}
+        yearMonth={month.yearMonth}
+        gallery={gallery}
+        onOpen={onOpenPhoto}
+        showTitle={false}
+      />
     </article>
   );
 }
@@ -490,7 +589,7 @@ function CompareCarousel({
 }: {
   side: "front" | "back";
   months: ProgressMonth[];
-  onOpenPhoto: (url: string) => void;
+  onOpenPhoto: (opts: OpenPhotoOpts) => void;
 }) {
   const { t, lang } = useI18n();
   const [index, setIndex] = useState(0);
@@ -558,7 +657,15 @@ function CompareCarousel({
                 ? `${t("athleteAvancesMonthWeightPill")}: ${month.weightKg} kg`
                 : "—"}
             </p>
-            <PhotoCard title={sideLabel} photo={photo} onOpen={onOpenPhoto} showTitle={false} />
+            <PhotoCard
+              title={sideLabel}
+              photo={photo}
+              side={side}
+              yearMonth={month.yearMonth}
+              gallery={lightboxGallery(months, side, sideLabel, lang)}
+              onOpen={onOpenPhoto}
+              showTitle={false}
+            />
           </article>
         ) : null}
       </div>
@@ -695,4 +802,52 @@ function formatWeightDelta(fromWeight?: number | null, toWeight?: number | null)
   const rounded = Math.round((to - from) * 10) / 10;
   const sign = rounded > 0 ? "+" : "";
   return `${sign}${rounded} kg`;
+}
+
+function lightboxGallery(
+  months: ProgressMonth[],
+  side: "front" | "back",
+  sideLabel: string,
+  lang: "es" | "en",
+): ProgressLightboxItem[] {
+  const items: ProgressLightboxItem[] = [];
+  for (const month of months) {
+    const photo = side === "front" ? month.front : month.back;
+    if (!photo?.url || !month.yearMonth) continue;
+    items.push({
+      url: photo.url,
+      title: `${sideLabel} · ${timelineMonthLabel(month.yearMonth, lang)}`,
+      side,
+      yearMonth: month.yearMonth,
+    });
+  }
+  return items;
+}
+
+function timelineLightboxGallery(
+  months: ProgressMonth[],
+  frontLabel: string,
+  backLabel: string,
+  lang: "es" | "en",
+): ProgressLightboxItem[] {
+  const items: ProgressLightboxItem[] = [];
+  for (const month of months) {
+    if (month.front?.url) {
+      items.push({
+        url: month.front.url,
+        title: `${frontLabel} · ${timelineMonthLabel(month.yearMonth, lang)}`,
+        side: "front",
+        yearMonth: month.yearMonth,
+      });
+    }
+    if (month.back?.url) {
+      items.push({
+        url: month.back.url,
+        title: `${backLabel} · ${timelineMonthLabel(month.yearMonth, lang)}`,
+        side: "back",
+        yearMonth: month.yearMonth,
+      });
+    }
+  }
+  return items;
 }

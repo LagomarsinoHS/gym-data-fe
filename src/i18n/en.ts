@@ -1,4 +1,4 @@
-/** Generated from js/i18n via scripts/sync-i18n-from-legacy.mjs — do not add keys by hand. */
+/** App copy. Do not invent keys; reuse an existing one or add both es + en. */
 export const en = {
   category: "Category",
   equipment: "Equipment",
@@ -82,8 +82,7 @@ export const en = {
   recommendNoteTitle: "Why this plan",
   coachPlan: "Coach plan",
   coachPlanEmpty: "No coach yet",
-  coachPlanEmptyLead:
-    "When a coach assigns you, their plan will show up here. In the meantime, train with your own plan or browse the catalog.",
+  coachPlanEmptyLead: "When a coach assigns you, their plan will show up here. In the meantime, train with your own plan or browse the catalog.",
   coachPlanLead: "Sessions your coach prepared for you.",
   coachPlanProgramEmpty: "Your coach is linked, but has not built your plan yet.",
   coachInviteLabel: "Pending invitation",
@@ -169,8 +168,7 @@ export const en = {
   coachPanelInvitesInvitedAt: "Sent",
   coachPanelInvitesRespondedAt: "Responded",
   coachTemplates: "Templates",
-  coachTemplatesLead:
-    "Create reusable sessions (e.g. Upper Body), then apply them to your athletes from here or Mis alumnos.",
+  coachTemplatesLead: "Create reusable sessions (e.g. Upper Body), then apply them to your athletes from here or Mis alumnos.",
   coachTemplatesLoading: "Loading templates…",
   coachTemplatesLoadFail: "Could not load templates.",
   coachTemplatesListHeading: "Your templates",
@@ -235,8 +233,7 @@ export const en = {
   studentsDownloadFail: "Could not download the plan.",
   studentsLoading: "Loading athletes…",
   studentsEmptyTitle: "No athletes yet",
-  studentsEmptyLead:
-    "Invite by email even if they don't have an account yet. They'll see your invite after signing up (valid 24h).",
+  studentsEmptyLead: "Invite by email even if they don't have an account yet. They'll see your invite after signing up (valid 24h).",
   studentsSearchEmptyTitle: "No results",
   studentsSearchEmptyLead: "No athlete matches that search.",
   studentsNewBadge: "New",
@@ -244,14 +241,12 @@ export const en = {
   studentsSortWithoutPlan: "Without plan first",
   studentsSortWithPlan: "With plan first",
   addStudent: "Invite athlete",
-  addStudentHint:
-    "If they already have an account, just send. If not, use Send + WhatsApp (valid 24h).",
+  addStudentHint: "If they already have an account, just send. If not, use Send + WhatsApp (valid 24h).",
   addStudentSubmit: "Send invitation",
   inviteSendAndCopyWhatsApp: "Send + copy WhatsApp",
   inviteSentAndCopied: "Sent and copied",
   inviteSentButCopyFail: "Invitation sent, but the message could not be copied.",
-  inviteWhatsAppMessage:
-    "Hi! {coachName} invited you to train together on ExerciseDB.\n\nSign up here with this email ({email}):\n{url}\n\nThen accept the invitation in the app. Valid for 24h.",
+  inviteWhatsAppMessage: "Hi! {coachName} invited you to train together on ExerciseDB.\n\nSign up here with this email ({email}):\n{url}\n\nThen accept the invitation in the app. Valid for 24h.",
   inviteEmailPlaceholder: "superAtleta@gmail.com",
   inviteSent: "Invitation sent",
   inviteNotAthlete: "That email belongs to a coach or admin account.",
@@ -336,8 +331,7 @@ export const en = {
   nutritionPlanArchiveConfirm: "Archive this plan? The athlete will keep it under previous plans.",
   nutritionPlanArchiveFail: "Could not archive the plan.",
   nutritionPlanEditorTitle: "New meal plan",
-  nutritionPlanEditorLead:
-    "The editor (title, macros, meals and times) comes next. Prefill from the profile when creating.",
+  nutritionPlanEditorLead: "The editor (title, macros, meals and times) comes next. Prefill from the profile when creating.",
   nutritionPlanEditorBack: "Back to plans",
   nutritionTabList: "Nutrition profile sections",
   nutritionTabSummary: "Summary",
@@ -417,8 +411,7 @@ export const en = {
   progressPhotosInfoCurrentWeight: "Current weight",
   progressPhotosLoading: "Loading photos…",
   progressPhotosEmpty: "No progress photos yet.",
-  progressPhotosEmptyLead:
-    "When your athlete uploads front and back photos, they will show up here.",
+  progressPhotosEmptyLead: "When your athlete uploads front and back photos, they will show up here.",
   progressPhotosLoadFail: "Could not load progress photos.",
   progressPhotosFront: "Front",
   progressPhotosBackSide: "Back",
@@ -489,8 +482,7 @@ export const en = {
   profileNoUser: "Sign in to see your profile.",
   profileEditShort: "Edit",
   profileEditTitle: "Edit profile",
-  profileEditLead:
-    "Update name, optional body stats, and/or password. Save needs at least one change.",
+  profileEditLead: "Update name, optional body stats, and/or password. Save needs at least one change.",
   profileEditFirstName: "First name",
   profileEditLastName: "Last name",
   profileEditHeight: "Height (cm)",
@@ -535,8 +527,7 @@ export const en = {
   profileAvatarUploadError: "Could not upload the photo. Try again.",
   profileAvatarViewTitle: "Profile photo",
   profileDeactivateTitle: "Deactivate account?",
-  profileDeactivateLead:
-    "This deactivates your account. To continue, type your email exactly as registered.",
+  profileDeactivateLead: "This deactivates your account. To continue, type your email exactly as registered.",
   profileDeactivateCancel: "Cancel",
   profileDeactivateConfirm: "Deactivate",
   profileDeactivateMismatch: "Email does not match your account.",
@@ -616,8 +607,7 @@ export const en = {
   adminUsersRevokeTitle: "Revoke plan?",
   adminUsersGrantConfirm: "Grant {plan} for {days} day(s) to this account.",
   adminUsersGrantConfirmOne: "Grant {plan} for 1 day (extends current expiry if already paid).",
-  adminUsersGrantConfirmMany:
-    "Grant {plan} for {days} days (extends current expiry if already paid).",
+  adminUsersGrantConfirmMany: "Grant {plan} for {days} days (extends current expiry if already paid).",
   adminUsersGrantConfirmExtendOne: "Add 1 day of {plan} (extends from current expiry).",
   adminUsersGrantConfirmExtendMany: "Add {days} days of {plan} (extends from current expiry).",
   adminUsersRevokeConfirm: "Revoke the paid plan and set this account to free.",
@@ -635,11 +625,7 @@ export const en = {
   adminUsersAdmins: "Admins",
   adminUsersDelta30: "+{n} in the last 30 days",
 
-  // React-only extras (not in js/i18n)
-  comingSoonLead: "This view is being migrated to the new frontend.",
-  catalogPlaceholderTitle: "Catalog",
-  catalogPlaceholderLead:
-    "The catalog (filters, grid and modal) lands in the next pass. Shell, login and session already run on React.",
+  // Extra keys used only by the React app
   openMenu: "Open menu",
   closeMenu: "Close menu",
   exercisesCount: "{n} exercises",

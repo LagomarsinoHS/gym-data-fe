@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 
 import { deleteAccount, leaveCoach, updateProfile, uploadProfilePhoto } from "@/api/users";
+import { ProgressPhotoLightbox } from "@/components/progress/progress-photo-lightbox";
 import { useAuth } from "@/context/auth-context";
 import { useI18n } from "@/context/i18n-context";
 import { isAthlete, isCoach, isPaidPlan } from "@/lib/capabilities";
@@ -592,20 +593,18 @@ export function ProfilePage() {
         </div>
       ) : null}
 
-      {viewPhoto && photoUrl ? (
-        <div
-          className="recommend-overlay open"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setViewPhoto(false)}
-        >
-          <img
-            src={photoUrl}
-            alt={fullName(user)}
-            style={{ maxWidth: "min(520px, 90vw)", borderRadius: 16 }}
-          />
-        </div>
-      ) : null}
+      <ProgressPhotoLightbox
+        open={viewPhoto && Boolean(photoUrl)}
+        items={
+          photoUrl
+            ? [{ url: photoUrl, title: t("profileAvatarViewTitle"), side: "front" }]
+            : []
+        }
+        index={0}
+        firstName={user.profile.firstName}
+        lastName={user.profile.lastName}
+        onClose={() => setViewPhoto(false)}
+      />
     </div>
   );
 }
