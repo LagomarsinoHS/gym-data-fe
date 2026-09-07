@@ -3,25 +3,6 @@
   --sidebar-w: 260px;
 }
 
-.dev-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 30px;
-  padding: 0 10px;
-  border-radius: var(--radius-md);
-  border: 1px solid #b91c1c;
-  background: #dc2626;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  line-height: 1;
-  pointer-events: none;
-  flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.35);
-}
-
 /* ── Base overrides ─────────────────────────────── */
 html, body { height: 100%; }
 
@@ -1212,6 +1193,7 @@ html[data-theme="dark"] .chip.active {
   align-items: center;
   justify-content: center;
   margin-top: 16px;
+  text-decoration: none;
   padding: 9px 16px;
   border-radius: var(--radius-md);
   border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
@@ -1308,79 +1290,154 @@ html[data-theme="dark"] .chip.active {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Roast variant — loud, hostile, intentionally ugly */
+/* Roast variant — hazard alert, refined */
 .easter-egg--roast {
-  max-width: 460px;
-  padding: 28px 24px 30px;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  max-width: 480px;
+  padding: 38px 32px 30px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 72, 48, 0.55);
+  background:
+    radial-gradient(120% 70% at 8% -8%, rgba(255, 64, 40, 0.32), transparent 52%),
+    radial-gradient(80% 60% at 108% 108%, rgba(255, 196, 40, 0.14), transparent 46%),
+    linear-gradient(165deg, #220a08 0%, #120605 58%, #1a0806 100%);
+  box-shadow:
+    0 0 0 1px rgba(255, 204, 0, 0.28),
+    0 22px 50px rgba(50, 0, 0, 0.28),
+    0 0 36px rgba(255, 45, 45, 0.22);
+  animation: easter-in 0.45s ease both, roast-pulse 2.6s ease-in-out infinite;
+}
+
+.easter-egg--roast > * {
+  position: relative;
+  z-index: 1;
+}
+
+.easter-egg--roast::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 7px;
+  background: repeating-linear-gradient(
+    -45deg,
+    #ffcc00 0 9px,
+    #1a0505 9px 18px
+  );
+}
+
+.easter-egg--roast::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
   background:
     repeating-linear-gradient(
       -45deg,
-      #1a0505,
-      #1a0505 12px,
-      #2a0a00 12px,
-      #2a0a00 24px
+      transparent,
+      transparent 11px,
+      rgba(255, 255, 255, 0.018) 11px,
+      rgba(255, 255, 255, 0.018) 12px
     );
-  border: 3px solid #ff2d2d;
-  box-shadow:
-    0 0 0 4px #ffcc00,
-    0 0 28px rgba(255, 45, 45, 0.55),
-    inset 0 0 40px rgba(255, 80, 0, 0.15);
-  animation: easter-in 0.35s ease both, roast-pulse 1.4s ease-in-out infinite;
+  mask-image: linear-gradient(180deg, transparent 0, #000 18px, #000 calc(100% - 12px), transparent);
 }
 
 .easter-egg--roast .easter-egg-kicker {
   color: #1a0505;
-  background: #ffcc00;
-  border-color: #ff2d2d;
-  border-radius: 4px;
-  letter-spacing: 0.08em;
-  animation: roast-blink 0.9s steps(2, end) infinite;
+  background: linear-gradient(180deg, #ffe566 0%, #ffcc00 100%);
+  border: 1px solid rgba(255, 45, 45, 0.55);
+  border-radius: 999px;
+  letter-spacing: 0.1em;
+  box-shadow: 0 0 0 1px rgba(255, 204, 0, 0.25), 0 6px 16px rgba(255, 180, 0, 0.18);
+  animation: roast-blink 1.8s ease-in-out infinite;
 }
 
 .easter-egg--roast .easter-egg-title {
-  color: #ff2d2d;
+  margin-top: 4px;
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
-  text-shadow: 2px 2px 0 #ffcc00, -1px 0 8px rgba(255, 45, 45, 0.6);
-  font-size: 26px;
+  background: linear-gradient(185deg, #ff8a62 0%, #ff2d2d 48%, #ffb020 120%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 14px rgba(255, 45, 45, 0.4));
 }
 
 .easter-egg--roast .easter-egg-lead {
-  color: #ffc9a8;
-  font-weight: 600;
+  color: #ffd4be;
+  font-weight: 500;
+  line-height: 1.65;
 }
 
 .easter-egg--roast .easter-egg-steps {
-  color: #f0d0c0;
+  color: #f3d8cc;
+  padding-left: 20px;
+}
+
+.easter-egg--roast .easter-egg-steps li + li {
+  margin-top: 6px;
 }
 
 .easter-egg--roast .easter-egg-steps li::marker {
   color: #ffcc00;
 }
 
+.easter-egg--roast .easter-egg-meta {
+  gap: 8px;
+}
+
 .easter-egg--roast .easter-egg-meta span {
   color: #1a0505;
-  background: #ffcc00;
-  border-color: #ff2d2d;
+  background: linear-gradient(180deg, #ffe566 0%, #ffcc00 100%);
+  border: 1px solid rgba(255, 45, 45, 0.45);
+  border-radius: 999px;
   font-weight: 700;
-  border-radius: 4px;
+  padding: 6px 10px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.easter-egg--roast .easter-egg-meta span:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(255, 180, 0, 0.22);
 }
 
 .easter-egg--roast .easter-egg-foot {
   color: #ffcc00;
   font-style: normal;
   font-weight: 700;
-  border-top: 2px dashed #ff2d2d;
-  padding-top: 14px;
+  border-top: 1px dashed rgba(255, 45, 45, 0.65);
+  padding-top: 16px;
 }
 
 @keyframes roast-pulse {
-  0%, 100% { box-shadow: 0 0 0 4px #ffcc00, 0 0 22px rgba(255, 45, 45, 0.45), inset 0 0 40px rgba(255, 80, 0, 0.12); }
-  50%      { box-shadow: 0 0 0 4px #ffcc00, 0 0 36px rgba(255, 45, 45, 0.75), inset 0 0 50px rgba(255, 80, 0, 0.22); }
+  0%, 100% {
+    box-shadow:
+      0 0 0 1px rgba(255, 204, 0, 0.24),
+      0 22px 50px rgba(50, 0, 0, 0.26),
+      0 0 28px rgba(255, 45, 45, 0.18);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(255, 204, 0, 0.42),
+      0 22px 56px rgba(50, 0, 0, 0.32),
+      0 0 44px rgba(255, 45, 45, 0.36);
+  }
 }
 
 @keyframes roast-blink {
-  50% { opacity: 0.55; }
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .easter-egg--roast,
+  .easter-egg--roast .easter-egg-kicker {
+    animation: easter-in 0.01s ease both;
+  }
 }
 
 /* ── Modal ──────────────────────────────────────── */
@@ -2383,6 +2440,7 @@ html[data-theme="dark"] .chip.active {
   gap: 10px;
 }
 
+/* ── Sidebar nav ─────────────────────────────────── */
 .sidebar-nav {
   display: flex;
   flex-direction: column;
@@ -2753,9 +2811,11 @@ html[data-theme="dark"] .chip.active {
 #training-view[hidden],
 #recommend-view[hidden],
 #coach-plan-view[hidden],
+#athlete-nutrition-view[hidden],
 #coach-panel-view[hidden],
 #coach-templates-view[hidden],
 #students-view[hidden],
+#nutrition-view[hidden],
 #avances-view[hidden],
 #athlete-avances-view[hidden],
 #session-editor-view[hidden],
@@ -2769,13 +2829,18 @@ html[data-theme="dark"] .chip.active {
 #catalog-view,
 .training-view,
 .recommend-view,
-.placeholder-view,
 .students-view,
+.nutrition-view,
 .avances-view,
 .session-editor-view {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+}
+
+/* Reserve scrollbar space so opening tall accordions doesn't shift the layout. */
+#admin-users-view {
+  scrollbar-gutter: stable;
 }
 
 .athlete-avances-view,
@@ -2785,8 +2850,27 @@ html[data-theme="dark"] .chip.active {
   overflow: hidden;
 }
 
+.athlete-nutrition-view {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 28px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* ── Training / Recommend views ──────────────────── */
 .training-view {
   padding: 20px 24px 28px;
+}
+
+.training-view .student-plan-head {
+  margin-bottom: 16px;
+}
+
+.training-view .coach-plan-session-body .student-session-actions {
+  margin: 0 0 10px;
 }
 
 .recommend-view {
@@ -2797,13 +2881,7 @@ html[data-theme="dark"] .chip.active {
   gap: 24px;
 }
 
-.placeholder-view {
-  padding: 28px 24px 40px;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-}
-
+/* ── Students / Coach templates ──────────────────── */
 .students-view {
   padding: 20px 24px 28px;
   display: flex;
@@ -3283,6 +3361,7 @@ html[data-theme='dark'] .coach-templates-toast-icon {
   display: none !important;
 }
 
+/* ── Student rows / plan accordion ───────────────── */
 .student-row {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -3392,6 +3471,10 @@ html[data-theme='dark'] .coach-templates-toast-icon {
   min-width: 0;
 }
 
+.student-row-name-row .student-row-goal-pill {
+  flex-shrink: 0;
+}
+
 .student-row-name {
   margin: 0;
   font-size: 15px;
@@ -3442,7 +3525,7 @@ html[data-theme='dark'] .coach-templates-toast-icon {
 }
 
 .student-row.is-open .student-row-body {
-  max-height: 720px;
+  max-height: 960px;
   opacity: 1;
   padding: 12px 16px 14px;
   border-top-color: color-mix(in srgb, var(--border) 70%, transparent);
@@ -3450,17 +3533,13 @@ html[data-theme='dark'] .coach-templates-toast-icon {
   pointer-events: auto;
 }
 
-.student-row.is-open .student-row-detail,
-.student-row.is-open .student-row-detail-line {
+.student-row.is-open .student-row-panel,
+.student-row.is-open .student-row-detail {
   animation: student-detail-in 0.28s ease both;
 }
 
 .student-row.is-open .student-row-body > :nth-child(2) {
-  animation-delay: 0.04s;
-}
-
-.student-row.is-open .student-row-body > :nth-child(3) {
-  animation-delay: 0.08s;
+  animation-delay: 0.05s;
 }
 
 @keyframes student-detail-in {
@@ -3481,17 +3560,40 @@ html[data-theme='dark'] .coach-templates-toast-icon {
     transition: none;
   }
 
-  .student-row.is-open .student-row-detail,
-  .student-row.is-open .student-row-detail-line {
+  .student-row.is-open .student-row-panel,
+  .student-row.is-open .student-row-detail {
     animation: none;
   }
 }
 
+.student-row-panel {
+  display: grid;
+  gap: 12px;
+  align-items: start;
+}
+
+.student-row-info {
+  display: grid;
+  grid-template-rows: repeat(3, auto);
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 10px 20px;
+  min-width: 0;
+}
+
+.student-row-aside-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .student-row-detail {
   display: grid;
-  grid-template-columns: minmax(7rem, 9rem) 1fr;
-  gap: 8px 12px;
-  align-items: center;
+  gap: 3px;
+  align-content: start;
+  min-width: 0;
 }
 
 .student-row-detail-line {
@@ -3530,20 +3632,23 @@ html[data-theme='dark'] .coach-templates-toast-icon {
   min-width: 0;
 }
 
-.student-row-goal {
-  margin-left: auto;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+@media (max-width: 900px) {
+  .student-row-info {
+    grid-template-rows: none;
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-columns: unset;
+  }
 }
 
-.student-row-goal-label {
-  font-size: 11px;
-  font-weight: 750;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
+@media (max-width: 720px) {
+  .student-row-info {
+    grid-template-columns: 1fr;
+  }
+
+  .student-row-aside-actions {
+    justify-content: flex-start;
+  }
 }
 
 .student-row-goal-pill {
@@ -4469,6 +4574,7 @@ html[data-theme='dark'] .student-row-goal-pill {
   overflow: hidden;
 }
 
+/* ── Session editor ──────────────────────────────── */
 .session-editor {
   display: flex;
   flex-direction: column;
@@ -4818,6 +4924,7 @@ html[data-theme='dark'] .student-row-goal-pill {
   }
 }
 
+/* ── Coach panel ─────────────────────────────────── */
 .coach-panel {
   width: min(640px, 100%);
   margin: 0 auto;
@@ -4825,6 +4932,7 @@ html[data-theme='dark'] .student-row-goal-pill {
   gap: 22px;
 }
 
+/* ── Admin overview / users ──────────────────────── */
 .admin-overview {
   width: min(720px, 100%);
   margin: 0 auto;
@@ -4890,6 +4998,7 @@ html[data-theme='dark'] .student-row-goal-pill {
 
 .admin-overview-panel {
   display: grid;
+  align-content: start;
   gap: 14px;
   padding: 18px 16px 16px;
   border: 1px solid var(--border);
@@ -5034,7 +5143,7 @@ html[data-theme='dark'] .student-row-goal-pill {
 }
 
 .admin-users-shell {
-  width: min(720px, 100%);
+  width: min(1100px, 100%);
   margin: 0 auto;
 }
 
@@ -5205,29 +5314,55 @@ html[data-theme='dark'] .student-row-goal-pill {
 }
 
 .admin-user-row.is-open .student-row-body {
-  max-height: 2200px;
+  max-height: none;
+}
+
+/*
+ * Admin accordion: skip the shared student-row max-height/transform animation.
+ * Oversized max-height (2200px) makes open/close feel like the whole list jumps.
+ */
+.admin-user-row > .student-row-body {
+  transition: none;
+  transform: none;
+}
+
+.admin-user-row.is-open > .student-row-body {
+  transform: none;
+}
+
+.admin-user-row.is-open .student-row-body > * {
+  animation: none;
 }
 
 .admin-user-panel {
   display: grid;
   gap: 12px;
-  padding: 4px 4px 8px;
+  padding: 4px 4px 10px;
 }
 
 .admin-user-summary-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
+}
+
+.admin-user-bottom-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(240px, 1fr);
+  gap: 12px;
+  align-items: stretch;
 }
 
 .admin-user-info-card {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 12px 14px;
+  min-height: 100%;
+  padding: 14px 14px;
   border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
   border-radius: var(--radius-md, 12px);
   background: color-mix(in srgb, var(--bg-elevated, var(--bg-surface)) 72%, transparent);
+  box-sizing: border-box;
 }
 
 .admin-user-info-icon {
@@ -5247,40 +5382,108 @@ html[data-theme='dark'] .student-row-goal-pill {
 .admin-user-info-content {
   min-width: 0;
   display: grid;
-  gap: 4px;
+  gap: 6px;
+  flex: 1;
 }
 
 .admin-user-info-title {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 750;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   color: var(--text-primary);
+}
+
+.admin-user-info-facts {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-user-info-fact {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-user-info-fact-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.admin-user-info-fact-value {
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text-primary);
+  word-break: break-word;
 }
 
 .admin-user-info-lines {
   display: grid;
-  gap: 2px;
+  gap: 3px;
 }
 
 .admin-user-info-lines p {
   margin: 0;
   font-size: 0.82rem;
   font-weight: 600;
-  line-height: 1.35;
+  line-height: 1.4;
   color: var(--text-secondary);
   word-break: break-word;
+}
+
+.admin-user-info-card--role-plan .admin-user-info-content {
+  gap: 8px;
+}
+
+.admin-user-role-plan-role {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+.admin-user-role-plan-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+}
+
+.admin-user-role-plan-badge.is-paid {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-surface));
+  color: var(--accent);
+}
+
+.admin-user-role-plan-badge.is-free {
+  border-color: color-mix(in srgb, var(--border) 90%, transparent);
+  color: var(--text-tertiary);
 }
 
 .admin-sub-progress {
   display: grid;
   gap: 6px;
-  margin-top: 10px;
+  margin-top: 8px;
   width: 100%;
 }
 
 .admin-sub-progress-track {
-  height: 12px;
+  height: 10px;
   border-radius: 999px;
   overflow: hidden;
   background: color-mix(in srgb, var(--border) 70%, var(--bg-surface));
@@ -5303,24 +5506,29 @@ html[data-theme='dark'] .student-row-goal-pill {
   color: var(--text-tertiary);
 }
 
-.admin-user-profile-card {
+.admin-user-profile-card,
+.admin-user-actions {
   padding: 14px 16px;
   border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
   border-radius: var(--radius-md, 12px);
   background: color-mix(in srgb, var(--bg-elevated, var(--bg-surface)) 72%, transparent);
+  box-sizing: border-box;
 }
 
-.admin-user-profile-title {
+.admin-user-profile-title,
+.admin-user-actions-title {
   margin: 0 0 12px;
   font-size: 0.95rem;
   font-weight: 750;
+  letter-spacing: -0.01em;
+  text-transform: none;
   color: var(--text-primary);
 }
 
 .admin-user-profile-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 16px;
+  gap: 14px 18px;
 }
 
 .admin-user-profile-fact {
@@ -5366,6 +5574,16 @@ html[data-theme='dark'] .student-row-goal-pill {
   word-break: break-word;
 }
 
+@media (max-width: 980px) {
+  .admin-user-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-user-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 640px) {
   .admin-user-summary-grid,
   .admin-user-profile-grid {
@@ -5408,26 +5626,30 @@ html[data-theme='dark'] .student-row-goal-pill {
 .admin-user-header .admin-user-delete-btn {
   flex-shrink: 0;
   margin-right: 12px;
-  min-height: 32px;
-  padding: 5px 10px;
-  font-size: 0.78rem;
+  min-height: 34px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.admin-user-delete-ico {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.admin-user-delete-ico svg {
+  width: 100%;
+  height: 100%;
 }
 
 .admin-user-actions {
   display: grid;
-  gap: 10px;
-  margin-top: 4px;
-  padding-top: 10px;
-  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-}
-
-.admin-user-actions-title {
-  margin: 0;
-  font-size: 0.78rem;
-  font-weight: 750;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
+  gap: 12px;
+  align-content: start;
 }
 
 .admin-user-actions-note {
@@ -5439,23 +5661,47 @@ html[data-theme='dark'] .student-row-goal-pill {
 }
 
 .admin-user-grant {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-user-grant .admin-users-select,
+.admin-user-grant .admin-users-input {
+  width: 100%;
+}
+
+.admin-user-grant-actions {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
   gap: 8px;
 }
 
+.admin-user-grant-btn,
 .admin-user-revoke-btn {
-  min-height: 36px;
-  padding: 6px 12px;
+  flex: 1 1 110px;
+  min-height: 38px;
+  padding: 7px 12px;
   border-radius: var(--radius-sm);
-  border: 1px solid color-mix(in srgb, #c0392b 40%, var(--border));
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-user-grant-btn {
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
+.admin-user-grant-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.admin-user-revoke-btn {
+  border: 1px solid color-mix(in srgb, #c0392b 45%, var(--border));
   background: transparent;
   color: #c0392b;
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: 650;
-  cursor: pointer;
 }
 
 .admin-user-revoke-btn:hover:not(:disabled) {
@@ -5481,7 +5727,7 @@ html[data-theme='dark'] .student-row-goal-pill {
 
 .admin-user-revoke-btn:disabled,
 .admin-user-delete-btn:disabled,
-.admin-user-grant .recommend-again-btn:disabled {
+.admin-user-grant-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
@@ -7135,10 +7381,16 @@ html[data-theme="dark"] .coach-panel-invite-status-pill.is-cancelled {
 }
 
 .auth-switch {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
   font-size: 12px;
   color: var(--text-tertiary);
   text-decoration: underline;
   text-underline-offset: 2px;
+  cursor: pointer;
 }
 
 .auth-switch:hover {
@@ -8265,7 +8517,8 @@ html[data-theme='dark'] .progress-photos-timeline-weight-pill {
 .progress-photo-lightbox-panel {
   position: relative;
   z-index: 1;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   width: min(920px, 100%);
   max-height: min(92dvh, 900px);
@@ -8376,10 +8629,12 @@ html[data-theme='dark'] .progress-photos-timeline-weight-pill {
 .progress-photo-lightbox-img {
   display: block;
   width: 100%;
+  height: min(72dvh, 780px);
   max-height: calc(min(92dvh, 900px) - 72px);
   object-fit: contain;
   border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--bg-base) 80%, var(--bg-surface));
+  flex: 1 1 auto;
 }
 
 .avances-view {
@@ -8513,750 +8768,10 @@ html[data-theme='dark'] .progress-photos-timeline-weight-pill {
   line-height: 1;
 }
 
-/* ── Athlete Avances ─────────────────────────────── */
+/* ── Coach Nutrition + Athlete Nutrición → public/css/nutrition.css ── */
 
-.athlete-avances-view {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
+/* ── Athlete Avances → public/css/progress.css ── */
 
-.athlete-avances {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-}
-
-.athlete-avances-header {
-  flex-shrink: 0;
-  display: grid;
-  gap: 8px;
-  text-align: center;
-  justify-items: center;
-  width: min(720px, 100%);
-  margin: 0 auto;
-  padding: 20px 20px 16px;
-  box-sizing: border-box;
-}
-
-.athlete-avances-title {
-  margin: 0;
-  font-size: clamp(1.75rem, 4vw, 2.15rem);
-  font-weight: 750;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-  line-height: 1.15;
-}
-
-.athlete-avances-month-hint {
-  margin: 0;
-  max-width: 36rem;
-  padding: 8px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--accent);
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 8%, var(--bg-surface));
-  animation: athlete-avances-hint-pulse 2.2s ease-in-out infinite;
-}
-
-@keyframes athlete-avances-hint-pulse {
-  0%,
-  100% {
-    opacity: 0.55;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .athlete-avances-month-hint {
-    animation: none;
-    opacity: 1;
-  }
-}
-
-.athlete-avances-current-weight {
-  margin: 4px 0 0;
-  display: inline-flex;
-  gap: 8px;
-  align-items: baseline;
-  font-size: 13px;
-  color: var(--text-tertiary);
-}
-
-.athlete-avances-current-weight strong {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.athlete-avances-body {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--border) 65%, transparent) transparent;
-}
-
-.athlete-avances-body::-webkit-scrollbar {
-  width: 5px;
-}
-
-.athlete-avances-body::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.athlete-avances-body::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--border) 70%, transparent);
-  border-radius: 999px;
-}
-
-.athlete-avances-body::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--border-hover, var(--border)) 85%, transparent);
-}
-
-.athlete-avances-body-inner {
-  width: min(720px, 100%);
-  margin: 0 auto;
-  padding: 4px 20px 32px;
-  box-sizing: border-box;
-  display: grid;
-  gap: 28px;
-}
-
-.athlete-avances-section-title {
-  margin: 0 0 12px;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.athlete-avances-history {
-  display: grid;
-  gap: 16px;
-  margin-top: 12px;
-  padding-top: 28px;
-  border-top: 1px solid var(--border);
-}
-
-.athlete-avances-history-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px 16px;
-}
-
-.athlete-avances-history-title {
-  margin: 0;
-  font-size: clamp(1.55rem, 3.5vw, 1.9rem);
-  font-weight: 750;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
-  color: var(--text-primary);
-}
-
-.athlete-avances-history-header .progress-photos-compare-bar {
-  margin-top: 0;
-  justify-content: flex-end;
-}
-
-.athlete-avances-upload {
-  display: grid;
-  gap: 4px;
-}
-
-.athlete-avances-form {
-  display: grid;
-  gap: 16px;
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
-  box-sizing: border-box;
-}
-
-.athlete-avances-pair {
-  display: grid;
-  gap: 8px;
-  justify-items: center;
-}
-
-.athlete-avances-pair-title {
-  margin: 0;
-  justify-self: center;
-  font-size: 13px;
-  font-weight: 750;
-  letter-spacing: -0.01em;
-  color: var(--text-primary);
-}
-
-.athlete-avances-pair-frame {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: stretch;
-  width: min(100%, 420px);
-  margin-inline: auto;
-  overflow: hidden;
-  border: 1.5px dashed var(--border);
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--bg) 70%, var(--bg-surface));
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.athlete-avances-pair-frame:hover {
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
-}
-
-.athlete-avances-pair-frame:has(.athlete-avances-photo-slot.has-preview) {
-  border-style: solid;
-  background: var(--bg-surface);
-}
-
-.athlete-avances-pair-divider {
-  width: 1px;
-  align-self: stretch;
-  background: color-mix(in srgb, var(--border) 85%, transparent);
-}
-
-.athlete-avances-photo-field--pair {
-  min-width: 0;
-}
-
-.athlete-avances-photo-field--pair .athlete-avances-photo-slot {
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  height: auto;
-  aspect-ratio: 3 / 4;
-  max-height: none;
-}
-
-.athlete-avances-photo-field--pair:hover .athlete-avances-photo-slot {
-  border-color: transparent;
-  background: color-mix(in srgb, var(--accent) 5%, transparent);
-}
-
-.athlete-avances-photo-field--pair .athlete-avances-photo-slot:focus-within {
-  outline: none;
-  background: color-mix(in srgb, var(--accent) 7%, transparent);
-}
-
-.athlete-avances-photo-field--pair .athlete-avances-photo-slot.has-preview {
-  border-style: none;
-}
-
-.athlete-avances-photo-badge {
-  position: absolute;
-  left: 10px;
-  bottom: 10px;
-  z-index: 3;
-  padding: 4px 8px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-  background: color-mix(in srgb, var(--bg-surface) 88%, transparent);
-  color: var(--text-primary);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  pointer-events: none;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-}
-
-.athlete-avances-form-footer {
-  display: grid;
-  gap: 14px;
-  width: min(100%, 420px);
-  margin-inline: auto;
-}
-
-.athlete-avances-weight-block {
-  display: grid;
-  gap: 8px;
-  width: min(100%, 220px);
-}
-
-.athlete-avances-field-weight {
-  width: 100%;
-  max-width: none;
-  grid-template-rows: auto 40px;
-}
-
-.athlete-avances-month-caption {
-  position: relative;
-  width: 100%;
-  height: auto;
-}
-
-.athlete-avances-month-caption-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--text-tertiary);
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
-  line-height: 1.3;
-  text-align: left;
-  cursor: pointer;
-}
-
-.athlete-avances-month-caption-btn:hover .athlete-avances-month-caption-action,
-.athlete-avances-month-caption-btn[aria-expanded='true'] .athlete-avances-month-caption-action {
-  text-decoration: underline;
-}
-
-.athlete-avances-month-caption-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.athlete-avances-month-caption-btn:disabled .athlete-avances-month-caption-action {
-  text-decoration: none;
-}
-
-.athlete-avances-month-caption-value {
-  color: var(--text-secondary);
-}
-
-.athlete-avances-month-caption-sep {
-  color: var(--text-tertiary);
-}
-
-.athlete-avances-month-caption-action {
-  color: var(--accent);
-  font-weight: 650;
-}
-
-.athlete-avances-month-caption .month-picker-panel {
-  left: 0;
-  transform: none;
-}
-
-.month-picker {
-  position: relative;
-  width: 100%;
-}
-
-.month-picker-trigger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  width: 100%;
-  box-sizing: border-box;
-  min-height: 0;
-  height: 40px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm, 8px);
-  background: var(--bg);
-  color: var(--text-primary);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 650;
-  line-height: 1.2;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.month-picker-trigger:hover {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
-}
-
-.month-picker-trigger[aria-expanded='true'] {
-  border-color: var(--accent);
-}
-
-.month-picker-trigger:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.month-picker-trigger-label {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: left;
-}
-
-.month-picker-trigger-ico {
-  display: inline-flex;
-  color: var(--text-secondary);
-  flex-shrink: 0;
-  transition: transform 0.18s ease;
-}
-
-.month-picker-trigger[aria-expanded='true'] .month-picker-trigger-ico {
-  transform: rotate(180deg);
-}
-
-.month-picker-panel {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 50%;
-  z-index: 20;
-  width: min(248px, 78vw);
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
-  box-shadow: 0 16px 40px color-mix(in srgb, var(--text-primary) 16%, transparent);
-  transform: translateX(-50%);
-}
-
-.month-picker-panel[hidden] {
-  display: none !important;
-}
-
-.month-picker-year {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.month-picker-year-label {
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-}
-
-.month-picker-year-btn {
-  display: inline-grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  margin: 0;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--bg-elevated, var(--bg-input)) 88%, transparent);
-  color: var(--text-primary);
-  font: inherit;
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, color 0.15s;
-}
-
-.month-picker-year-btn:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
-  color: var(--accent);
-}
-
-.month-picker-year-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.month-picker-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.month-picker-month {
-  margin: 0;
-  min-height: 36px;
-  padding: 6px 4px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--bg-input) 80%, transparent);
-  color: var(--text-primary);
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 650;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
-
-.month-picker-month:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
-  color: var(--accent);
-}
-
-.month-picker-month.is-selected {
-  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
-  background: color-mix(in srgb, var(--accent) 18%, var(--bg-surface));
-  color: var(--accent);
-}
-
-.month-picker-month:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.athlete-avances-field {
-  display: grid;
-  gap: 6px;
-}
-
-.athlete-avances-field-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-tertiary);
-}
-
-.athlete-avances-field input[type='number'] {
-  width: 100%;
-  box-sizing: border-box;
-  height: 40px;
-  min-height: 40px;
-  max-height: 40px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm, 8px);
-  background: var(--bg);
-  color: var(--text-primary);
-  font: inherit;
-  font-size: 14px;
-  line-height: 1.2;
-}
-
-.athlete-avances-field input[type='number']:focus {
-  outline: none;
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
-}
-
-.athlete-avances-field input:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-.athlete-avances-photo-slot {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 3 / 4;
-  overflow: hidden;
-  border: 1.5px dashed var(--border);
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--bg) 70%, var(--bg-surface));
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.athlete-avances-photo-field:hover .athlete-avances-photo-slot {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
-  background: color-mix(in srgb, var(--accent) 5%, var(--bg-surface));
-}
-
-.athlete-avances-photo-slot:focus-within {
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
-  outline: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
-  outline-offset: 2px;
-}
-
-.athlete-avances-photo-slot.has-preview {
-  border-style: solid;
-}
-
-.athlete-avances-photo-slot.is-disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.athlete-avances-photo-slot input[type='file'] {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  opacity: 0;
-  cursor: pointer;
-  border: 0;
-  z-index: 2;
-}
-
-.athlete-avances-photo-plus {
-  font-size: 2.25rem;
-  font-weight: 300;
-  line-height: 1;
-  color: var(--text-tertiary);
-  pointer-events: none;
-  user-select: none;
-}
-
-.athlete-avances-photo-slot.has-preview .athlete-avances-photo-plus {
-  display: none;
-}
-
-.athlete-avances-photo-preview {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.athlete-avances-photo-preview[hidden] {
-  display: none !important;
-}
-
-.athlete-avances-form-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 16px;
-}
-
-.athlete-avances-form-actions .recommend-cta {
-  min-width: 120px;
-  flex-shrink: 0;
-}
-
-.athlete-avances-form-actions .recommend-cta:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-.athlete-avances-form-status {
-  flex: 1 1 100%;
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.athlete-avances-form-status.is-ok {
-  color: var(--text-primary);
-}
-
-.athlete-avances-form-status.is-error {
-  color: #c0392b;
-}
-
-.athlete-avances-toast {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin: 0 0 12px;
-  padding: 14px 16px;
-  border: 1px solid color-mix(in srgb, #1f9d6a 28%, var(--border));
-  border-radius: var(--radius-md);
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, #1f9d6a 14%, var(--bg-surface)),
-      color-mix(in srgb, var(--accent) 8%, var(--bg-surface))
-    );
-  box-shadow: 0 10px 28px color-mix(in srgb, #1f9d6a 12%, transparent);
-  opacity: 0;
-  transform: translateY(-10px) scale(0.98);
-  pointer-events: none;
-  transition:
-    opacity 0.32s ease,
-    transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.athlete-avances-toast[hidden] {
-  display: none !important;
-}
-
-.athlete-avances-toast.is-visible {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-  pointer-events: auto;
-}
-
-.athlete-avances-toast.is-leaving {
-  opacity: 0;
-  transform: translateY(-6px) scale(0.99);
-}
-
-.athlete-avances-toast-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  color: #0f7a52;
-  background: color-mix(in srgb, #1f9d6a 16%, var(--bg-surface));
-  animation: athlete-avances-toast-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-html[data-theme='dark'] .athlete-avances-toast-icon {
-  color: #5ddea8;
-  background: color-mix(in srgb, #1f9d6a 22%, transparent);
-}
-
-.athlete-avances-toast-copy {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-  padding-top: 2px;
-}
-
-.athlete-avances-toast-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-}
-
-.athlete-avances-toast-detail {
-  margin: 0;
-  font-size: 12.5px;
-  line-height: 1.45;
-  color: var(--text-secondary);
-}
-
-@keyframes athlete-avances-toast-pop {
-  from {
-    transform: scale(0.7);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .athlete-avances-toast,
-  .athlete-avances-toast-icon {
-    animation: none;
-    transition: none;
-  }
-
-  .athlete-avances-toast.is-visible {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-.athlete-avances-results {
-  flex: none;
-  min-height: 0;
-  overflow: visible;
-  margin-top: 8px;
-}
 
 /* ── Profile ─────────────────────────────────────── */
 
@@ -9434,6 +8949,28 @@ html[data-theme='dark'] .athlete-avances-toast-icon {
 .profile-split-coach.is-empty .profile-coach-name {
   color: color-mix(in srgb, #fff 78%, transparent);
   font-weight: 550;
+}
+
+.profile-split-coach .profile-coach-leave {
+  margin-top: 2px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, #fff 45%, transparent);
+  background: color-mix(in srgb, #fff 10%, transparent);
+  color: #fff;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.profile-split-coach .profile-coach-leave:hover {
+  background: color-mix(in srgb, #fff 18%, transparent);
+}
+
+.profile-split-coach .profile-coach-leave:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }
 
 .profile-split-main {

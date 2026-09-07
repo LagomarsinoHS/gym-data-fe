@@ -1,8 +1,10 @@
 # ExerciseDB — Frontend
 
-Frontend estático para explorar una librería de **~1.324 ejercicios** de fitness (catálogo desde la API/BD): filtros, búsqueda, infinite scroll, detalle con GIF e instrucciones bilingües (ES/EN).
+> **App React/Vite — 2026-09-07.** El port desde vanilla está completo. El CSS original vive en `public/css/`. Detalle: [`docs/FRONTEND-CAPACIDADES.md`](docs/FRONTEND-CAPACIDADES.md).
 
-Con sesión: **Mi plan** → vista **Mi entrenamiento** con el `trainingProgram` del usuario.
+Frontend para explorar una librería de **~1.324 ejercicios** de fitness (catálogo desde la API/BD): filtros, búsqueda, infinite scroll, detalle con GIF e instrucciones bilingües (ES/EN).
+
+Con sesión: **Mi plan** (entrenamiento, plan del coach, nutrición, avances), flujos de coach y admin.
 
 Consume la API desplegada en Render (o tu backend local).
 
@@ -17,22 +19,24 @@ Consume la API desplegada en Render (o tu backend local).
 - Búsqueda por texto y por **ID** (`GET /exercises/:id`)
 - Modal de detalle: meta, músculos, instrucciones ES/EN, compartir enlace
 - Botón **WOD** → ejercicio random (`GET /exercises/random`)
-- Auth (login / registro) + roles atleta / coach
-- Menú de cuenta en sidebar: iniciales, nombre corto, rol; dropdown (Mi perfil / Configuración deshabilitados; Cerrar sesión)
-- **Mi entrenamiento** (agregar / quitar / pauta), **Plan del coach** (sesiones) y **Avances** (upload / backfill de mes + timeline + comparar)
-- Coach: **Panel**, **Mis alumnos**, **Avances** (timeline + comparar fotos de alumnos), export **Excel / PDF** (toolbar y por alumno)
-- Banner de invite pendiente (atleta) vía `GET /users/me/pending-coach-invite` (mensaje localizado si el coach no tiene cupo)
+- Auth (login / registro) + roles atleta / coach / admin
+- Menú de cuenta en sidebar: iniciales/foto, nombre corto, rol; dropdown (Mi perfil; Cerrar sesión)
+- Atleta: **Mi entrenamiento**, **Plan del coach**, **Nutrición** (pautas), **Avances** (upload / backfill + timeline + comparar)
+- Coach: **Panel**, **Plantillas**, **Mis alumnos**, **Nutrición** (perfil + pauta list/read/archive), **Avances**
+- Admin: **Overview** + **Usuarios** (acordeón detalle, grant/revoke, soft-delete)
+- Banner de invite pendiente (atleta) vía `GET /users/me/pending-coach-invite`
 - Planes: athlete `free`/`premium`; coach `free`/`growth`/`pro` + `coachQuota` en `/me`
 - UI bilingüe (Español / English)
-- Media local (`public/images`, `public/videos`); fotos de progreso vía Cloudinary (URLs del API)
+- Media de ejercicios vía paths relativos (`images/…`, `videos/…` desde la API); fotos de progreso/perfil vía Cloudinary
 
 ---
 
 ## Stack
 
-- HTML + CSS + **JavaScript ES modules** (sin bundler)
+- **React 19 + TypeScript + Vite**
+- **Tailwind CSS v4** (solo tokens / preflight; la UI usa las clases de `public/css/`)
+- React Router
 - Fetch API
-- Sirve con cualquier static server (Live Server, `npx serve`, etc.)
 
 ---
 
@@ -40,45 +44,51 @@ Consume la API desplegada en Render (o tu backend local).
 
 ```
 gym-data-fe/
-├── index.html              # App principal
-├── js/
-│   ├── main.js             # Catálogo, modal, plan
-│   ├── constants.js        # constantes no-i18n (ej. EQUIP_INITIAL)
-│   ├── i18n/               # copy EN/ES por dominio (common, auth, athlete, coach)
-│   ├── api/                # request, auth, users, exercises, token
-│   ├── features/           # auth, session, training, students, panel, invite, avances…
-│   └── utils/              # assets, cards, helpers, labels
-├── public/
-│   ├── css/                # base.css, app.css
-│   ├── images/
-│   └── videos/
+├── src/                    # App React (Vite)
+│   ├── api/
+│   ├── components/
+│   ├── context/
+│   ├── pages/
+│   ├── i18n/
+│   └── styles.css          # importa public/css + Tailwind
+├── index.html              # entrada Vite
+├── public/css/             # CSS original (base, app, nutrition, progress)
+├── PRODUCT.md
 └── docs/
-    ├── FRONTEND-CAPACIDADES.md   # qué hace el FE hoy
-    └── TODO.md                   # pendientes
 ```
 
 ---
 
 ## Cómo correrlo
 
-1. Cloná el repo.
-2. Abrí la carpeta con un servidor estático (necesario por ES modules):
+Hace falta [Node.js](https://nodejs.org/) y **npm**.
 
 ```bash
-npx serve .
-# o Live Server en VS Code / Cursor apuntando a index.html
+npm i
+npm run dev
 ```
 
-3. Abrí la URL que te muestre (ej. `http://localhost:3000` del static server — **no confundir** con el puerto de la API).
+Queda en [http://localhost:8080](http://localhost:8080). Si el puerto está ocupado, Vite usa el siguiente.
+
+| Comando | Qué hace |
+| --- | --- |
+| `npm run dev` | servidor de desarrollo |
+| `npm run build` | build de producción |
+| `npm run preview` | previsualizar el build |
+| `npm run lint` | ESLint |
+| `npm run format` | Prettier |
+
+La API base se puede fijar con `VITE_API_BASE` (ver `.env.example`). Si no está, se elige por hostname:
 
 ### API local vs producción
 
-En `js/api/request.js` (base URL):
+En `src/api/request.ts` (`resolveApiBase`):
 
-| Dónde abrís el front        | API usada                                      |
-|----------------------------|-------------------------------------------------|
-| `localhost` / `127.0.0.1`  | `http://localhost:3000`                         |
-| Otro host (deploy, etc.)   | `https://gym-data-8d3l.onrender.com`            |
+| Dónde abrís el front | API usada |
+|----------------------|-----------|
+| `localhost` / `127.0.0.1` | `http://localhost:3000` |
+| Preview develop en Vercel (`steelpulse-git-develop-…`) | `https://gym-data-dev-aunw.onrender.com` |
+| Otro host (prod) | `https://gym-data-8d3l.onrender.com` |
 
 Para desarrollar contra tu API local, levantá el backend en el puerto **3000** y abrí el front también en localhost.
 
@@ -88,26 +98,23 @@ Para desarrollar contra tu API local, levantá el backend en el puerto **3000** 
 
 ## Endpoints que usa el front
 
+Catálogo completo y shapes: BE [`docs/API-ENDPOINTS.md`](../gym-data-be/docs/API-ENDPOINTS.md) (si clonás ambos repos) o Swagger del API. Resumen:
+
 | Método | Path | Uso |
 |--------|------|-----|
-| `GET` | `/exercises?page=&limit=&category=&equipment=&target=` | Lista paginada + filtros |
-| `GET` | `/exercises/:id` | Detalle / búsqueda por id |
-| `GET` | `/exercises/random` | Botón WOD |
-| `GET` | `/exercises/labels` | Chips de filtros |
-| `GET` | `/exercises/recommend?zone=&equipment=&locale=` | Recomendar (Pro, IA) |
+| `GET` | `/exercises?…` · `/:id` · `/random` · `/labels` · `/recommend` | Catálogo / WOD / recommend IA |
 | `POST` | `/auth/login` · `/auth/register` | Sesión |
-| `GET` | `/users/me` | Perfil + programs + `subscription` + `coachQuota` (coach) |
-| `GET` | `/users/me/pending-coach-invite` | Invite pendiente atleta `{ invite }` |
-| `POST` | `/users/training-program` | Agregar ejercicios al plan |
-| `PUT` | `/users/training-program/remove` | Quitar un ejercicio |
-| `PUT` | `/users/training-program/:exerciseId` | Editar pauta |
-| `POST` | `/users/coach/invites` | Coach invita por email (cupo por plan) |
-| `GET` | `/users/coach/invites` | Historial invites (`status?`, page, limit) |
-| `POST` | `/users/me/pending-coach-invite/respond` | Atleta accept / reject |
-| `GET` | `/users/coach/athletes` | Mis alumnos / stats Panel |
-| `PUT` | `/users/coach/athletes/:id/training-program` | Guardar plan coach |
-| `POST` | `/users/coach/training-program/export` | Export Excel / PDF / zip (binary; `format`: `xlsx`\|`pdf`) |
-| `POST` | `/admin/subscriptions/grant` · `/revoke` | Admin (JWT + role admin) |
+| `GET`/`PATCH`/`DELETE` | `/users/me` | Perfil / editar / baja |
+| `POST` | `/users/me/profile-photo` | Foto de perfil (multipart) |
+| `GET`/`POST` | `/users/me/pending-coach-invite` · `…/respond` | Invite atleta |
+| `POST`/`PUT` | `/users/training-program` · `…/remove` · `…/:exerciseId` | Plan personal |
+| `POST` | `/users/me/progress-photos` | Upload avance (multipart) |
+| `GET`/`POST` | `/users/:userId/progress-photos` · `…/analyze` | Historial / analizar IA |
+| `GET`/`PUT` | `/users/coach/athletes/:id/nutrition` | Perfil nutricional (coach) |
+| `GET`/`POST` | `/users/coach/athletes` · `/invites` · export · training-program | Coach roster / invites / export |
+| `POST`/`GET`/`PUT`/`PATCH`/`DELETE` | `/nutrition-plans` · `…/:id` · `…/archive` | Pautas alimenticias |
+| `GET`/`POST`/`PUT` | `/coach/templates` · `…/apply` | Plantillas |
+| `GET`/`DELETE`/`POST` | `/admin/stats` · `/users` · subscriptions grant/revoke | Admin |
 
 Respuesta típica de listado:
 
@@ -129,9 +136,9 @@ Los campos `image` y `gif_url` vienen como paths relativos (`images/...`, `video
 
 ## Notas
 
-- Sin build step: editás y refrescás.
 - Render puede “dormir” el servicio gratis; el primer request tras inactividad puede tardar unos segundos.
 - Capacidades actuales: [`docs/FRONTEND-CAPACIDADES.md`](docs/FRONTEND-CAPACIDADES.md).
+- Producto: [`PRODUCT.md`](PRODUCT.md).
 - Pendientes: [`docs/TODO.md`](docs/TODO.md).
 - Maintained by **Mister L** 💪
 

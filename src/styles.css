@@ -1,0 +1,130 @@
+@import "tailwindcss" source(none);
+@import "../public/css/base.css";
+@import "../public/css/app.css";
+@import "../public/css/nutrition.css";
+@import "../public/css/progress.css";
+@source "../src";
+
+@custom-variant dark (&:is([data-theme="dark"] *));
+
+@theme inline {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+
+  --color-background: var(--bg-base);
+  --color-foreground: var(--text-primary);
+  --color-card: var(--bg-surface);
+  --color-card-foreground: var(--text-primary);
+  --color-popover: var(--bg-surface);
+  --color-popover-foreground: var(--text-primary);
+  --color-primary: var(--accent);
+  --color-primary-foreground: #ffffff;
+  --color-secondary: var(--bg-elevated);
+  --color-secondary-foreground: var(--text-primary);
+  --color-muted: var(--bg-elevated);
+  --color-muted-foreground: var(--text-secondary);
+  --color-accent: var(--accent);
+  --color-accent-foreground: #ffffff;
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #ffffff;
+  --color-border: var(--border);
+  --color-input: var(--bg-input);
+  --color-ring: var(--accent);
+  --color-sidebar: var(--bg-surface);
+  --color-sidebar-foreground: var(--text-primary);
+  --color-sidebar-border: var(--border);
+  --color-sidebar-accent: var(--accent-muted);
+  --color-sidebar-accent-foreground: var(--accent);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+}
+
+:root,
+html[data-theme="light"] {
+  color-scheme: light;
+  --accent: #1d4ed8;
+  --accent-muted: rgba(29, 78, 216, 0.18);
+  --bg-base: #dbeafe;
+  --bg-surface: #ffffff;
+  --bg-elevated: #bfdbfe;
+  --bg-input: #dbeafe;
+  --border: #60a5fa;
+  --border-hover: #3b82f6;
+  --text-primary: #0a1628;
+  --text-secondary: #1e3a8a;
+  --text-tertiary: #3b6bb5;
+  --plan-paid: #b45309;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --accent: #7db4ff;
+  --accent-muted: rgba(125, 180, 255, 0.22);
+  --bg-base: #0c1528;
+  --bg-surface: #162338;
+  --bg-elevated: #223550;
+  --bg-input: #121e33;
+  --border: #4a6fa3;
+  --border-hover: #7db4ff;
+  --text-primary: #eef4ff;
+  --text-secondary: #b7ccee;
+  --text-tertiary: #93a9cc;
+  --plan-paid: #fbbf24;
+}
+
+html.theme-animating,
+html.theme-animating *:not(svg):not(path):not(circle):not(ellipse):not(line):not(polyline):not(polygon) {
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease,
+    fill 0.25s ease,
+    stroke 0.25s ease,
+    box-shadow 0.25s ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.theme-animating,
+  html.theme-animating * {
+    transition: none !important;
+  }
+}
+
+.view-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    margin: 0;
+  }
+
+  button {
+    font: inherit;
+    cursor: pointer;
+  }
+
+  input {
+    font: inherit;
+  }
+}
