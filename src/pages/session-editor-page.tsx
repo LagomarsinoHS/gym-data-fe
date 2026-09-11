@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { getCoachTemplates, setCoachTemplates } from "@/api/coach-templates";
 import { listCoachAthletes, setAthleteCoachProgram } from "@/api/users";
-import { useCatalog } from "@/context/catalog-context";
+import { ASSIGN_CATALOG_STATE, useCatalog } from "@/context/catalog-context";
 import { useI18n } from "@/context/i18n-context";
 import { assetUrl } from "@/lib/assets";
 import { exerciseName } from "@/lib/labels";
@@ -279,7 +279,7 @@ export function SessionEditorPage() {
               className="recommend-cta session-editor-add"
               onClick={() => {
                 armAssign();
-                navigate("/");
+                navigate("/", { state: ASSIGN_CATALOG_STATE });
               }}
             >
               <span>{t("sessionAddExercises")}</span>

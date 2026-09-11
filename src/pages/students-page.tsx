@@ -12,7 +12,7 @@ import {
 import { RecommendOverlay, SearchIcon } from "@/components/coach/recommend-overlay";
 import { StudentPlan } from "@/components/coach/student-plan";
 import { useAuth } from "@/context/auth-context";
-import { useCatalog } from "@/context/catalog-context";
+import { ASSIGN_CATALOG_STATE, useCatalog } from "@/context/catalog-context";
 import { useI18n } from "@/context/i18n-context";
 import { canInviteAthlete } from "@/lib/capabilities";
 import {
@@ -225,7 +225,7 @@ export function StudentsPage() {
         returnTo: `/alumnos/${athlete.id}/sesion/${session.id}`,
         sessions,
       });
-      navigate("/");
+      navigate("/", { state: ASSIGN_CATALOG_STATE });
       return;
     }
     setAssignTarget(null);

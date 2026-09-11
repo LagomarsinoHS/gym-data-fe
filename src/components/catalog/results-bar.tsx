@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
+import { useAuth } from "@/context/auth-context";
 import { useCatalog } from "@/context/catalog-context";
 import { useI18n } from "@/context/i18n-context";
 import { useTheme } from "@/context/theme-context";
+import { isCoach } from "@/lib/capabilities";
 import { valueLabel } from "@/lib/labels";
 import type { FilterKey } from "@/types/exercise";
 
@@ -12,6 +14,7 @@ const FILTER_KEYS: FilterKey[] = ["category", "equipment", "target"];
 export function ResultsBar() {
   const { lang, setLang, t } = useI18n();
   const { theme, toggleTheme } = useTheme();
+  const { user } = useAuth();
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const {
@@ -33,8 +36,10 @@ export function ResultsBar() {
   }, [search]);
 
   const isTraining = pathname === "/entrenamiento";
+  const showExerciseSearch = !isCoach(user) || pathname === "/";
 
   useEffect(() => {
+    if (!showExerciseSearch) return;
     const timer = window.setTimeout(() => {
       if (draft !== search) {
         if (pathname !== "/" && !isTraining) navigate("/");
@@ -42,7 +47,7 @@ export function ResultsBar() {
       }
     }, 500);
     return () => window.clearTimeout(timer);
-  }, [draft, isTraining, navigate, pathname, search, setSearch]);
+  }, [draft, isTraining, navigate, pathname, search, setSearch, showExerciseSearch]);
 
   const active = FILTER_KEYS.flatMap((key) => {
     const value = filters[key];
@@ -84,7 +89,7 @@ export function ResultsBar() {
         </span>
       </div>
 
-      <div className="search-wrapper results-search">
+      <div className="search-wrapper results-search" hidden={!showExerciseSearch}>
         <svg
           className="search-icon"
           viewBox="0 0 16 16"

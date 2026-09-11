@@ -39,9 +39,11 @@ function FilterSection({
       setShown(sorted.length);
       return;
     }
-    const idx = selected ? sorted.indexOf(selected) : -1;
-    const min = idx >= pageSize ? Math.ceil((idx + 1) / pageSize) * pageSize : pageSize;
-    setShown(Math.min(min, sorted.length));
+    if (!selected) return;
+    const idx = sorted.indexOf(selected);
+    if (idx < 0) return;
+    const min = Math.ceil((idx + 1) / pageSize) * pageSize;
+    setShown((n) => Math.min(Math.max(n, min), sorted.length));
   }, [pageSize, selected, sorted]);
 
   const visible = pageSize ? sorted.slice(0, shown) : sorted;
