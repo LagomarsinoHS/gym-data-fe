@@ -10,7 +10,7 @@ import {
 import { listCoachAthletes } from "@/api/users";
 import { RecommendOverlay, SearchIcon } from "@/components/coach/recommend-overlay";
 import { StudentPlan } from "@/components/coach/student-plan";
-import { useCatalog } from "@/context/catalog-context";
+import { ASSIGN_CATALOG_STATE, useCatalog } from "@/context/catalog-context";
 import { useI18n } from "@/context/i18n-context";
 import { athleteHasTemplate } from "@/lib/coach-athletes";
 import { personName } from "@/lib/user-display";
@@ -75,7 +75,7 @@ export function CoachTemplatesPage() {
         returnTo: `/plantillas/${session.id}`,
         sessions: templates,
       });
-      navigate("/");
+      navigate("/", { state: ASSIGN_CATALOG_STATE });
       return;
     }
     setAssignTarget(null);

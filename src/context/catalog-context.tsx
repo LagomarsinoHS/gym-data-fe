@@ -11,6 +11,7 @@ import {
 import { useLocation, useSearchParams } from "react-router-dom";
 
 import { getExercise, getExercises, getLabels, getRandomExercise } from "@/api/exercises";
+import { useAuth } from "@/context/auth-context";
 import { getEasterEgg, isEasterEggQuery, type EasterEgg } from "@/lib/easter-eggs";
 import { readExerciseFromUrl } from "@/lib/url";
 import type { CatalogFilters, Exercise, ExerciseLabels, FilterKey } from "@/types/exercise";
@@ -25,6 +26,17 @@ export type SessionAssignTarget = {
   returnTo: string;
   sessions: TrainingSession[];
 };
+
+export const ASSIGN_CATALOG_STATE = { assignSession: true } as const;
+
+export function isAssignCatalogState(state: unknown) {
+  return Boolean(
+    state &&
+      typeof state === "object" &&
+      "assignSession" in state &&
+      (state as { assignSession?: unknown }).assignSession === true,
+  );
+}
 
 const PAGE_SIZE = 12;
 
@@ -71,8 +83,10 @@ function isIdSearch(q: string) {
 
 export function CatalogProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const isCatalog = location.pathname === "/";
+  const assignNavStateRef = useRef(location.state);
 
   const [labels, setLabels] = useState<ExerciseLabels>({
     category: [],
@@ -96,6 +110,21 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
 
   const requestId = useRef(0);
   const loadingRef = useRef(false);
+  assignNavStateRef.current = location.state;
+
+  useEffect(() => {
+    setAssignTarget((current) => (current ? null : current));
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (location.pathname !== "/") {
+      setAssignTarget((current) => (current ? null : current));
+      return;
+    }
+    if (!isAssignCatalogState(assignNavStateRef.current)) {
+      setAssignTarget((current) => (current ? null : current));
+    }
+  }, [location.pathname]);
 
   const openExercise = useCallback(
     (id: string) => {
